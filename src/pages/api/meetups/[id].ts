@@ -34,18 +34,46 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
   const { title, description, date, time, venue, address, capacity } = body as Record<string, unknown>;
 
   const updates: Partial<typeof meetup> = {};
-  if (title) updates.title = String(title).trim();
-  if (description) updates.description = String(description).trim();
-  if (date) {
-    const d = new Date(date as string);
-    if (!isNaN(d.getTime())) updates.date = d;
+
+  if (title !== undefined) {
+    const t = String(title).trim();
+    if (!t) return json({ error: "Title cannot be empty." }, 400);
+    updates.title = t;
   }
-  if (time) updates.time = String(time);
-  if (venue) updates.venue = String(venue).trim();
-  if (address !== undefined) updates.address = address ? String(address).trim() : null;
-  if (capacity) {
+  if (description !== undefined) {
+    const d = String(description).trim();
+    if (!d) return json({ error: "Description cannot be empty." }, 400);
+    updates.description = d;
+  }
+  if (date !== undefined) {
+    const meetupDate = new Date(date as string);
+    if (isNaN(meetupDate.getTime())) {
+      return json({ error: "Invalid date." }, 400);
+    }
+    if (meetupDate < new Date()) {
+      return json({ error: "Meetup date must be in the future." }, 400);
+    }
+    updates.date = meetupDate;
+  }
+  if (time !== undefined) {
+    const t = String(time).trim();
+    if (!t) return json({ error: "Time cannot be empty." }, 400);
+    updates.time = t;
+  }
+  if (venue !== undefined) {
+    const v = String(venue).trim();
+    if (!v) return json({ error: "Venue cannot be empty." }, 400);
+    updates.venue = v;
+  }
+  if (address !== undefined) {
+    updates.address = address ? String(address).trim() : null;
+  }
+  if (capacity !== undefined) {
     const cap = Number(capacity);
-    if (Number.isInteger(cap) && cap > 0) updates.capacity = cap;
+    if (!Number.isInteger(cap) || cap < 1 || cap > 500) {
+      return json({ error: "Capacity must be between 1 and 500." }, 400);
+    }
+    updates.capacity = cap;
   }
 
   await db.update(Meetups).set(updates).where(eq(Meetups.id, meetup.id));
