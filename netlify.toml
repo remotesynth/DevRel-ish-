@@ -1,8 +1,8 @@
 [build]
-  # Push schema changes to Turso before each build, then build the site.
-  # Requires ASTRO_DB_REMOTE_URL and ASTRO_DB_APP_TOKEN to be set in Netlify.
-  command = "astro db push --remote && astro build --remote"
-  publish = "dist"
+# Push schema changes to Turso before each build, then build the site.
+# Requires ASTRO_DB_REMOTE_URL and ASTRO_DB_APP_TOKEN to be set in Netlify.
+command = "astro db push --remote && astro build --remote"
+publish = "dist"
 
 [build.environment]
-  NODE_VERSION = "20"
+NODE_VERSION = "24"
