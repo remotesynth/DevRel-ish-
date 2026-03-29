@@ -45,11 +45,42 @@ npm run dev
 To create your first admin user you'll need to call the better-auth API to sign up and then manually set `role = "admin"` in the database, or add it to the seed file.
 
 ┌──────────────────────┬─────────────────┬─────────────────────┐
-│        Email         │    Password     │        Role         |
-├──────────────────────┼─────────────────┼─────────────────────┤      
-│ admin@devrelish.tech │ admin-devrelish │ Admin               │
+│ Email │ Password │ Role |
+├──────────────────────┼─────────────────┼─────────────────────┤  
+│ admin@devrelish.tech │ admin-devrelish │ Admin │
 ├──────────────────────┼─────────────────┼─────────────────────┤
-│ alex@example.com     │ alex-devrelish  │ Group manager (SF)  │ 
+│ alex@example.com │ alex-devrelish │ Group manager (SF) │
 ├──────────────────────┼─────────────────┼─────────────────────┤
-│ sam@example.com      │ sam-devrelish   │ Group manager (NYC) │
-└──────────────────────┴─────────────────┴─────────────────────┘     
+│ sam@example.com │ sam-devrelish │ Group manager (NYC) │
+└──────────────────────┴─────────────────┴─────────────────────┘
+
+## Deploy
+
+**One-time setup (do these before the first deploy):**
+
+1. **Create a Turso database**
+
+   ```sh
+   turso db create devrelish
+   turso db show devrelish --url      # → ASTRO_DB_REMOTE_URL
+   turso db tokens create devrelish   # → ASTRO_DB_APP_TOKEN
+   ```
+
+2. **Set Netlify environment variables** (Site settings → Environment variables):
+   - `BETTER_AUTH_SECRET` — `openssl rand -base64 32`
+   - `BETTER_AUTH_URL` — your Netlify URL (e.g. `https://devrelish.netlify.app`)
+   - `ASTRO_DB_REMOTE_URL` — from Turso above
+   - `ASTRO_DB_APP_TOKEN` — from Turso above
+   - `SETUP_TOKEN` — `openssl rand -base64 24` (temporary, for admin setup)
+
+3. **Push the schema to Turso** (run locally once with the env vars set):
+
+   ```sh
+   npm run db:push
+   ```
+
+4. **Deploy to Netlify** — the build command (`astro db push --remote && astro build`) will keep the schema in sync on every future deploy automatically.
+
+5. **Create your admin account** — visit `https://your-site.netlify.app/setup`, paste the `SETUP_TOKEN`, fill in your name/email/password.
+
+6. **Remove `SETUP_TOKEN`** from Netlify environment variables — this permanently disables the `/setup` page (it shows "Already configured" anyway once an admin exists, but removing the token is belt-and-suspenders).

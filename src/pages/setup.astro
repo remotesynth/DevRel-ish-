@@ -1,0 +1,271 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { db, User, Account } from "astro:db";
+import { eq } from "astro:db";
+import { generateId } from "../lib/utils";
+import { hashPassword } from "better-auth/crypto";
+
+// Setup is gated on SETUP_TOKEN being configured in the environment.
+// Once any admin user exists the page permanently shows "already configured"
+// regardless of whether SETUP_TOKEN is still set.
+
+const setupToken = process.env.SETUP_TOKEN ?? "";
+
+const [existingAdmin] = await db
+  .select({ id: User.id })
+  .from(User)
+  .where(eq(User.role, "admin"));
+
+const alreadyConfigured = !!existingAdmin;
+
+type Result =
+  | { type: "success"; email: string }
+  | { type: "error"; message: string };
+
+let result: Result | null = null;
+
+if (!alreadyConfigured && setupToken && Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+
+  const token    = form.get("token")?.toString() ?? "";
+  const name     = form.get("name")?.toString().trim() ?? "";
+  const email    = form.get("email")?.toString().trim().toLowerCase() ?? "";
+  const password = form.get("password")?.toString() ?? "";
+  const confirm  = form.get("confirm")?.toString() ?? "";
+
+  if (token !== setupToken) {
+    result = { type: "error", message: "Invalid setup token." };
+  } else if (!name || !email || !password) {
+    result = { type: "error", message: "All fields are required." };
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    result = { type: "error", message: "Please enter a valid email address." };
+  } else if (password.length < 10) {
+    result = { type: "error", message: "Password must be at least 10 characters." };
+  } else if (password !== confirm) {
+    result = { type: "error", message: "Passwords do not match." };
+  } else {
+    const [emailInUse] = await db.select({ id: User.id }).from(User).where(eq(User.email, email));
+    if (emailInUse) {
+      result = { type: "error", message: "That email address is already in use." };
+    } else {
+      const userId = generateId();
+      const passwordHash = await hashPassword(password);
+
+      await db.insert(User).values({
+        id: userId,
+        name,
+        email,
+        emailVerified: true,
+        role: "admin",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      await db.insert(Account).values({
+        id: generateId(),
+        accountId: userId,
+        providerId: "credential",
+        userId,
+        password: passwordHash,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      result = { type: "success", email };
+    }
+  }
+}
+---
+
+<BaseLayout title="Site Setup" description="">
+  <section class="setup-page">
+    <div class="container">
+      <div class="setup-card">
+        <div class="setup-logo">DevRel<span class="logo-ish">(ish)</span></div>
+
+        {alreadyConfigured ? (
+          <div class="state-block">
+            <div class="state-icon">✓</div>
+            <h1>Already configured</h1>
+            <p>An admin account exists. Use the normal login to access the dashboard.</p>
+            <a href="/auth/login" class="btn btn-primary">Go to login →</a>
+          </div>
+
+        ) : !setupToken ? (
+          <div class="state-block">
+            <div class="state-icon muted">◎</div>
+            <h1>Setup not available</h1>
+            <p>
+              Set a <code>SETUP_TOKEN</code> environment variable to enable first-run
+              admin setup.
+            </p>
+          </div>
+
+        ) : result?.type === "success" ? (
+          <div class="state-block">
+            <div class="state-icon">✓</div>
+            <h1>Admin created!</h1>
+            <p>
+              You can now sign in as <strong>{result.email}</strong>. For security,
+              remove <code>SETUP_TOKEN</code> from your environment to disable this page.
+            </p>
+            <a href="/auth/login" class="btn btn-primary">Sign in →</a>
+          </div>
+
+        ) : (
+          <>
+            <h1>First-run setup</h1>
+            <p class="setup-subtitle">Create the initial admin account for this site.</p>
+
+            <form method="POST" class="setup-form">
+              {result?.type === "error" && (
+                <div class="alert alert-error" role="alert">{result.message}</div>
+              )}
+
+              <div class="form-group">
+                <label for="token">Setup token *</label>
+                <input
+                  id="token"
+                  name="token"
+                  type="password"
+                  placeholder="Paste your SETUP_TOKEN value"
+                  required
+                  autocomplete="off"
+                />
+              </div>
+
+              <hr class="form-divider" />
+
+              <div class="form-group">
+                <label for="name">Your name *</label>
+                <input id="name" name="name" type="text" placeholder="Site Admin" required />
+              </div>
+
+              <div class="form-group">
+                <label for="email">Email address *</label>
+                <input id="email" name="email" type="email" placeholder="admin@example.com" required />
+              </div>
+
+              <div class="form-group">
+                <label for="password">Password *</label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="At least 10 characters"
+                  required
+                  minlength="10"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="confirm">Confirm password *</label>
+                <input
+                  id="confirm"
+                  name="confirm"
+                  type="password"
+                  placeholder="Repeat your password"
+                  required
+                />
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-lg" style="width:100%;justify-content:center;">
+                Create admin account →
+              </button>
+            </form>
+          </>
+        )}
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .setup-page {
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+    padding: 3rem 0;
+  }
+
+  .setup-card {
+    max-width: 440px;
+    margin-inline: auto;
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: 2.5rem;
+  }
+
+  .setup-logo {
+    font-family: var(--font-display);
+    font-size: var(--size-2xl);
+    color: var(--color-primary);
+    text-align: center;
+    margin-bottom: 1.75rem;
+  }
+
+  .logo-ish {
+    color: var(--color-text-muted);
+    font-size: 0.85em;
+  }
+
+  h1 {
+    font-size: var(--size-2xl);
+    margin-bottom: 0.375rem;
+    text-align: center;
+  }
+
+  .setup-subtitle {
+    color: var(--color-text-muted);
+    text-align: center;
+    margin-bottom: 1.75rem;
+    font-size: var(--size-base);
+  }
+
+  .setup-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.125rem;
+  }
+
+  .form-divider {
+    border: none;
+    border-top: 1px dashed var(--color-border);
+    margin: 0.25rem 0;
+  }
+
+  /* State screens (already configured, no token, success) */
+  .state-block {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .state-block p {
+    color: var(--color-text-muted);
+    font-size: var(--size-sm);
+    max-width: 30ch;
+  }
+
+  .state-block code {
+    background: var(--color-surface-warm);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 0.1rem 0.4rem;
+    font-size: 0.9em;
+  }
+
+  .state-icon {
+    font-size: 2.5rem;
+    color: var(--color-accent);
+    font-family: var(--font-display);
+    line-height: 1;
+  }
+
+  .state-icon.muted {
+    color: var(--color-text-light);
+  }
+</style>
