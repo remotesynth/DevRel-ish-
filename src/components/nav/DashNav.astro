@@ -1,10 +1,21 @@
 ---
+import { db, ContactMessages, count, eq, and } from "astro:db";
+
 interface Props {
   user: App.Locals["user"];
 }
 const { user } = Astro.props;
 const path = Astro.url.pathname;
 const isAdmin = user?.role === "admin";
+
+let unreadMessages = 0;
+if (!isAdmin && user?.groupId) {
+  const [result] = await db
+    .select({ val: count() })
+    .from(ContactMessages)
+    .where(and(eq(ContactMessages.groupId, user.groupId), eq(ContactMessages.read, false)));
+  unreadMessages = result?.val ?? 0;
+}
 
 function isActive(href: string) {
   return path === href || path.startsWith(href + "/");
@@ -57,6 +68,14 @@ function isActive(href: string) {
             <li>
               <a href="/dashboard/meetups" class:list={["dash-link", { active: isActive("/dashboard/meetups") }]}>
                 ✦ Meetups
+              </a>
+            </li>
+            <li>
+              <a href="/dashboard/messages" class:list={["dash-link", { active: isActive("/dashboard/messages") }]}>
+                <span class="nav-link-inner">
+                  ✉ Messages
+                  {unreadMessages > 0 && <span class="nav-badge">{unreadMessages}</span>}
+                </span>
               </a>
             </li>
           </ul>
@@ -180,6 +199,24 @@ function isActive(href: string) {
   .dash-link-sm {
     font-size: var(--size-xs);
     padding: 0.375rem 0.75rem;
+  }
+
+  .nav-link-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .nav-badge {
+    font-size: 10px;
+    font-weight: 700;
+    background: var(--color-primary);
+    color: white;
+    border-radius: var(--radius-full);
+    padding: 0.1rem 0.4rem;
+    line-height: 1.4;
+    flex-shrink: 0;
   }
 
   .dash-nav-footer {

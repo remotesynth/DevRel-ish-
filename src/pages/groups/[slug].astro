@@ -51,6 +51,9 @@ const location = group.region
       <h1>{group.name}</h1>
       <p class="group-location">📍 {location}</p>
       <p class="group-desc">{group.description}</p>
+      <a href={`/groups/${group.slug}/contact`} class="contact-link">
+        Have a question? Contact the organizers →
+      </a>
     </div>
   </section>
 
@@ -129,6 +132,25 @@ const location = group.region
     color: var(--color-text-muted);
     line-height: 1.7;
     max-width: 64ch;
+    margin-bottom: 1rem;
+  }
+
+  .contact-link {
+    display: inline-block;
+    font-size: var(--size-sm);
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-full);
+    padding: 0.375rem 0.875rem;
+    transition: color var(--transition), border-color var(--transition), background var(--transition);
+  }
+
+  .contact-link:hover {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    background: rgba(232, 112, 74, 0.06);
   }
 
   .meetups-section {

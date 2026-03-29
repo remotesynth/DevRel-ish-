@@ -1,0 +1,380 @@
+---
+import DashboardLayout from "../../../layouts/DashboardLayout.astro";
+import { db, ContactMessages, Groups } from "astro:db";
+import { eq, asc, desc } from "astro:db";
+
+if (!Astro.locals.user) return Astro.redirect("/auth/login");
+const user = Astro.locals.user;
+
+const isAdmin = user.role === "admin";
+
+// Organizers see their group's messages; admins see all
+let messages: (typeof ContactMessages.$inferSelect & { groupName?: string })[];
+
+if (isAdmin) {
+  const rows = await db
+    .select({
+      id: ContactMessages.id,
+      groupId: ContactMessages.groupId,
+      name: ContactMessages.name,
+      email: ContactMessages.email,
+      message: ContactMessages.message,
+      read: ContactMessages.read,
+      createdAt: ContactMessages.createdAt,
+      groupName: Groups.name,
+    })
+    .from(ContactMessages)
+    .leftJoin(Groups, eq(ContactMessages.groupId, Groups.id))
+    .orderBy(asc(ContactMessages.read), desc(ContactMessages.createdAt));
+  messages = rows as typeof messages;
+} else {
+  if (!user.groupId) return Astro.redirect("/dashboard");
+  const rows = await db
+    .select()
+    .from(ContactMessages)
+    .where(eq(ContactMessages.groupId, user.groupId))
+    .orderBy(asc(ContactMessages.read), desc(ContactMessages.createdAt));
+  messages = rows;
+}
+
+const unreadCount = messages.filter((m) => !m.read).length;
+const justDeleted = Astro.url.searchParams.get("deleted") === "1";
+---
+
+<DashboardLayout title="Messages">
+  <div class="page-header">
+    <h1>
+      Messages
+      {unreadCount > 0 && <span class="unread-badge">{unreadCount} unread</span>}
+    </h1>
+    <p class="page-subtitle">Questions sent by the public through the contact form on your group page.</p>
+  </div>
+
+  {justDeleted && (
+    <div class="alert alert-success" role="status">Message deleted.</div>
+  )}
+
+  {messages.length === 0 ? (
+    <div class="empty-state">
+      <div class="empty-icon" aria-hidden="true">✉</div>
+      <p>No messages yet. When someone contacts you through your group page, it'll show up here.</p>
+    </div>
+  ) : (
+    <div class="messages-list">
+      {messages.map((msg) => (
+        <article class:list={["message-card", { unread: !msg.read }]}>
+          <div class="message-header">
+            <div class="sender-info">
+              {!msg.read && <span class="unread-dot" aria-label="Unread" />}
+              <div>
+                <span class="sender-name">{msg.name}</span>
+                <a href={`mailto:${msg.email}`} class="sender-email">{msg.email}</a>
+              </div>
+            </div>
+            <div class="message-meta">
+              {isAdmin && (msg as any).groupName && (
+                <span class="group-tag">{(msg as any).groupName}</span>
+              )}
+              <time class="message-date" datetime={msg.createdAt.toISOString()}>
+                {new Intl.DateTimeFormat("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                }).format(msg.createdAt)}
+              </time>
+            </div>
+          </div>
+
+          <p class="message-body">{msg.message}</p>
+
+          <div class="message-actions">
+            <form method="POST" action={`/api/messages/${msg.id}/read`}>
+              <button type="submit" class="btn-action">
+                {msg.read ? "Mark as unread" : "Mark as read"}
+              </button>
+            </form>
+            <button
+              type="button"
+              class="btn-action btn-action-danger"
+              data-dialog={`dialog-${msg.id}`}
+            >
+              Delete
+            </button>
+          </div>
+        </article>
+      ))}
+    </div>
+  )}
+
+  {messages.map((msg) => (
+    <dialog id={`dialog-${msg.id}`} class="confirm-dialog">
+      <div class="dialog-inner">
+        <h3>Delete this message?</h3>
+        <p>
+          From <strong>{msg.name}</strong> ({msg.email}). This cannot be undone.
+        </p>
+        <div class="dialog-actions">
+          <form method="POST" action={`/api/messages/${msg.id}/delete`}>
+            <button type="submit" class="btn btn-danger">Yes, delete it</button>
+          </form>
+          <button type="button" class="btn btn-ghost btn-cancel" data-dialog={`dialog-${msg.id}`}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    </dialog>
+  ))}
+</DashboardLayout>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>("button[data-dialog]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const dialog = document.getElementById(btn.dataset.dialog!) as HTMLDialogElement | null;
+      dialog?.showModal();
+    });
+  });
+
+  document.querySelectorAll<HTMLButtonElement>(".btn-cancel[data-dialog]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const dialog = document.getElementById(btn.dataset.dialog!) as HTMLDialogElement | null;
+      dialog?.close();
+    });
+  });
+
+  document.querySelectorAll<HTMLDialogElement>(".confirm-dialog").forEach((dialog) => {
+    dialog.addEventListener("click", (e) => {
+      if (e.target === dialog) dialog.close();
+    });
+  });
+</script>
+
+<style>
+  .page-header {
+    margin-bottom: 1.75rem;
+  }
+
+  .page-header h1 {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.375rem;
+  }
+
+  .unread-badge {
+    font-size: var(--size-sm);
+    font-family: var(--font-body);
+    font-weight: 700;
+    background: var(--color-primary);
+    color: white;
+    border-radius: var(--radius-full);
+    padding: 0.125rem 0.625rem;
+  }
+
+  .page-subtitle {
+    color: var(--color-text-muted);
+    font-size: var(--size-sm);
+    max-width: none;
+  }
+
+  .alert {
+    margin-bottom: 1.25rem;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+    background: var(--color-surface);
+    border: 2px dashed var(--color-border);
+    border-radius: var(--radius-lg);
+  }
+
+  .empty-icon {
+    font-size: 2.5rem;
+    color: var(--color-text-light);
+    display: block;
+    margin-bottom: 0.75rem;
+  }
+
+  .empty-state p {
+    color: var(--color-text-muted);
+    max-width: 44ch;
+    margin-inline: auto;
+  }
+
+  .messages-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .message-card {
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem 1.5rem;
+    transition: border-color var(--transition);
+  }
+
+  .message-card.unread {
+    border-color: var(--color-primary);
+    background: color-mix(in srgb, var(--color-primary) 4%, var(--color-surface));
+  }
+
+  .message-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.875rem;
+    flex-wrap: wrap;
+  }
+
+  .sender-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .unread-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    flex-shrink: 0;
+  }
+
+  .sender-name {
+    display: block;
+    font-weight: 700;
+    font-size: var(--size-base);
+  }
+
+  .sender-email {
+    display: block;
+    font-size: var(--size-sm);
+    color: var(--color-primary);
+    text-decoration: none;
+  }
+
+  .sender-email:hover {
+    text-decoration: underline;
+  }
+
+  .message-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .group-tag {
+    font-size: var(--size-xs);
+    font-weight: 700;
+    color: var(--color-text-muted);
+    background: var(--color-surface-warm);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    padding: 0.125rem 0.5rem;
+  }
+
+  .message-date {
+    font-size: var(--size-xs);
+    color: var(--color-text-muted);
+    white-space: nowrap;
+  }
+
+  .message-body {
+    font-size: var(--size-base);
+    line-height: 1.7;
+    color: var(--color-text);
+    white-space: pre-wrap;
+    margin-bottom: 1rem;
+    max-width: none;
+  }
+
+  .message-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    padding-top: 0.75rem;
+    border-top: 1px dashed var(--color-border);
+  }
+
+  .btn-action {
+    background: none;
+    border: none;
+    padding: 0.25rem 0.5rem;
+    font-size: var(--size-xs);
+    font-weight: 700;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    transition: color var(--transition), text-decoration-color var(--transition);
+    font-family: inherit;
+  }
+
+  .btn-action:hover {
+    color: var(--color-primary);
+    text-decoration-color: var(--color-primary);
+  }
+
+  .btn-action-danger:hover {
+    color: #c0392b;
+    text-decoration-color: #c0392b;
+  }
+
+  /* Dialog */
+  .confirm-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: 0;
+    max-width: 400px;
+    width: calc(100% - 2rem);
+    box-shadow: var(--shadow-lg);
+    background: var(--color-surface);
+    margin: 0;
+  }
+
+  .confirm-dialog::backdrop {
+    background: rgba(44, 24, 16, 0.45);
+    backdrop-filter: blur(2px);
+  }
+
+  .dialog-inner {
+    padding: 2rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .confirm-dialog h3 {
+    font-size: var(--size-xl);
+    margin: 0;
+  }
+
+  .confirm-dialog p {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+
+  .dialog-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .dialog-actions form {
+    display: contents;
+  }
+</style>

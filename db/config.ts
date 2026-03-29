@@ -45,6 +45,18 @@ const RSVPs = defineTable({
   },
 });
 
+const ContactMessages = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    groupId: column.text({ references: () => Groups.columns.id }),
+    name: column.text(),
+    email: column.text(),
+    message: column.text(),
+    read: column.boolean({ default: false }),
+    createdAt: column.date({ default: new Date() }),
+  },
+});
+
 // ── better-auth Tables ────────────────────────────────────────────────────────
 
 const User = defineTable({
@@ -111,5 +123,5 @@ const Verification = defineTable({
 });
 
 export default defineDb({
-  tables: { Groups, Meetups, RSVPs, User, Session, Account, Verification },
+  tables: { Groups, Meetups, RSVPs, ContactMessages, User, Session, Account, Verification },
 });
