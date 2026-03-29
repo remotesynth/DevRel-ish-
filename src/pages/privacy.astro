@@ -1,0 +1,404 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+const lastUpdated = "March 2026";
+---
+
+<BaseLayout
+  title="Privacy Policy"
+  description="How DevRel(ish) collects, uses, and protects your personal information."
+>
+  <section class="policy-hero">
+    <div class="container">
+      <div class="eyebrow">◎ Plain language, we promise</div>
+      <h1>Privacy Policy</h1>
+      <p>
+        We've written this to be readable, not to bury the important stuff in legalese.
+        Last updated: <strong>{lastUpdated}</strong>.
+      </p>
+    </div>
+  </section>
+
+  <section class="policy-body">
+    <div class="container policy-layout">
+      <nav class="policy-toc" aria-label="Table of contents">
+        <p class="toc-heading">On this page</p>
+        <ul>
+          <li><a href="#what-we-collect">What we collect</a></li>
+          <li><a href="#how-we-use-it">How we use it</a></li>
+          <li><a href="#who-sees-it">Who sees it</a></li>
+          <li><a href="#organizer-rules">Organizer rules</a></li>
+          <li><a href="#retention">Data retention</a></li>
+          <li><a href="#your-rights">Your rights</a></li>
+          <li><a href="#contact">Contact us</a></li>
+        </ul>
+      </nav>
+
+      <div class="policy-content">
+
+        <section id="what-we-collect" class="policy-section">
+          <h2>What we collect</h2>
+
+          <h3>When you RSVP to a meetup</h3>
+          <p>We ask for:</p>
+          <ul>
+            <li><strong>Name</strong> — so the organizer knows who's coming</li>
+            <li><strong>Email address</strong> — so the organizer can reach you about the event</li>
+            <li><strong>Job title</strong> — to help the group understand who's attending</li>
+            <li><strong>Company</strong> — same reason</li>
+          </ul>
+          <p>
+            We do not require an account to RSVP. We do not collect payment information.
+            We do not use tracking cookies or analytics on RSVP submissions.
+          </p>
+
+          <h3>When you apply to start a group</h3>
+          <p>
+            We collect your name (via account creation after approval), email address, and the
+            details of your proposed group. This is used to review your application and, if
+            approved, to give you access to manage your group.
+          </p>
+
+          <h3>When you create an account (group organizers only)</h3>
+          <p>
+            Attendees do not need accounts. Group organizers create an account with their name
+            and email address. We store a hashed password — we never store your password in
+            plain text and we cannot recover it.
+          </p>
+        </section>
+
+        <section id="how-we-use-it" class="policy-section">
+          <h2>How we use it</h2>
+          <p>We use the information we collect to:</p>
+          <ul>
+            <li>Manage RSVPs and track event capacity</li>
+            <li>Allow group organizers to know who is attending their events</li>
+            <li>Send you information about the specific event you RSVPed for (if the organizer
+                chooses to contact attendees)</li>
+            <li>Operate the DevRel(ish) platform</li>
+          </ul>
+          <p>
+            We do <strong>not</strong> sell your data. We do not share it with advertisers.
+            We do not use it for any purpose unrelated to organizing DevRel(ish) meetups.
+          </p>
+        </section>
+
+        <section id="who-sees-it" class="policy-section">
+          <h2>Who sees your information</h2>
+
+          <h3>Group organizers</h3>
+          <p>
+            The organizer of the meetup you RSVP for can see your name, email, job title,
+            and company. They can download this list in order to manage attendance and
+            communicate with attendees. See <a href="#organizer-rules">Organizer rules</a>
+            below for how they're permitted to use it.
+          </p>
+
+          <h3>DevRel(ish) administrators</h3>
+          <p>
+            Site administrators can access RSVP data for the purpose of operating and
+            moderating the platform.
+          </p>
+
+          <h3>No one else</h3>
+          <p>
+            We don't share your personal information with any third-party services,
+            data brokers, sponsors, or other organizations.
+          </p>
+        </section>
+
+        <section id="organizer-rules" class="policy-section policy-section-highlight">
+          <h2>Organizer rules for attendee data</h2>
+          <p>
+            Group organizers agree to the following when they apply to run a DevRel(ish) group.
+            Violations may result in removal from the platform.
+          </p>
+
+          <h3>✓ Organizers may</h3>
+          <ul class="rules-list rules-allowed">
+            <li>
+              Contact attendees about the specific event they RSVPed for — logistics,
+              location changes, cancellations, and so on
+            </li>
+            <li>
+              Add attendees to a mailing list for the group's future events, provided
+              they make this clear at the point of RSVP and provide an easy way to
+              unsubscribe
+            </li>
+            <li>
+              Share aggregate, anonymized information (e.g. "we had 40 attendees,
+              mostly developer advocates") without identifying individuals
+            </li>
+          </ul>
+
+          <h3>✗ Organizers may not</h3>
+          <ul class="rules-list rules-prohibited">
+            <li>
+              Use attendee contact information to market products, services, or anything
+              unrelated to their DevRel(ish) group's events
+            </li>
+            <li>Send unsolicited bulk email (spam) of any kind</li>
+            <li>
+              Share, sell, or transfer the attendee list to any third party, including
+              event sponsors, employers, or other organizations
+            </li>
+            <li>
+              Retain attendee data beyond what is reasonably needed to operate the group
+            </li>
+            <li>
+              Use the data for any purpose other than organizing in-person social events
+              for their DevRel(ish) group
+            </li>
+          </ul>
+
+          <p class="rules-note">
+            If you believe an organizer has misused your contact information, please
+            contact us at <a href="mailto:privacy@devrelish.tech">privacy@devrelish.tech</a>
+            and we will investigate and take action.
+          </p>
+        </section>
+
+        <section id="retention" class="policy-section">
+          <h2>Data retention</h2>
+          <p>
+            RSVP data is retained for as long as the associated group remains active on
+            the platform. If a group is removed, its RSVP data is deleted within 30 days.
+          </p>
+          <p>
+            Group organizer accounts are retained until the organizer requests deletion
+            or the group is removed from the platform.
+          </p>
+          <p>
+            You can request deletion of your RSVP record at any time by emailing
+            <a href="mailto:privacy@devrelish.tech">privacy@devrelish.tech</a> with the
+            email address you used to RSVP.
+          </p>
+        </section>
+
+        <section id="your-rights" class="policy-section">
+          <h2>Your rights</h2>
+          <p>Regardless of where you are in the world, you can:</p>
+          <ul>
+            <li><strong>Access</strong> the personal information we hold about you</li>
+            <li><strong>Correct</strong> inaccurate information</li>
+            <li><strong>Delete</strong> your RSVP records or account</li>
+            <li>
+              <strong>Object</strong> to a specific use of your data — for example, if
+              an organizer is contacting you in a way that violates the rules above
+            </li>
+          </ul>
+          <p>
+            To exercise any of these rights, email
+            <a href="mailto:privacy@devrelish.tech">privacy@devrelish.tech</a>.
+            We'll respond within 30 days.
+          </p>
+          <p>
+            If you are in the European Economic Area or the UK, you also have the right
+            to lodge a complaint with your local data protection authority.
+          </p>
+        </section>
+
+        <section id="contact" class="policy-section">
+          <h2>Contact us</h2>
+          <p>
+            Questions about this policy, requests to access or delete your data, or reports
+            of organizer misuse should be sent to:
+          </p>
+          <p>
+            <a href="mailto:privacy@devrelish.tech">privacy@devrelish.tech</a>
+          </p>
+          <p>
+            We may update this policy from time to time. If we make material changes,
+            we'll update the date at the top of this page.
+          </p>
+        </section>
+
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .policy-hero {
+    padding: 3rem 0 2rem;
+    background: var(--color-surface-warm);
+    border-bottom: 2px solid var(--color-border);
+  }
+
+  .eyebrow {
+    display: inline-block;
+    font-size: var(--size-sm);
+    font-weight: 700;
+    color: var(--color-primary);
+    background: rgba(232, 112, 74, 0.1);
+    padding: 0.25rem 0.875rem;
+    border-radius: var(--radius-full);
+    margin-bottom: 0.75rem;
+  }
+
+  .policy-hero h1 {
+    margin-bottom: 0.5rem;
+  }
+
+  .policy-hero p {
+    color: var(--color-text-muted);
+    font-size: var(--size-lg);
+  }
+
+  .policy-body {
+    padding: 3rem 0 5rem;
+  }
+
+  .policy-layout {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 3rem;
+    align-items: start;
+  }
+
+  /* Table of contents */
+  .policy-toc {
+    position: sticky;
+    top: 88px;
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+  }
+
+  .toc-heading {
+    font-size: var(--size-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+    margin-bottom: 0.75rem;
+    max-width: none;
+  }
+
+  .policy-toc ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  .policy-toc a {
+    font-size: var(--size-sm);
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--color-text-muted);
+    display: block;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+    transition: color var(--transition), background var(--transition);
+  }
+
+  .policy-toc a:hover {
+    color: var(--color-primary);
+    background: var(--color-surface-warm);
+  }
+
+  /* Content */
+  .policy-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .policy-section {
+    padding: 2rem 0;
+    border-bottom: 1px dashed var(--color-border);
+  }
+
+  .policy-section:last-child {
+    border-bottom: none;
+  }
+
+  .policy-section h2 {
+    font-size: var(--size-2xl);
+    margin-bottom: 1rem;
+    color: var(--color-text);
+  }
+
+  .policy-section h3 {
+    font-size: var(--size-base);
+    margin-top: 1.25rem;
+    margin-bottom: 0.5rem;
+    color: var(--color-text);
+  }
+
+  .policy-section p {
+    color: var(--color-text-muted);
+    font-size: var(--size-base);
+    margin-bottom: 0.75rem;
+    max-width: 68ch;
+  }
+
+  .policy-section ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    padding-left: 0;
+  }
+
+  .policy-section ul li {
+    color: var(--color-text-muted);
+    font-size: var(--size-base);
+    padding-left: 1.25rem;
+    position: relative;
+  }
+
+  .policy-section ul li::before {
+    content: "–";
+    position: absolute;
+    left: 0;
+    color: var(--color-primary);
+  }
+
+  /* Highlight box for organizer rules */
+  .policy-section-highlight {
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: 2rem;
+    margin: 1rem 0;
+    border-bottom: 2px solid var(--color-border) !important;
+  }
+
+  .rules-list {
+    padding-left: 0;
+  }
+
+  .rules-allowed li::before {
+    content: "✓";
+    color: var(--color-accent-dark);
+    font-weight: 700;
+  }
+
+  .rules-prohibited li::before {
+    content: "✗";
+    color: #c0392b;
+    font-weight: 700;
+  }
+
+  .rules-note {
+    font-size: var(--size-sm) !important;
+    background: var(--color-surface-warm);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 1rem;
+    margin-top: 1rem !important;
+  }
+
+  @media (max-width: 768px) {
+    .policy-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .policy-toc {
+      position: static;
+    }
+  }
+</style>

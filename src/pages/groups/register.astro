@@ -60,6 +60,16 @@ import GroupForm from "../../components/groups/GroupForm";
             developer content writers... all welcome.
           </p>
         </div>
+
+        <div class="sidebar-card">
+          <h3>Organizer data rules</h3>
+          <p>
+            By starting a group you agree to use attendee contact information only for organizing
+            your DevRel(ish) events. Sharing, selling, or marketing to attendees outside of
+            event-related communications is not permitted.
+          </p>
+          <a href="/privacy#organizer-rules" class="sidebar-link">Read the full organizer rules →</a>
+        </div>
       </aside>
     </div>
   </section>
@@ -195,6 +205,12 @@ import GroupForm from "../../components/groups/GroupForm";
   .sidebar-card p {
     font-size: var(--size-sm);
     color: var(--color-text-muted);
+    margin-bottom: 0.5rem;
+  }
+
+  .sidebar-link {
+    font-size: var(--size-xs);
+    font-weight: 700;
   }
 
   .steps-list {

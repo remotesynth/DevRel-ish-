@@ -195,7 +195,7 @@ const isFull = spots === 0;
                     placeholder="taylor@example.com"
                     required
                   />
-                  <span class="form-hint">We'll only use this to identify your RSVP.</span>
+                  <span class="form-hint">Used by the event organizer to contact you about this meetup only.</span>
                 </div>
 
                 <div class="form-group">
@@ -213,6 +213,13 @@ const isFull = spots === 0;
                   <label for="company">Company *</label>
                   <input id="company" name="company" type="text" placeholder="Acme Corp" required />
                 </div>
+
+                <p class="privacy-notice">
+                  Your name, email, job title, and company will be shared with the event organizer
+                  (<strong>{group.name}</strong>) for managing attendance and contacting you about
+                  this meetup and future group events. We don't sell or share your data with anyone
+                  else. <a href="/privacy">Privacy policy →</a>
+                </p>
 
                 <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; justify-content: center;">
                   Count me in! →
@@ -311,6 +318,17 @@ const isFull = spots === 0;
     flex-direction: column;
     gap: 1.25rem;
     max-width: 480px;
+  }
+
+  .privacy-notice {
+    font-size: var(--size-xs);
+    color: var(--color-text-muted);
+    background: var(--color-surface-warm);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 0.625rem 0.875rem;
+    line-height: 1.5;
+    max-width: none;
   }
 
   .alert {
