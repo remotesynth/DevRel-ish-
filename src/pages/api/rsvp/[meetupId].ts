@@ -14,6 +14,10 @@ export const POST: APIRoute = async ({ params, request }) => {
   const [meetup] = await db.select().from(Meetups).where(eq(Meetups.id, meetupId));
   if (!meetup) return json({ error: "Meetup not found." }, 404);
 
+  if (meetup.status === "canceled") {
+    return json({ error: "This meetup has been cancelled." }, 400);
+  }
+
   const [group] = await db.select().from(Groups).where(eq(Groups.id, meetup.groupId));
   if (!group || group.status !== "approved") {
     return json({ error: "Meetup not available." }, 404);

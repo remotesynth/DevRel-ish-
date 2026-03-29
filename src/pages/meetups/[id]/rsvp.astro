@@ -47,6 +47,12 @@ if (Astro.request.method === "POST") {
       result = { type: "error", message: "All fields are required." };
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       result = { type: "error", message: "Please enter a valid email address." };
+    } else if (isGroupClosed) {
+      result = { type: "error", message: "This group is no longer accepting RSVPs." };
+    } else if (isMeetupCanceled) {
+      result = { type: "error", message: "This meetup has been cancelled." };
+    } else if (meetup.date < new Date()) {
+      result = { type: "error", message: "This meetup has already passed." };
     } else {
       // Re-fetch fresh RSVP count inside the POST handler
       const [countResult] = await db
