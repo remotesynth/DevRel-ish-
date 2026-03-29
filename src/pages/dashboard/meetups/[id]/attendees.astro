@@ -28,6 +28,8 @@ const attendees = await db
   .from(RSVPs)
   .where(eq(RSVPs.meetupId, id))
   .orderBy(asc(RSVPs.createdAt));
+
+const justRemoved = Astro.url.searchParams.get("removed") === "1";
 ---
 
 <DashboardLayout title={`Attendees — ${meetup.title}`}>
@@ -55,6 +57,12 @@ const attendees = await db
       )}
     </div>
   </div>
+
+  {justRemoved && (
+    <div class="alert alert-success" role="status">
+      Attendee removed from the list.
+    </div>
+  )}
 
   <div class="attendee-stats">
     <div class="stat">
@@ -90,6 +98,7 @@ const attendees = await db
               <th>Job Title</th>
               <th>Company</th>
               <th>RSVP'd</th>
+              <th><span class="sr-only">Actions</span></th>
             </tr>
           </thead>
           <tbody>
@@ -109,6 +118,16 @@ const attendees = await db
                     year: "numeric",
                   }).format(a.createdAt)}
                 </td>
+                <td class="action-cell">
+                  <button
+                    type="button"
+                    class="btn-remove"
+                    data-dialog={`dialog-${a.id}`}
+                    aria-label={`Remove ${a.name}`}
+                  >
+                    Remove
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -116,7 +135,54 @@ const attendees = await db
       </div>
     )
   }
+
+  <!-- Confirmation dialogs, one per attendee -->
+  {attendees.map((a) => (
+    <dialog id={`dialog-${a.id}`} class="confirm-dialog">
+      <div class="dialog-inner">
+        <div class="dialog-icon" aria-hidden="true">⚠️</div>
+        <h3>Remove attendee?</h3>
+        <p>
+          This will remove <strong>{a.name}</strong> ({a.email}) from the attendee
+          list for <strong>{meetup.title}</strong>. This cannot be undone.
+        </p>
+        <div class="dialog-actions">
+          <form method="POST" action={`/api/rsvp/${a.id}/delete`}>
+            <button type="submit" class="btn btn-danger">Yes, remove them</button>
+          </form>
+          <button type="button" class="btn btn-ghost btn-cancel" data-dialog={`dialog-${a.id}`}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    </dialog>
+  ))}
 </DashboardLayout>
+
+<script>
+  // Open dialog
+  document.querySelectorAll<HTMLButtonElement>("button[data-dialog]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const dialog = document.getElementById(btn.dataset.dialog!) as HTMLDialogElement | null;
+      dialog?.showModal();
+    });
+  });
+
+  // Close on Cancel button
+  document.querySelectorAll<HTMLButtonElement>(".btn-cancel[data-dialog]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const dialog = document.getElementById(btn.dataset.dialog!) as HTMLDialogElement | null;
+      dialog?.close();
+    });
+  });
+
+  // Close on backdrop click
+  document.querySelectorAll<HTMLDialogElement>(".confirm-dialog").forEach((dialog) => {
+    dialog.addEventListener("click", (e) => {
+      if (e.target === dialog) dialog.close();
+    });
+  });
+</script>
 
 <style>
   .page-header {
@@ -153,6 +219,10 @@ const attendees = await db
     font-size: var(--size-sm);
     color: var(--color-text-muted);
     max-width: none;
+  }
+
+  .alert {
+    margin-bottom: 1.25rem;
   }
 
   .attendee-stats {
@@ -261,5 +331,100 @@ const attendees = await db
   .rsvp-date {
     color: var(--color-text-muted);
     white-space: nowrap;
+  }
+
+  .action-cell {
+    text-align: right;
+  }
+
+  .btn-remove {
+    background: none;
+    border: none;
+    padding: 0.25rem 0.5rem;
+    font-size: var(--size-xs);
+    font-weight: 700;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    transition: color var(--transition), text-decoration-color var(--transition);
+    white-space: nowrap;
+    font-family: inherit;
+  }
+
+  .btn-remove:hover {
+    color: #c0392b;
+    text-decoration-color: #c0392b;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* ── Dialog ── */
+  .confirm-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: 0;
+    max-width: 420px;
+    width: calc(100% - 2rem);
+    box-shadow: var(--shadow-lg);
+    background: var(--color-surface);
+    margin: 0;
+  }
+
+  .confirm-dialog::backdrop {
+    background: rgba(44, 24, 16, 0.45);
+    backdrop-filter: blur(2px);
+  }
+
+  .dialog-inner {
+    padding: 2rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .dialog-icon {
+    font-size: 2.5rem;
+    line-height: 1;
+  }
+
+  .confirm-dialog h3 {
+    font-size: var(--size-xl);
+    margin: 0;
+  }
+
+  .confirm-dialog p {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+    max-width: 32ch;
+    margin: 0;
+  }
+
+  .dialog-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .dialog-actions form {
+    display: contents;
   }
 </style>
