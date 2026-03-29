@@ -1,6 +1,5 @@
 ---
 import DashboardLayout from "../../../../layouts/DashboardLayout.astro";
-import MeetupForm from "../../../../components/meetups/MeetupForm";
 import { db, Groups, Meetups } from "astro:db";
 import { eq, and } from "astro:db";
 
@@ -23,8 +22,61 @@ const [meetup] = await db
 
 if (!meetup) return Astro.redirect("/dashboard/meetups");
 
-// Format date for the input
-const dateStr = meetup.date.toISOString().split("T")[0];
+type Result = { type: "success" } | { type: "error"; message: string };
+let result: Result | null = null;
+
+// Initial field values from DB (formatted for HTML inputs)
+let vals = {
+  title: meetup.title,
+  description: meetup.description,
+  date: meetup.date.toISOString().split("T")[0],
+  time: meetup.time,
+  venue: meetup.venue,
+  address: meetup.address ?? "",
+  capacity: String(meetup.capacity),
+};
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+
+  vals = {
+    title: form.get("title")?.toString().trim() ?? "",
+    description: form.get("description")?.toString().trim() ?? "",
+    date: form.get("date")?.toString() ?? "",
+    time: form.get("time")?.toString() ?? "",
+    venue: form.get("venue")?.toString().trim() ?? "",
+    address: form.get("address")?.toString().trim() ?? "",
+    capacity: form.get("capacity")?.toString() ?? "",
+  };
+
+  const cap = Number(vals.capacity);
+  const meetupDate = new Date(vals.date);
+
+  if (!vals.title || !vals.description || !vals.date || !vals.time || !vals.venue || !vals.capacity) {
+    result = { type: "error", message: "All required fields must be filled in." };
+  } else if (vals.description.length < 20) {
+    result = { type: "error", message: "Description must be at least 20 characters." };
+  } else if (isNaN(meetupDate.getTime())) {
+    result = { type: "error", message: "Invalid date." };
+  } else if (!Number.isInteger(cap) || cap < 1 || cap > 500) {
+    result = { type: "error", message: "Capacity must be between 1 and 500." };
+  } else {
+    await db
+      .update(Meetups)
+      .set({
+        title: vals.title,
+        description: vals.description,
+        date: meetupDate,
+        time: vals.time,
+        venue: vals.venue,
+        address: vals.address || null,
+        capacity: cap,
+      })
+      .where(eq(Meetups.id, id));
+
+    result = { type: "success" };
+  }
+}
 ---
 
 <DashboardLayout title="Edit Meetup">
@@ -34,20 +86,59 @@ const dateStr = meetup.date.toISOString().split("T")[0];
   </div>
 
   <div class="form-wrap">
-    <MeetupForm
-      client:load
-      mode="edit"
-      meetupId={meetup.id}
-      initial={{
-        title: meetup.title,
-        description: meetup.description,
-        date: dateStr,
-        time: meetup.time,
-        venue: meetup.venue,
-        address: meetup.address ?? "",
-        capacity: meetup.capacity,
-      }}
-    />
+    {result?.type === "success" && (
+      <div class="alert alert-success" role="status">
+        Meetup updated successfully! <a href="/dashboard/meetups">Back to meetups</a>
+      </div>
+    )}
+
+    <form method="POST" class="meetup-form">
+      {result?.type === "error" && (
+        <div class="alert alert-error" role="alert">{result.message}</div>
+      )}
+
+      <div class="form-group">
+        <label for="title">Meetup title *</label>
+        <input id="title" name="title" type="text" value={vals.title} placeholder="Spring Social Gathering" required maxlength="100" />
+      </div>
+
+      <div class="form-group">
+        <label for="description">Description *</label>
+        <textarea id="description" name="description" rows="5" placeholder="What will you do? What's the vibe? Who should come?" required minlength="20" maxlength="2000">{vals.description}</textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="date">Date *</label>
+          <input id="date" name="date" type="date" value={vals.date} required />
+        </div>
+        <div class="form-group">
+          <label for="time">Time *</label>
+          <input id="time" name="time" type="time" value={vals.time} required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="venue">Venue name *</label>
+        <input id="venue" name="venue" type="text" value={vals.venue} placeholder="The Interval at Long Now" required />
+      </div>
+
+      <div class="form-group">
+        <label for="address">Address</label>
+        <input id="address" name="address" type="text" value={vals.address} placeholder="2 Marina Blvd, San Francisco, CA 94123" />
+      </div>
+
+      <div class="form-group">
+        <label for="capacity">Capacity *</label>
+        <input id="capacity" name="capacity" type="number" value={vals.capacity} min="1" max="500" required />
+        <span class="form-hint">How many people can attend?</span>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Save changes →</button>
+        <a href="/dashboard/meetups" class="btn btn-ghost">Cancel</a>
+      </div>
+    </form>
   </div>
 </DashboardLayout>
 
@@ -73,7 +164,13 @@ const dateStr = meetup.date.toISOString().split("T")[0];
     font-size: var(--size-3xl);
   }
 
-  .form-wrap :global(.meetup-form) {
+  .form-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .form-wrap .meetup-form {
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
@@ -84,15 +181,21 @@ const dateStr = meetup.date.toISOString().split("T")[0];
     max-width: 600px;
   }
 
-  .form-wrap :global(.form-row) {
+  .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
   }
 
-  .form-wrap :global(.form-actions) {
+  .form-actions {
     display: flex;
     gap: 0.875rem;
     align-items: center;
+  }
+
+  @media (max-width: 480px) {
+    .form-row {
+      grid-template-columns: 1fr;
+    }
   }
 </style>

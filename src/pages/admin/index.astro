@@ -19,6 +19,12 @@ const approvedGroups = await db
   .from(Groups)
   .where(eq(Groups.status, "approved"))
   .orderBy(Groups.city);
+
+const closedGroups = await db
+  .select()
+  .from(Groups)
+  .where(eq(Groups.status, "closed"))
+  .orderBy(Groups.city);
 ---
 
 <DashboardLayout title="Admin">
@@ -67,7 +73,7 @@ const approvedGroups = await db
     }
   </section>
 
-  <!-- Approved groups -->
+  <!-- Active groups -->
   <section class="admin-section">
     <h2>Active groups <span class="count-badge count-badge-subtle">{approvedGroups.length}</span></h2>
     {
@@ -112,6 +118,46 @@ const approvedGroups = await db
       )
     }
   </section>
+
+  <!-- Closed groups -->
+  {closedGroups.length > 0 && (
+    <section class="admin-section">
+      <h2>Closed groups <span class="count-badge count-badge-subtle">{closedGroups.length}</span></h2>
+      <div class="approved-table-wrap">
+        <table class="approved-table">
+          <thead>
+            <tr>
+              <th>Group</th>
+              <th>Location</th>
+              <th>Contact</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {closedGroups.map((g) => (
+              <tr class="closed-row">
+                <td><strong>{g.name}</strong></td>
+                <td>
+                  {g.region ? `${g.city}, ${g.region}` : `${g.city}`}, {g.country}
+                </td>
+                <td>{g.contactEmail}</td>
+                <td>
+                  <div class="action-btns">
+                    <a href={`/groups/${g.slug}`} class="btn btn-ghost btn-sm" target="_blank" rel="noopener">
+                      View ↗
+                    </a>
+                    <a href={`/admin/groups/${g.id}`} class="btn btn-ghost btn-sm">
+                      Manage
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )}
 </DashboardLayout>
 
 <style>
@@ -259,6 +305,10 @@ const approvedGroups = await db
 
   .approved-table tr:last-child td {
     border-bottom: none;
+  }
+
+  .closed-row td {
+    opacity: 0.65;
   }
 
   .action-btns {

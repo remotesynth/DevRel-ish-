@@ -1,8 +1,8 @@
 ---
 import DashboardLayout from "../../../layouts/DashboardLayout.astro";
-import MeetupForm from "../../../components/meetups/MeetupForm";
-import { db, Groups } from "astro:db";
+import { db, Groups, Meetups } from "astro:db";
 import { eq } from "astro:db";
+import { generateId } from "../../../lib/utils";
 
 if (!Astro.locals.user) return Astro.redirect("/auth/login");
 const user = Astro.locals.user;
@@ -12,6 +12,63 @@ const [group] = user.groupId
   : [];
 
 if (!group) return Astro.redirect("/dashboard");
+
+type FormError = { type: "error"; message: string };
+let error: FormError | null = null;
+
+// Preserve form values on validation failure
+let vals = {
+  title: "",
+  description: "",
+  date: "",
+  time: "18:00",
+  venue: "",
+  address: "",
+  capacity: "30",
+};
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+
+  vals = {
+    title: form.get("title")?.toString().trim() ?? "",
+    description: form.get("description")?.toString().trim() ?? "",
+    date: form.get("date")?.toString() ?? "",
+    time: form.get("time")?.toString() ?? "18:00",
+    venue: form.get("venue")?.toString().trim() ?? "",
+    address: form.get("address")?.toString().trim() ?? "",
+    capacity: form.get("capacity")?.toString() ?? "30",
+  };
+
+  const cap = Number(vals.capacity);
+  const meetupDate = new Date(vals.date);
+
+  if (!vals.title || !vals.description || !vals.date || !vals.time || !vals.venue || !vals.capacity) {
+    error = { type: "error", message: "All required fields must be filled in." };
+  } else if (vals.description.length < 20) {
+    error = { type: "error", message: "Description must be at least 20 characters." };
+  } else if (isNaN(meetupDate.getTime())) {
+    error = { type: "error", message: "Invalid date." };
+  } else if (meetupDate < new Date()) {
+    error = { type: "error", message: "Meetup date must be in the future." };
+  } else if (!Number.isInteger(cap) || cap < 1 || cap > 500) {
+    error = { type: "error", message: "Capacity must be between 1 and 500." };
+  } else {
+    await db.insert(Meetups).values({
+      id: generateId(),
+      groupId: group.id,
+      title: vals.title,
+      description: vals.description,
+      date: meetupDate,
+      time: vals.time,
+      venue: vals.venue,
+      address: vals.address || null,
+      capacity: cap,
+      createdAt: new Date(),
+    });
+    return Astro.redirect("/dashboard/meetups?created=1");
+  }
+}
 ---
 
 <DashboardLayout title="New Meetup">
@@ -22,7 +79,53 @@ if (!group) return Astro.redirect("/dashboard");
   </div>
 
   <div class="form-wrap">
-    <MeetupForm client:load mode="create" />
+    <form method="POST" class="meetup-form">
+      {error && (
+        <div class="alert alert-error" role="alert">{error.message}</div>
+      )}
+
+      <div class="form-group">
+        <label for="title">Meetup title *</label>
+        <input id="title" name="title" type="text" value={vals.title} placeholder="Spring Social Gathering" required maxlength="100" />
+      </div>
+
+      <div class="form-group">
+        <label for="description">Description *</label>
+        <textarea id="description" name="description" rows="5" placeholder="What will you do? What's the vibe? Who should come?" required minlength="20" maxlength="2000">{vals.description}</textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="date">Date *</label>
+          <input id="date" name="date" type="date" value={vals.date} required min={new Date().toISOString().split("T")[0]} />
+        </div>
+        <div class="form-group">
+          <label for="time">Time *</label>
+          <input id="time" name="time" type="time" value={vals.time} required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="venue">Venue name *</label>
+        <input id="venue" name="venue" type="text" value={vals.venue} placeholder="The Interval at Long Now" required />
+      </div>
+
+      <div class="form-group">
+        <label for="address">Address</label>
+        <input id="address" name="address" type="text" value={vals.address} placeholder="2 Marina Blvd, San Francisco, CA 94123" />
+      </div>
+
+      <div class="form-group">
+        <label for="capacity">Capacity *</label>
+        <input id="capacity" name="capacity" type="number" value={vals.capacity} min="1" max="500" required />
+        <span class="form-hint">How many people can attend?</span>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Create meetup →</button>
+        <a href="/dashboard/meetups" class="btn btn-ghost">Cancel</a>
+      </div>
+    </form>
   </div>
 </DashboardLayout>
 
@@ -53,7 +156,7 @@ if (!group) return Astro.redirect("/dashboard");
     color: var(--color-text-muted);
   }
 
-  .form-wrap :global(.meetup-form) {
+  .form-wrap .meetup-form {
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
@@ -64,15 +167,21 @@ if (!group) return Astro.redirect("/dashboard");
     max-width: 600px;
   }
 
-  .form-wrap :global(.form-row) {
+  .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
   }
 
-  .form-wrap :global(.form-actions) {
+  .form-actions {
     display: flex;
     gap: 0.875rem;
     align-items: center;
+  }
+
+  @media (max-width: 480px) {
+    .form-row {
+      grid-template-columns: 1fr;
+    }
   }
 </style>

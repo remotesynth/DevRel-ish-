@@ -7,12 +7,17 @@ const { slug } = Astro.params;
 
 if (!slug) return Astro.redirect("/groups");
 
+// Include closed groups so their pages remain accessible
 const [group] = await db
   .select()
   .from(Groups)
-  .where(and(eq(Groups.slug, slug), eq(Groups.status, "approved")));
+  .where(and(eq(Groups.slug, slug)));
 
-if (!group) return Astro.redirect("/groups");
+if (!group || (group.status !== "approved" && group.status !== "closed")) {
+  return Astro.redirect("/groups");
+}
+
+const isGroupClosed = group.status === "closed";
 
 const today = new Date();
 today.setHours(0, 0, 0, 0);
@@ -48,12 +53,22 @@ const location = group.region
         <a href="/groups" class="back-link">← All groups</a>
         <span class="badge badge-approved">Active group</span>
       </div>
-      <h1>{group.name}</h1>
+      <h1>
+        {group.name}
+        {isGroupClosed && <span class="badge badge-closed">Closed</span>}
+      </h1>
       <p class="group-location">📍 {location}</p>
+      {isGroupClosed && (
+        <div class="closed-notice">
+          This group is no longer active. Prior meetup pages remain available for reference.
+        </div>
+      )}
       <p class="group-desc">{group.description}</p>
-      <a href={`/groups/${group.slug}/contact`} class="contact-link">
-        Have a question? Contact the organizers →
-      </a>
+      {!isGroupClosed && (
+        <a href={`/groups/${group.slug}/contact`} class="contact-link">
+          Have a question? Contact the organizers →
+        </a>
+      )}
     </div>
   </section>
 
@@ -81,6 +96,8 @@ const location = group.region
                 capacity={m.capacity}
                 rsvpCount={rsvpCounts[m.id] ?? 0}
                 groupSlug={group.slug}
+                status={m.status}
+                groupClosed={isGroupClosed}
               />
             ))}
           </div>
@@ -133,6 +150,19 @@ const location = group.region
     line-height: 1.7;
     max-width: 64ch;
     margin-bottom: 1rem;
+  }
+
+  .closed-notice {
+    display: inline-block;
+    font-size: var(--size-sm);
+    font-weight: 600;
+    color: #374151;
+    background: #f3f4f6;
+    border: 1.5px solid #d1d5db;
+    border-radius: var(--radius-md);
+    padding: 0.5rem 0.875rem;
+    margin-bottom: 1rem;
+    max-width: none;
   }
 
   .contact-link {

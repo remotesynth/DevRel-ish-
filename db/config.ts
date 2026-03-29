@@ -29,6 +29,7 @@ const Meetups = defineTable({
     venue: column.text(), // venue name or address
     address: column.text({ optional: true }),
     capacity: column.number(),
+    status: column.text({ default: "active" }), // active | canceled
     createdAt: column.date({ default: new Date() }),
   },
 });

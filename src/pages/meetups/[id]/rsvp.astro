@@ -11,7 +11,12 @@ const [meetup] = await db.select().from(Meetups).where(eq(Meetups.id, id));
 if (!meetup) return Astro.redirect("/groups");
 
 const [group] = await db.select().from(Groups).where(eq(Groups.id, meetup.groupId));
-if (!group || group.status !== "approved") return Astro.redirect("/groups");
+if (!group || (group.status !== "approved" && group.status !== "closed")) {
+  return Astro.redirect("/groups");
+}
+
+const isGroupClosed = group.status === "closed";
+const isMeetupCanceled = meetup.status === "canceled";
 
 type FormResult =
   | { type: "success"; name: string; email: string }
@@ -173,7 +178,15 @@ const isFull = spots === 0;
               Fill in your details below to reserve your spot at <strong>{meetup.title}</strong>.
             </p>
 
-            {isFull ? (
+            {isGroupClosed ? (
+              <div class="alert alert-warning" role="alert">
+                <strong>{group.name} is no longer active.</strong> This page is kept for reference but RSVPs are closed.
+              </div>
+            ) : isMeetupCanceled ? (
+              <div class="alert alert-error" role="alert">
+                <strong>This meetup has been cancelled.</strong> Check the <a href={`/groups/${group.slug}`}>{group.name}</a> page for other upcoming events.
+              </div>
+            ) : isFull ? (
               <div class="alert alert-error" role="alert">
                 <strong>This meetup is full.</strong> Check back in case a spot opens up, or look for
                 other upcoming meetups from <a href={`/groups/${group.slug}`}>{group.name}</a>.

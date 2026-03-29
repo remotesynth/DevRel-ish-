@@ -26,6 +26,8 @@ for (const m of meetups) {
 
 const today = new Date();
 today.setHours(0, 0, 0, 0);
+
+const justCreated = Astro.url.searchParams.get("created") === "1";
 ---
 
 <DashboardLayout title="Meetups">
@@ -33,6 +35,10 @@ today.setHours(0, 0, 0, 0);
     <h1>Meetups</h1>
     <a href="/dashboard/meetups/new" class="btn btn-primary">+ New meetup</a>
   </div>
+
+  {justCreated && (
+    <div class="alert alert-success" role="status">Meetup created successfully!</div>
+  )}
 
   {
     meetups.length === 0 ? (
@@ -59,11 +65,13 @@ today.setHours(0, 0, 0, 0);
           <tbody>
             {meetups.map((m) => {
               const isPast = m.date < today;
+              const isCanceled = m.status === "canceled";
               return (
-                <tr class:list={[{ past: isPast }]}>
+                <tr class:list={[{ past: isPast }, { canceled: isCanceled }]}>
                   <td>
                     <span class="meetup-title">{m.title}</span>
-                    {isPast && <span class="badge badge-past">Past</span>}
+                    {isCanceled && <span class="badge-canceled">Cancelled</span>}
+                    {!isCanceled && isPast && <span class="badge badge-past">Past</span>}
                   </td>
                   <td class="nowrap">
                     {formatDate(m.date)}<br />
@@ -71,7 +79,7 @@ today.setHours(0, 0, 0, 0);
                   </td>
                   <td>{m.venue}</td>
                   <td class="rsvp-count">
-                    <span class:list={[{ full: rsvpCounts[m.id] >= m.capacity }]}>
+                    <span class:list={[{ full: !isCanceled && rsvpCounts[m.id] >= m.capacity }]}>
                       {rsvpCounts[m.id]} / {m.capacity}
                     </span>
                   </td>
@@ -80,9 +88,18 @@ today.setHours(0, 0, 0, 0);
                       <a href={`/dashboard/meetups/${m.id}/attendees`} class="btn btn-ghost btn-sm">
                         Attendees
                       </a>
-                      <a href={`/dashboard/meetups/${m.id}/edit`} class="btn btn-ghost btn-sm">
-                        Edit
-                      </a>
+                      {!isCanceled && (
+                        <a href={`/dashboard/meetups/${m.id}/edit`} class="btn btn-ghost btn-sm">
+                          Edit
+                        </a>
+                      )}
+                      <button
+                        type="button"
+                        class:list={["btn btn-sm", isCanceled ? "btn-ghost" : "btn-ghost btn-cancel-meetup"]}
+                        data-dialog={`dialog-${m.id}`}
+                      >
+                        {isCanceled ? "Restore" : "Cancel"}
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -93,7 +110,56 @@ today.setHours(0, 0, 0, 0);
       </div>
     )
   }
+
+  {meetups.map((m) => {
+    const isCanceled = m.status === "canceled";
+    return (
+      <dialog id={`dialog-${m.id}`} class="confirm-dialog">
+        <div class="dialog-inner">
+          <h3>{isCanceled ? "Restore this meetup?" : "Cancel this meetup?"}</h3>
+          <p>
+            {isCanceled
+              ? <><strong>{m.title}</strong> will be marked as active again and RSVPs will re-open.</>
+              : <><strong>{m.title}</strong> will be marked as cancelled. The RSVP link will show it as cancelled. You can restore it later.</>
+            }
+          </p>
+          <div class="dialog-actions">
+            <form method="POST" action={`/api/meetups/${m.id}/cancel`}>
+              <button type="submit" class:list={["btn", isCanceled ? "btn-primary" : "btn-danger"]}>
+                {isCanceled ? "Yes, restore it" : "Yes, cancel it"}
+              </button>
+            </form>
+            <button type="button" class="btn btn-ghost btn-close" data-dialog={`dialog-${m.id}`}>
+              Keep as is
+            </button>
+          </div>
+        </div>
+      </dialog>
+    );
+  })}
 </DashboardLayout>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>("button[data-dialog]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const dialog = document.getElementById(btn.dataset.dialog!) as HTMLDialogElement | null;
+      dialog?.showModal();
+    });
+  });
+
+  document.querySelectorAll<HTMLButtonElement>(".btn-close[data-dialog]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const dialog = document.getElementById(btn.dataset.dialog!) as HTMLDialogElement | null;
+      dialog?.close();
+    });
+  });
+
+  document.querySelectorAll<HTMLDialogElement>(".confirm-dialog").forEach((dialog) => {
+    dialog.addEventListener("click", (e) => {
+      if (e.target === dialog) dialog.close();
+    });
+  });
+</script>
 
 <style>
   .page-header {
@@ -173,10 +239,36 @@ today.setHours(0, 0, 0, 0);
     opacity: 0.6;
   }
 
+  .meetups-table tr.canceled td {
+    opacity: 0.7;
+  }
+
   .meetup-title {
     font-weight: 700;
     color: var(--color-text);
     margin-right: 0.5rem;
+  }
+
+  .badge-canceled {
+    display: inline-block;
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 0.125rem 0.5rem;
+    border-radius: var(--radius-full);
+    font-size: var(--size-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .btn-cancel-meetup {
+    color: #991b1b;
+    border-color: #fecaca;
+  }
+
+  .btn-cancel-meetup:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
   }
 
   .badge-past {
@@ -208,5 +300,59 @@ today.setHours(0, 0, 0, 0);
     display: flex;
     gap: 0.375rem;
     flex-wrap: wrap;
+  }
+
+  /* Dialog */
+  .confirm-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: 0;
+    max-width: 420px;
+    width: calc(100% - 2rem);
+    box-shadow: var(--shadow-lg);
+    background: var(--color-surface);
+    margin: 0;
+  }
+
+  .confirm-dialog::backdrop {
+    background: rgba(44, 24, 16, 0.45);
+    backdrop-filter: blur(2px);
+  }
+
+  .dialog-inner {
+    padding: 2rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .confirm-dialog h3 {
+    font-size: var(--size-xl);
+    margin: 0;
+  }
+
+  .confirm-dialog p {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+    max-width: 34ch;
+    margin: 0;
+  }
+
+  .dialog-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .dialog-actions form {
+    display: contents;
   }
 </style>

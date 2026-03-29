@@ -19,7 +19,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   const { id, status } = body as Record<string, string>;
 
-  if (!id || !["approved", "rejected"].includes(status)) {
+  if (!id || !["approved", "rejected", "closed"].includes(status)) {
     return json({ error: "Invalid parameters." }, 400);
   }
 
@@ -28,8 +28,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return json({ error: "Group not found." }, 404);
   }
 
-  if (status === "rejected") {
-    await db.update(Groups).set({ status: "rejected" }).where(eq(Groups.id, id));
+  if (status === "rejected" || status === "closed") {
+    await db.update(Groups).set({ status }).where(eq(Groups.id, id));
     return json({ ok: true });
   }
 

@@ -26,7 +26,14 @@ if (Astro.request.method === "POST") {
   const form = await Astro.request.formData();
   const action = form.get("action")?.toString();
 
-  if (action === "approve" || action === "reject") {
+  const statusMap: Record<string, string> = {
+    approve: "approved",
+    reject: "rejected",
+    close: "closed",
+    reopen: "approved",
+  };
+
+  if (action && action in statusMap) {
     try {
       const res = await fetch(`${Astro.url.origin}/api/groups/${id}/status`, {
         method: "POST",
@@ -34,14 +41,17 @@ if (Astro.request.method === "POST") {
           "Content-Type": "application/json",
           cookie: Astro.request.headers.get("cookie") ?? "",
         },
-        body: JSON.stringify({ id, status: action === "approve" ? "approved" : "rejected" }),
+        body: JSON.stringify({ id, status: statusMap[action] }),
       });
 
       if (res.ok) {
-        successMsg = action === "approve"
-          ? "Group approved! The contact will be able to log in."
-          : "Group application rejected.";
-        // Refresh group data
+        const msgs: Record<string, string> = {
+          approve: "Group approved! The contact will be able to log in.",
+          reject: "Group application rejected.",
+          close: "Group closed. It will no longer appear in public listings.",
+          reopen: "Group reopened and is now publicly visible again.",
+        };
+        successMsg = msgs[action] ?? "Done.";
         const [updated] = await db.select().from(Groups).where(eq(Groups.id, id));
         if (updated) Object.assign(group, updated);
       } else {
@@ -139,19 +149,42 @@ if (Astro.request.method === "POST") {
           <p>
             This group is <strong>{group.status}</strong>.
           </p>
-          {group.status === "approved" && (
-            <a href={`/groups/${group.slug}`} class="btn btn-ghost" target="_blank" rel="noopener">
-              View public page ↗
-            </a>
-          )}
-          {group.status === "rejected" && (
-            <form method="POST">
-              <input type="hidden" name="action" value="approve" />
-              <button type="submit" class="btn btn-accent">
-                ✓ Approve anyway
-              </button>
-            </form>
-          )}
+          <div class="action-btns">
+            {group.status === "approved" && (
+              <>
+                <a href={`/groups/${group.slug}`} class="btn btn-ghost" target="_blank" rel="noopener">
+                  View public page ↗
+                </a>
+                <form method="POST">
+                  <input type="hidden" name="action" value="close" />
+                  <button type="submit" class="btn btn-danger">
+                    Close group
+                  </button>
+                </form>
+              </>
+            )}
+            {group.status === "closed" && (
+              <>
+                <a href={`/groups/${group.slug}`} class="btn btn-ghost" target="_blank" rel="noopener">
+                  View group page ↗
+                </a>
+                <form method="POST">
+                  <input type="hidden" name="action" value="reopen" />
+                  <button type="submit" class="btn btn-accent">
+                    Reopen group
+                  </button>
+                </form>
+              </>
+            )}
+            {group.status === "rejected" && (
+              <form method="POST">
+                <input type="hidden" name="action" value="approve" />
+                <button type="submit" class="btn btn-accent">
+                  ✓ Approve anyway
+                </button>
+              </form>
+            )}
+          </div>
         </div>
       )
     }

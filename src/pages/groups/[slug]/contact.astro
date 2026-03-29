@@ -9,14 +9,18 @@ if (!slug) return Astro.redirect("/groups");
 const [group] = await db
   .select()
   .from(Groups)
-  .where(and(eq(Groups.slug, slug), eq(Groups.status, "approved")));
+  .where(eq(Groups.slug, slug));
 
-if (!group) return Astro.redirect("/groups");
+if (!group || (group.status !== "approved" && group.status !== "closed")) {
+  return Astro.redirect("/groups");
+}
+
+const isGroupClosed = group.status === "closed";
 
 type FormResult = { type: "success" } | { type: "error"; message: string };
 let result: FormResult | null = null;
 
-if (Astro.request.method === "POST") {
+if (!isGroupClosed && Astro.request.method === "POST") {
   const form = await Astro.request.formData();
 
   const hp = form.get("_hp")?.toString() ?? "";
@@ -66,7 +70,13 @@ if (Astro.request.method === "POST") {
           <span>Contact</span>
         </div>
 
-        {result?.type === "success" ? (
+        {isGroupClosed ? (
+          <div class="closed-state">
+            <h1>Group closed</h1>
+            <p><strong>{group.name}</strong> is no longer active and is not accepting messages.</p>
+            <a href={`/groups/${group.slug}`} class="btn btn-ghost">← Back to {group.name}</a>
+          </div>
+        ) : result?.type === "success" ? (
           <div class="success-state">
             <div class="success-icon" aria-hidden="true">✉️</div>
             <h1>Message sent!</h1>
@@ -189,6 +199,27 @@ if (Astro.request.method === "POST") {
     flex-direction: column;
     gap: 1.25rem;
     max-width: 480px;
+  }
+
+  /* Closed state */
+  .closed-state {
+    padding: 2.5rem 2rem;
+    background: #f9fafb;
+    border: 2px solid #d1d5db;
+    border-radius: var(--radius-lg);
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .closed-state h1 {
+    color: #374151;
+    margin-bottom: 0;
+  }
+
+  .closed-state p {
+    color: var(--color-text-muted);
   }
 
   /* Success state */

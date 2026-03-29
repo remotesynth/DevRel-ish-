@@ -12,25 +12,31 @@ interface Props {
   capacity: number;
   rsvpCount: number;
   groupSlug?: string;
+  status?: string;
+  groupClosed?: boolean;
 }
 
-const { id, title, description, date, time, venue, address, capacity, rsvpCount, groupSlug } = Astro.props;
+const { id, title, description, date, time, venue, address, capacity, rsvpCount, groupSlug, status = "active", groupClosed = false } = Astro.props;
 
+const isCanceled = status === "canceled";
 const spots = spotsLeft(capacity, rsvpCount);
 const isFull = spots === 0;
 const snippet = description.length > 160 ? description.slice(0, 160) + "…" : description;
 ---
 
-<article class="meetup-card card">
+<article class:list={["meetup-card card", { canceled: isCanceled }]}>
   <div class="meetup-meta">
-    <div class="meetup-date-block">
+    <div class:list={["meetup-date-block", { "date-canceled": isCanceled }]}>
       <span class="date-month">
         {new Intl.DateTimeFormat("en-US", { month: "short" }).format(date)}
       </span>
       <span class="date-day">{date.getDate()}</span>
     </div>
     <div class="meetup-info">
-      <h3 class="meetup-title">{title}</h3>
+      <h3 class="meetup-title">
+        {title}
+        {isCanceled && <span class="badge-canceled">Cancelled</span>}
+      </h3>
       <p class="meetup-time">🕐 {formatTime(time)} &bull; 📍 {venue}</p>
     </div>
   </div>
@@ -39,23 +45,21 @@ const snippet = description.length > 160 ? description.slice(0, 160) + "…" : d
 
   <div class="meetup-footer">
     <div class="meetup-stats">
-      {
-        isFull ? (
-          <span class="badge badge-full">Full</span>
-        ) : (
-          <span class="spots-left">
-            <strong>{spots}</strong> of {capacity} spots left
-          </span>
-        )
-      }
+      {isCanceled ? (
+        <span class="canceled-note">This meetup has been cancelled.</span>
+      ) : isFull ? (
+        <span class="badge badge-full">Full</span>
+      ) : (
+        <span class="spots-left">
+          <strong>{spots}</strong> of {capacity} spots left
+        </span>
+      )}
     </div>
-    {
-      !isFull && (
-        <a href={`/meetups/${id}/rsvp`} class="btn btn-primary btn-sm">
-          RSVP →
-        </a>
-      )
-    }
+    {!isCanceled && !groupClosed && !isFull && (
+      <a href={`/meetups/${id}/rsvp`} class="btn btn-primary btn-sm">
+        RSVP →
+      </a>
+    )}
   </div>
 </article>
 
@@ -72,6 +76,10 @@ const snippet = description.length > 160 ? description.slice(0, 160) + "…" : d
     align-items: flex-start;
   }
 
+  .meetup-card.canceled {
+    opacity: 0.75;
+  }
+
   .meetup-date-block {
     display: flex;
     flex-direction: column;
@@ -83,6 +91,10 @@ const snippet = description.length > 160 ? description.slice(0, 160) + "…" : d
     min-width: 52px;
     flex-shrink: 0;
     line-height: 1;
+  }
+
+  .meetup-date-block.date-canceled {
+    background: var(--color-text-light);
   }
 
   .date-month {
@@ -134,5 +146,26 @@ const snippet = description.length > 160 ? description.slice(0, 160) + "…" : d
 
   .spots-left strong {
     color: var(--color-accent-dark);
+  }
+
+  .badge-canceled {
+    display: inline-block;
+    font-size: var(--size-xs);
+    font-weight: 700;
+    font-family: var(--font-body);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: #fee2e2;
+    color: #991b1b;
+    border-radius: var(--radius-full);
+    padding: 0.1rem 0.5rem;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+  }
+
+  .canceled-note {
+    font-size: var(--size-sm);
+    color: #991b1b;
+    font-weight: 600;
   }
 </style>
