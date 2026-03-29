@@ -1,0 +1,78 @@
+---
+import DashboardLayout from "../../../layouts/DashboardLayout.astro";
+import MeetupForm from "../../../components/meetups/MeetupForm";
+import { db, Groups } from "astro:db";
+import { eq } from "astro:db";
+
+if (!Astro.locals.user) return Astro.redirect("/auth/login");
+const user = Astro.locals.user;
+
+const [group] = user.groupId
+  ? await db.select().from(Groups).where(eq(Groups.id, user.groupId))
+  : [];
+
+if (!group) return Astro.redirect("/dashboard");
+---
+
+<DashboardLayout title="New Meetup">
+  <div class="page-header">
+    <a href="/dashboard/meetups" class="back-link">← Back to meetups</a>
+    <h1>Schedule a meetup</h1>
+    <p>Fill in the details for your next gathering.</p>
+  </div>
+
+  <div class="form-wrap">
+    <MeetupForm client:load mode="create" />
+  </div>
+</DashboardLayout>
+
+<style>
+  .page-header {
+    margin-bottom: 1.75rem;
+  }
+
+  .back-link {
+    font-size: var(--size-sm);
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--color-text-muted);
+    display: block;
+    margin-bottom: 0.75rem;
+  }
+
+  .back-link:hover {
+    color: var(--color-primary);
+  }
+
+  .page-header h1 {
+    font-size: var(--size-3xl);
+    margin-bottom: 0.25rem;
+  }
+
+  .page-header p {
+    color: var(--color-text-muted);
+  }
+
+  .form-wrap :global(.meetup-form) {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.75rem;
+    max-width: 600px;
+  }
+
+  .form-wrap :global(.form-row) {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .form-wrap :global(.form-actions) {
+    display: flex;
+    gap: 0.875rem;
+    align-items: center;
+  }
+</style>

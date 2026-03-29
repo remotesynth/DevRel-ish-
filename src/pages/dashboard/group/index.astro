@@ -1,0 +1,170 @@
+---
+import DashboardLayout from "../../../layouts/DashboardLayout.astro";
+import { db, Groups } from "astro:db";
+import { eq } from "astro:db";
+
+if (!Astro.locals.user) return Astro.redirect("/auth/login");
+const user = Astro.locals.user;
+
+const [group] = user.groupId
+  ? await db.select().from(Groups).where(eq(Groups.id, user.groupId))
+  : [];
+
+if (!group) return Astro.redirect("/dashboard");
+
+let successMsg = "";
+let errorMsg = "";
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const city = form.get("city")?.toString().trim() ?? "";
+  const region = form.get("region")?.toString().trim() ?? "";
+  const country = form.get("country")?.toString().trim() ?? "";
+  const description = form.get("description")?.toString().trim() ?? "";
+  const contactEmail = form.get("contactEmail")?.toString().trim() ?? "";
+
+  if (!city || !country || !description || !contactEmail) {
+    errorMsg = "All required fields must be filled in.";
+  } else if (description.length < 50) {
+    errorMsg = "Description must be at least 50 characters.";
+  } else {
+    await db
+      .update(Groups)
+      .set({ city, region: region || null, country, description, contactEmail })
+      .where(eq(Groups.id, group.id));
+    successMsg = "Group details updated!";
+    // Re-fetch updated group
+    const [updated] = await db.select().from(Groups).where(eq(Groups.id, group.id));
+    if (updated) Object.assign(group, updated);
+  }
+}
+---
+
+<DashboardLayout title="My Group">
+  <div class="page-header">
+    <h1>My Group</h1>
+    <a href={`/groups/${group.slug}`} class="btn btn-ghost btn-sm" target="_blank" rel="noopener">
+      View public page ↗
+    </a>
+  </div>
+
+  {successMsg && <div class="alert alert-success">{successMsg}</div>}
+  {errorMsg && <div class="alert alert-error">{errorMsg}</div>}
+
+  <form method="POST" class="group-edit-form">
+    <div class="form-card">
+      <h3>Group details</h3>
+
+      <div class="form-group">
+        <label>Group name</label>
+        <input type="text" value={group.name} disabled class="input-disabled" />
+        <span class="form-hint">Contact support to change your group name.</span>
+      </div>
+
+      <div class="form-group">
+        <label for="description">Description *</label>
+        <textarea id="description" name="description" required minlength="50" maxlength="1000" rows={6}>
+          {group.description}
+        </textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="contactEmail">Contact email *</label>
+        <input
+          id="contactEmail"
+          name="contactEmail"
+          type="email"
+          value={group.contactEmail}
+          required
+        />
+      </div>
+    </div>
+
+    <div class="form-card">
+      <h3>Location</h3>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="city">City *</label>
+          <input id="city" name="city" type="text" value={group.city} required />
+        </div>
+        <div class="form-group">
+          <label for="region">State / Province</label>
+          <input id="region" name="region" type="text" value={group.region ?? ""} />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="country">Country *</label>
+        <input id="country" name="country" type="text" value={group.country} required />
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Save changes →</button>
+    </div>
+  </form>
+</DashboardLayout>
+
+<style>
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .page-header h1 {
+    font-size: var(--size-3xl);
+  }
+
+  .alert {
+    margin-bottom: 1.25rem;
+  }
+
+  .group-edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .form-card {
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .form-card h3 {
+    font-size: var(--size-lg);
+    padding-bottom: 0.625rem;
+    border-bottom: 1px dashed var(--color-border);
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .input-disabled {
+    background: var(--color-surface-warm) !important;
+    color: var(--color-text-muted) !important;
+    cursor: not-allowed;
+  }
+
+  .form-actions {
+    padding-top: 0.5rem;
+  }
+
+  @media (max-width: 560px) {
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

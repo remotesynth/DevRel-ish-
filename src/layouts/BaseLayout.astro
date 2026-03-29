@@ -1,0 +1,41 @@
+---
+import "../styles/global.css";
+import SiteNav from "../components/nav/SiteNav.astro";
+import SiteFooter from "../components/nav/SiteFooter.astro";
+
+interface Props {
+  title: string;
+  description?: string;
+  ogImage?: string;
+}
+
+const {
+  title,
+  description = "Find your people. DevRel(ish) connects developer relations professionals and adjacent roles for in-person meetups around the world.",
+  ogImage,
+} = Astro.props;
+
+const user = Astro.locals.user;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <title>{title} — DevRel(ish)</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    {ogImage && <meta property="og:image" content={ogImage} />}
+    <meta property="og:title" content={`${title} — DevRel(ish)`} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+  </head>
+  <body>
+    <SiteNav user={user} />
+    <main>
+      <slot />
+    </main>
+    <SiteFooter />
+  </body>
+</html>

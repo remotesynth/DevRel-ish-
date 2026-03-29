@@ -1,0 +1,108 @@
+---
+interface Props {
+  id: string;
+  name: string;
+  slug: string;
+  city: string;
+  region?: string | null;
+  country: string;
+  description: string;
+  upcomingCount?: number;
+}
+
+const { name, slug, city, region, country, description, upcomingCount = 0 } = Astro.props;
+
+const location = region ? `${city}, ${region}` : `${city}, ${country}`;
+const snippet = description.length > 140 ? description.slice(0, 140) + "…" : description;
+---
+
+<article class="group-card card">
+  <div class="card-header">
+    <div class="group-icon" aria-hidden="true">◈</div>
+    <div>
+      <h3 class="group-name">
+        <a href={`/groups/${slug}`}>{name}</a>
+      </h3>
+      <p class="group-location">📍 {location}</p>
+    </div>
+  </div>
+  <p class="group-desc">{snippet}</p>
+  <div class="card-footer">
+    {
+      upcomingCount > 0 ? (
+        <span class="badge badge-upcoming">
+          {upcomingCount} upcoming {upcomingCount === 1 ? "meetup" : "meetups"}
+        </span>
+      ) : (
+        <span class="no-meetups">No upcoming meetups</span>
+      )
+    }
+    <a href={`/groups/${slug}`} class="btn btn-ghost btn-sm">View group →</a>
+  </div>
+</article>
+
+<style>
+  .group-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+  }
+
+  .card-header {
+    display: flex;
+    gap: 0.875rem;
+    align-items: flex-start;
+  }
+
+  .group-icon {
+    font-size: 1.75rem;
+    color: var(--color-primary);
+    flex-shrink: 0;
+    line-height: 1;
+    margin-top: 0.125rem;
+  }
+
+  .group-name {
+    font-size: var(--size-lg);
+    line-height: 1.3;
+  }
+
+  .group-name a {
+    text-decoration: none;
+    color: var(--color-text);
+  }
+
+  .group-name a:hover {
+    color: var(--color-primary);
+  }
+
+  .group-location {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+    margin-top: 0.125rem;
+    max-width: none;
+  }
+
+  .group-desc {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+    line-height: 1.6;
+  }
+
+  .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: auto;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--color-border);
+  }
+
+  .no-meetups {
+    font-size: var(--size-xs);
+    color: var(--color-text-light);
+    font-style: italic;
+  }
+</style>

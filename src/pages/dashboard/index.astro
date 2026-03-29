@@ -1,0 +1,303 @@
+---
+import DashboardLayout from "../../layouts/DashboardLayout.astro";
+import { db, Groups, Meetups, eq, and, gte, asc } from "astro:db";
+
+if (!Astro.locals.user) return Astro.redirect("/auth/login");
+const user = Astro.locals.user;
+
+// Find the user's group
+const [group] = user.groupId
+  ? await db.select().from(Groups).where(eq(Groups.id, user.groupId))
+  : [];
+
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+
+let upcomingMeetups: typeof Meetups.$inferSelect[] = [];
+
+if (group) {
+  upcomingMeetups = await db
+    .select()
+    .from(Meetups)
+    .where(and(eq(Meetups.groupId, group.id), gte(Meetups.date, today)))
+    .orderBy(asc(Meetups.date))
+    .limit(3);
+}
+---
+
+<DashboardLayout title="Dashboard">
+  <div class="dash-page">
+    <div class="dash-page-header">
+      <h1>Hello, {user.name?.split(" ")[0]}! 👋</h1>
+    </div>
+
+    {
+      !group ? (
+        <div class="no-group-state">
+          <div class="no-group-card">
+            <div class="state-icon" aria-hidden="true">◎</div>
+            <h2>Your group is pending approval</h2>
+            <p>
+              Your group application is being reviewed. We'll reach out to{" "}
+              <strong>{user.email}</strong> once it's been approved.
+            </p>
+            <p>
+              In the meantime, feel free to{" "}
+              <a href="/groups">browse other groups</a> to see what's happening in the community.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div class="dash-overview">
+          <div class="overview-header">
+            <div>
+              <h2 class="group-title">{group.name}</h2>
+              <p class="group-location">
+                📍{" "}
+                {group.region ? `${group.city}, ${group.region}` : `${group.city}, ${group.country}`}
+              </p>
+            </div>
+            <a href={`/groups/${group.slug}`} class="btn btn-ghost btn-sm" target="_blank" rel="noopener">
+              View public page ↗
+            </a>
+          </div>
+
+          <div class="stat-cards">
+            <div class="stat-card">
+              <div class="stat-value">{upcomingMeetups.length}</div>
+              <div class="stat-label">Upcoming meetups</div>
+            </div>
+            <a href="/dashboard/meetups/new" class="stat-card stat-card-cta">
+              <div class="stat-cta-icon" aria-hidden="true">+</div>
+              <div class="stat-label">Schedule a meetup</div>
+            </a>
+          </div>
+
+          {upcomingMeetups.length > 0 && (
+            <div class="upcoming-meetups">
+              <div class="section-row">
+                <h3>Upcoming meetups</h3>
+                <a href="/dashboard/meetups" class="link-sm">View all →</a>
+              </div>
+              <div class="meetup-list">
+                {upcomingMeetups.map((m) => (
+                  <div class="meetup-row">
+                    <div class="meetup-date-mini">
+                      <span>{new Intl.DateTimeFormat("en-US", { month: "short" }).format(m.date)}</span>
+                      <strong>{m.date.getDate()}</strong>
+                    </div>
+                    <div class="meetup-row-info">
+                      <span class="meetup-row-title">{m.title}</span>
+                      <span class="meetup-row-venue">📍 {m.venue}</span>
+                    </div>
+                    <div class="meetup-row-actions">
+                      <a href={`/dashboard/meetups/${m.id}/attendees`} class="btn btn-ghost btn-sm">
+                        Attendees
+                      </a>
+                      <a href={`/dashboard/meetups/${m.id}/edit`} class="btn btn-ghost btn-sm">
+                        Edit
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )
+    }
+  </div>
+</DashboardLayout>
+
+<style>
+  .dash-page-header {
+    margin-bottom: 2rem;
+  }
+
+  .dash-page-header h1 {
+    font-size: var(--size-3xl);
+  }
+
+  /* No group state */
+  .no-group-state {
+    display: flex;
+    justify-content: center;
+  }
+
+  .no-group-card {
+    max-width: 480px;
+    text-align: center;
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: 2.5rem;
+  }
+
+  .state-icon {
+    font-size: 3rem;
+    color: var(--color-primary);
+    opacity: 0.4;
+    margin-bottom: 1rem;
+  }
+
+  .no-group-card h2 {
+    margin-bottom: 0.75rem;
+    font-size: var(--size-xl);
+  }
+
+  .no-group-card p {
+    color: var(--color-text-muted);
+    font-size: var(--size-sm);
+    margin-bottom: 0.75rem;
+    max-width: none;
+  }
+
+  /* Overview */
+  .overview-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 2px dashed var(--color-border);
+  }
+
+  .group-title {
+    font-size: var(--size-2xl);
+  }
+
+  .group-location {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+    margin-top: 0.25rem;
+    max-width: none;
+  }
+
+  .stat-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .stat-card {
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    text-align: center;
+  }
+
+  .stat-card-cta {
+    background: var(--color-surface-warm);
+    border-color: var(--color-primary);
+    text-decoration: none;
+    transition: transform var(--transition), box-shadow var(--transition);
+    display: block;
+  }
+
+  .stat-card-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .stat-value {
+    font-family: var(--font-display);
+    font-size: var(--size-4xl);
+    color: var(--color-primary);
+    line-height: 1;
+    margin-bottom: 0.375rem;
+  }
+
+  .stat-cta-icon {
+    font-size: var(--size-4xl);
+    color: var(--color-primary);
+    font-family: var(--font-display);
+    line-height: 1;
+    margin-bottom: 0.375rem;
+  }
+
+  .stat-label {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+    font-weight: 600;
+  }
+
+  /* Meetups list */
+  .section-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 0.875rem;
+  }
+
+  .section-row h3 {
+    font-size: var(--size-lg);
+  }
+
+  .link-sm {
+    font-size: var(--size-sm);
+    font-weight: 600;
+  }
+
+  .meetup-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .meetup-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 0.875rem 1rem;
+    flex-wrap: wrap;
+  }
+
+  .meetup-date-mini {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: var(--color-primary);
+    color: white;
+    border-radius: var(--radius-sm);
+    padding: 0.25rem 0.5rem;
+    min-width: 40px;
+    font-size: var(--size-xs);
+    flex-shrink: 0;
+  }
+
+  .meetup-date-mini strong {
+    font-size: var(--size-lg);
+    line-height: 1;
+    font-family: var(--font-display);
+  }
+
+  .meetup-row-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+
+  .meetup-row-title {
+    font-weight: 700;
+    font-size: var(--size-sm);
+  }
+
+  .meetup-row-venue {
+    font-size: var(--size-xs);
+    color: var(--color-text-muted);
+  }
+
+  .meetup-row-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+</style>

@@ -1,0 +1,161 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { auth } from "../../lib/auth";
+
+// Redirect if already logged in
+if (Astro.locals.user) {
+  return Astro.redirect(Astro.locals.user.role === "admin" ? "/admin" : "/dashboard");
+}
+
+let error = "";
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const email = form.get("email")?.toString() ?? "";
+  const password = form.get("password")?.toString() ?? "";
+
+  try {
+    // Build a proper JSON request to the better-auth sign-in endpoint
+    // and pass it through auth.handler so cookies are set correctly.
+    const signInRequest = new Request(
+      new URL("/api/auth/sign-in/email", Astro.url.origin),
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      }
+    );
+
+    const result = await auth.handler(signInRequest);
+
+    if (result.ok) {
+      // Determine where to send the user by checking role
+      const setCookie = result.headers.get("set-cookie") ?? "";
+      const tempHeaders = new Headers({ cookie: setCookie.split(";")[0] });
+      const session = await auth.api.getSession({ headers: tempHeaders });
+      const destination = session?.user?.role === "admin" ? "/admin" : "/dashboard";
+
+      return new Response(null, {
+        status: 302,
+        headers: { "set-cookie": setCookie, location: destination },
+      });
+    } else {
+      error = "Invalid email or password.";
+    }
+  } catch (e) {
+    console.error("[login] sign-in error:", e);
+    error = "Something went wrong. Please try again.";
+  }
+}
+---
+
+<BaseLayout title="Sign in">
+  <section class="auth-page">
+    <div class="container">
+      <div class="auth-card">
+        <div class="auth-header">
+          <div class="auth-logo" aria-hidden="true">◎</div>
+          <h1>Welcome back</h1>
+          <p>Sign in to manage your DevRel(ish) group.</p>
+        </div>
+
+        {error && (
+          <div class="alert alert-error" role="alert">
+            {error}
+          </div>
+        )}
+
+        <form method="POST" class="auth-form">
+          <div class="form-group">
+            <label for="email">Email address</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              autocomplete="email"
+              placeholder="you@example.com"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              required
+              autocomplete="current-password"
+              placeholder="••••••••"
+            />
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
+            Sign in →
+          </button>
+        </form>
+
+        <p class="auth-footer">
+          Not a group manager yet?{" "}
+          <a href="/groups/register">Apply to start a group</a>
+        </p>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .auth-page {
+    min-height: calc(100vh - 64px - 200px);
+    display: flex;
+    align-items: center;
+    padding: 3rem 0;
+  }
+
+  .auth-card {
+    max-width: 420px;
+    margin-inline: auto;
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: 2rem;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .auth-header {
+    text-align: center;
+    margin-bottom: 1.75rem;
+  }
+
+  .auth-logo {
+    font-size: 3rem;
+    color: var(--color-primary);
+    margin-bottom: 0.75rem;
+    line-height: 1;
+  }
+
+  .auth-header h1 {
+    font-size: var(--size-3xl);
+    margin-bottom: 0.375rem;
+  }
+
+  .auth-header p {
+    color: var(--color-text-muted);
+    font-size: var(--size-sm);
+    max-width: none;
+  }
+
+  .auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .auth-footer {
+    text-align: center;
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+    max-width: none;
+  }
+</style>

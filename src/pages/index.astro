@@ -1,0 +1,355 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import GroupCard from "../components/groups/GroupCard.astro";
+import { db, Groups, Meetups, count, eq, and, gte, desc } from "astro:db";
+
+// Fetch approved groups with upcoming meetup counts
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+
+const groups = await db
+  .select()
+  .from(Groups)
+  .where(eq(Groups.status, "approved"))
+  .orderBy(desc(Groups.createdAt))
+  .limit(6);
+
+// Count upcoming meetups per group
+const upcomingCounts: Record<string, number> = {};
+for (const group of groups) {
+  const result = await db
+    .select({ val: count() })
+    .from(Meetups)
+    .where(and(eq(Meetups.groupId, group.id), gte(Meetups.date, today)));
+  upcomingCounts[group.id] = result[0]?.val ?? 0;
+}
+---
+
+<BaseLayout title="Real Connections for DevRel Folks">
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container hero-inner">
+      <div class="hero-content">
+        <div class="hero-eyebrow">✦ IRL community for DevRel folks</div>
+        <h1 class="hero-headline">
+          Find your<br />
+          <span class="headline-accent">DevRel tribe.</span>
+        </h1>
+        <p class="hero-lead">
+          Developer relations is a small world spread across a big planet. DevRel(ish) connects
+          advocates, community managers, DX engineers, and everyone kind of doing DevRel — for
+          real-life meetups in cities around the globe.
+        </p>
+        <div class="hero-actions">
+          <a href="/groups" class="btn btn-primary btn-lg">Find a group near you</a>
+          <a href="/groups/register" class="btn btn-ghost btn-lg">Start a group</a>
+        </div>
+      </div>
+      <div class="hero-illustration" aria-hidden="true">
+        <div class="blob blob-1">◈</div>
+        <div class="blob blob-2">✦</div>
+        <div class="blob blob-3">◎</div>
+        <div class="blob blob-4">◇</div>
+        <div class="blob-center">
+          <div class="people-blob">
+            <span>👋</span>
+            <span>🤝</span>
+            <span>🌟</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Why section -->
+  <section class="why-section">
+    <div class="container">
+      <div class="why-grid">
+        <div class="why-card">
+          <div class="why-icon">🌐</div>
+          <h3>Remote but not alone</h3>
+          <p>
+            DevRel is often remote even when the company isn't. DevRel(ish) groups exist so you can
+            put faces to the names you see in Slack.
+          </p>
+        </div>
+        <div class="why-card">
+          <div class="why-icon">💬</div>
+          <h3>People who get it</h3>
+          <p>
+            Try explaining your job at a generic tech meetup. Here, everyone knows what a developer
+            advocate is — because they are one (or close enough).
+          </p>
+        </div>
+        <div class="why-card">
+          <div class="why-icon">🔋</div>
+          <h3>Recharge, not network</h3>
+          <p>
+            No pitch decks, no sponsors, no awkward badge scans. Just good people, good
+            conversation, and a reminder of why we do this work.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Groups listing -->
+  {
+    groups.length > 0 && (
+      <section class="groups-section">
+        <div class="container">
+          <div class="section-header">
+            <h2>Groups around the world</h2>
+            <a href="/groups" class="btn btn-ghost">
+              See all groups →
+            </a>
+          </div>
+          <div class="groups-grid">
+            {groups.map((g) => (
+              <GroupCard
+                id={g.id}
+                name={g.name}
+                slug={g.slug}
+                city={g.city}
+                region={g.region}
+                country={g.country}
+                description={g.description}
+                upcomingCount={upcomingCounts[g.id]}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <div class="container">
+      <div class="cta-card">
+        <div class="cta-decoration" aria-hidden="true">◈ ✦ ◎</div>
+        <h2>No group in your city yet?</h2>
+        <p>
+          Starting one is easy. Fill out a quick form, we'll review it, and you'll be up and running
+          soon. All you need is enthusiasm and a city.
+        </p>
+        <a href="/groups/register" class="btn btn-secondary btn-lg">Start a DevRel(ish) group →</a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  /* ── Hero ── */
+  .hero {
+    padding: clamp(3rem, 8vw, 6rem) 0 clamp(2rem, 6vw, 4rem);
+    background: linear-gradient(
+      135deg,
+      var(--color-bg) 0%,
+      var(--color-surface-warm) 50%,
+      var(--color-bg) 100%
+    );
+    overflow: hidden;
+  }
+
+  .hero-inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    align-items: center;
+  }
+
+  .hero-eyebrow {
+    display: inline-block;
+    font-size: var(--size-sm);
+    font-weight: 700;
+    color: var(--color-primary);
+    background: rgba(232, 112, 74, 0.1);
+    padding: 0.25rem 0.875rem;
+    border-radius: var(--radius-full);
+    margin-bottom: 1rem;
+    letter-spacing: 0.02em;
+  }
+
+  .hero-headline {
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    line-height: 1.1;
+    margin-bottom: 1rem;
+  }
+
+  .headline-accent {
+    color: var(--color-primary);
+  }
+
+  .hero-lead {
+    font-size: var(--size-lg);
+    color: var(--color-text-muted);
+    line-height: 1.7;
+    margin-bottom: 2rem;
+    max-width: 52ch;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 0.875rem;
+    flex-wrap: wrap;
+  }
+
+  /* Illustration */
+  .hero-illustration {
+    position: relative;
+    height: 320px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .blob {
+    position: absolute;
+    font-size: 2rem;
+    color: var(--color-primary);
+    opacity: 0.15;
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .blob-1 { top: 10%; left: 10%; font-size: 3rem; animation-delay: 0s; color: var(--color-primary); }
+  .blob-2 { top: 20%; right: 15%; font-size: 1.5rem; animation-delay: 1s; color: var(--color-secondary); }
+  .blob-3 { bottom: 15%; left: 20%; font-size: 2rem; animation-delay: 2s; color: var(--color-accent); }
+  .blob-4 { bottom: 25%; right: 10%; font-size: 2.5rem; animation-delay: 0.5s; color: var(--color-sky); }
+
+  .blob-center {
+    position: relative;
+    z-index: 1;
+    background: var(--color-surface);
+    border: 3px solid var(--color-border);
+    border-radius: 50%;
+    width: 160px;
+    height: 160px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .people-blob {
+    display: flex;
+    gap: 0.25rem;
+    font-size: 2.5rem;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-12px) rotate(5deg); }
+  }
+
+  /* ── Why section ── */
+  .why-section {
+    padding: clamp(2.5rem, 6vw, 4rem) 0;
+  }
+
+  .why-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .why-card {
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.75rem;
+    transition: transform var(--transition), box-shadow var(--transition);
+  }
+
+  .why-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .why-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.875rem;
+    line-height: 1;
+  }
+
+  .why-card h3 {
+    font-size: var(--size-xl);
+    margin-bottom: 0.625rem;
+  }
+
+  .why-card p {
+    color: var(--color-text-muted);
+    font-size: var(--size-sm);
+  }
+
+  /* ── Groups section ── */
+  .groups-section {
+    padding: clamp(2.5rem, 6vw, 4rem) 0;
+    background: var(--color-surface-warm);
+  }
+
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+    flex-wrap: wrap;
+  }
+
+  .section-header h2 {
+    font-size: var(--size-3xl);
+  }
+
+  .groups-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+
+  /* ── CTA ── */
+  .cta-section {
+    padding: clamp(2.5rem, 6vw, 4rem) 0;
+  }
+
+  .cta-card {
+    background: var(--color-primary);
+    color: white;
+    border-radius: var(--radius-xl);
+    padding: clamp(2rem, 5vw, 3.5rem);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-card h2 {
+    color: white;
+    font-size: var(--size-3xl);
+    margin-bottom: 0.875rem;
+  }
+
+  .cta-card p {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: var(--size-lg);
+    margin: 0 auto 1.75rem;
+    max-width: 50ch;
+  }
+
+  .cta-decoration {
+    font-size: var(--size-2xl);
+    color: rgba(255, 255, 255, 0.25);
+    letter-spacing: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .hero-inner {
+      grid-template-columns: 1fr;
+    }
+
+    .hero-illustration {
+      display: none;
+    }
+  }
+</style>

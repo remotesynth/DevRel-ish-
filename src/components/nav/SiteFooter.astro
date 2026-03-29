@@ -1,0 +1,86 @@
+---
+---
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div class="footer-brand">
+      <span class="footer-logo">DevRel<span class="logo-ish">(ish)</span></span>
+      <p>Real connections for the people who build developer communities.</p>
+    </div>
+    <nav class="footer-nav" aria-label="Footer navigation">
+      <ul role="list">
+        <li><a href="/groups">Find Groups</a></li>
+        <li><a href="/groups/register">Start a Group</a></li>
+        <li><a href="/auth/login">Group Manager Sign In</a></li>
+      </ul>
+    </nav>
+  </div>
+  <div class="footer-bottom container">
+    <p>
+      Made with care for the DevRel community &bull;
+      <a href="https://devrelish.tech">devrelish.tech</a>
+    </p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    margin-top: 4rem;
+    border-top: 2px dashed var(--color-border);
+    padding-top: 2rem;
+    padding-bottom: 1.5rem;
+    background: var(--color-surface-warm);
+  }
+
+  .footer-inner {
+    display: flex;
+    gap: 2rem;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: 1rem;
+  }
+
+  .footer-logo {
+    font-family: var(--font-display);
+    font-size: var(--size-xl);
+    color: var(--color-primary);
+  }
+
+  .logo-ish {
+    color: var(--color-text-muted);
+    font-size: 0.85em;
+  }
+
+  .footer-brand p {
+    margin-top: 0.5rem;
+    color: var(--color-text-muted);
+    font-size: var(--size-sm);
+    max-width: 32ch;
+  }
+
+  .footer-nav ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .footer-nav a {
+    font-size: var(--size-sm);
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--color-text-muted);
+  }
+
+  .footer-nav a:hover {
+    color: var(--color-primary);
+  }
+
+  .footer-bottom p {
+    font-size: var(--size-xs);
+    color: var(--color-text-light);
+    max-width: none;
+  }
+</style>

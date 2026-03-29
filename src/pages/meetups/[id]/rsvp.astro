@@ -1,0 +1,457 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { db, Meetups, RSVPs, Groups, count, eq, and } from "astro:db";
+import { formatDate, formatTime, spotsLeft, generateId, googleCalendarUrl } from "../../../lib/utils";
+
+const { id } = Astro.params;
+
+if (!id) return Astro.redirect("/groups");
+
+const [meetup] = await db.select().from(Meetups).where(eq(Meetups.id, id));
+if (!meetup) return Astro.redirect("/groups");
+
+const [group] = await db.select().from(Groups).where(eq(Groups.id, meetup.groupId));
+if (!group || group.status !== "approved") return Astro.redirect("/groups");
+
+type FormResult =
+  | { type: "success"; name: string; email: string }
+  | { type: "duplicate"; email: string }
+  | { type: "full" }
+  | { type: "error"; message: string };
+
+let result: FormResult | null = null;
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const name = form.get("name")?.toString().trim() ?? "";
+  const email = form.get("email")?.toString().trim().toLowerCase() ?? "";
+  const jobTitle = form.get("jobTitle")?.toString().trim() ?? "";
+  const company = form.get("company")?.toString().trim() ?? "";
+
+  if (!name || !email || !jobTitle || !company) {
+    result = { type: "error", message: "All fields are required." };
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    result = { type: "error", message: "Please enter a valid email address." };
+  } else {
+    // Re-fetch fresh RSVP count inside the POST handler
+    const [countResult] = await db
+      .select({ val: count() })
+      .from(RSVPs)
+      .where(eq(RSVPs.meetupId, id));
+    const currentCount = countResult?.val ?? 0;
+
+    if (currentCount >= meetup.capacity) {
+      result = { type: "full" };
+    } else {
+      // Check for duplicate
+      const [duplicate] = await db
+        .select()
+        .from(RSVPs)
+        .where(and(eq(RSVPs.meetupId, id), eq(RSVPs.email, email)));
+
+      if (duplicate) {
+        result = { type: "duplicate", email };
+      } else {
+        await db.insert(RSVPs).values({
+          id: generateId(),
+          meetupId: id,
+          name,
+          email,
+          jobTitle,
+          company,
+          createdAt: new Date(),
+        });
+        result = { type: "success", name, email };
+      }
+    }
+  }
+}
+
+// Calendar links (built once; used in success state)
+const gcalUrl = googleCalendarUrl({
+  title: meetup.title,
+  date: meetup.date,
+  time: meetup.time,
+  venue: meetup.venue,
+  address: meetup.address,
+  description: `${meetup.description}\n\nHosted by ${group.name}`,
+});
+const icsUrl = `/api/calendar/${id}`;
+
+// Fetch current RSVP count for display
+const [rsvpResult] = await db
+  .select({ val: count() })
+  .from(RSVPs)
+  .where(eq(RSVPs.meetupId, id));
+
+const rsvpCount = rsvpResult?.val ?? 0;
+const spots = spotsLeft(meetup.capacity, rsvpCount);
+const isFull = spots === 0;
+---
+
+<BaseLayout
+  title={`RSVP — ${meetup.title}`}
+  description={`RSVP for ${meetup.title} hosted by ${group.name}`}
+>
+  <section class="rsvp-page">
+    <div class="container rsvp-layout">
+      <div class="rsvp-main">
+        <div class="breadcrumb">
+          <a href="/groups">Groups</a>
+          <span aria-hidden="true">→</span>
+          <a href={`/groups/${group.slug}`}>{group.name}</a>
+          <span aria-hidden="true">→</span>
+          <span>RSVP</span>
+        </div>
+
+        {result?.type === "success" ? (
+          <div class="success-state">
+            <div class="success-icon" aria-hidden="true">🎉</div>
+            <h1>You're in!</h1>
+            <p>
+              We've got your RSVP for <strong>{meetup.title}</strong>. See you there!
+            </p>
+            <p>A confirmation has been noted for <strong>{result.email}</strong>.</p>
+
+            <div class="calendar-section">
+              <p class="calendar-label">Add to your calendar:</p>
+              <div class="calendar-btns">
+                <a
+                  href={gcalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="btn btn-secondary"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M19 3h-1V1h-2v2H8V1H6v2H5C3.89 3 3 3.9 3 5v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+                  </svg>
+                  Google Calendar
+                </a>
+                <a href={icsUrl} download class="btn btn-ghost">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  Download .ics
+                </a>
+              </div>
+            </div>
+
+            <a href={`/groups/${group.slug}`} class="back-link-success">
+              ← Back to {group.name}
+            </a>
+          </div>
+        ) : result?.type === "duplicate" ? (
+          <div>
+            <h1>Count me in!</h1>
+            <div class="alert alert-info" role="alert">
+              <strong>Already registered!</strong> Looks like <strong>{result.email}</strong> is already
+              on the list for this meetup. We'll see you there!
+            </div>
+          </div>
+        ) : result?.type === "full" ? (
+          <div>
+            <h1>Count me in!</h1>
+            <div class="alert alert-error" role="alert">
+              <strong>This meetup is full.</strong> Check back in case a spot opens up.
+            </div>
+          </div>
+        ) : (
+          <>
+            <h1>Count me in!</h1>
+            <p class="rsvp-subtitle">
+              Fill in your details below to reserve your spot at <strong>{meetup.title}</strong>.
+            </p>
+
+            {isFull ? (
+              <div class="alert alert-error" role="alert">
+                <strong>This meetup is full.</strong> Check back in case a spot opens up, or look for
+                other upcoming meetups from <a href={`/groups/${group.slug}`}>{group.name}</a>.
+              </div>
+            ) : (
+              <form method="POST" class="rsvp-form">
+                {result?.type === "error" && (
+                  <div class="alert alert-error" role="alert">
+                    {result.message}
+                  </div>
+                )}
+
+                {spots <= 5 && (
+                  <div class="alert alert-warning">
+                    Only <strong>{spots}</strong> spot{spots === 1 ? "" : "s"} left — grab yours!
+                  </div>
+                )}
+
+                <div class="form-group">
+                  <label for="name">Your name *</label>
+                  <input id="name" name="name" type="text" placeholder="Taylor Kim" required />
+                </div>
+
+                <div class="form-group">
+                  <label for="email">Email address *</label>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="taylor@example.com"
+                    required
+                  />
+                  <span class="form-hint">We'll only use this to identify your RSVP.</span>
+                </div>
+
+                <div class="form-group">
+                  <label for="jobTitle">Job title *</label>
+                  <input
+                    id="jobTitle"
+                    name="jobTitle"
+                    type="text"
+                    placeholder="Developer Advocate, Community Manager, DevRel Engineer..."
+                    required
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label for="company">Company *</label>
+                  <input id="company" name="company" type="text" placeholder="Acme Corp" required />
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; justify-content: center;">
+                  Count me in! →
+                </button>
+              </form>
+            )}
+          </>
+        )}
+      </div>
+
+      <aside class="rsvp-sidebar">
+        <div class="meetup-details-card">
+          <h3>{meetup.title}</h3>
+          <div class="meetup-detail-row">
+            <span class="detail-icon">📅</span>
+            <span>{formatDate(meetup.date)}</span>
+          </div>
+          <div class="meetup-detail-row">
+            <span class="detail-icon">🕐</span>
+            <span>{formatTime(meetup.time)}</span>
+          </div>
+          <div class="meetup-detail-row">
+            <span class="detail-icon">📍</span>
+            <div>
+              <div>{meetup.venue}</div>
+              {meetup.address && <div class="address">{meetup.address}</div>}
+            </div>
+          </div>
+          <div class="meetup-detail-row">
+            <span class="detail-icon">👥</span>
+            <span>
+              {isFull ? "Full" : `${spots} of ${meetup.capacity} spots left`}
+            </span>
+          </div>
+
+          <hr />
+
+          <div class="hosted-by">
+            <span class="hosted-label">Hosted by</span>
+            <a href={`/groups/${group.slug}`} class="hosted-group">{group.name}</a>
+          </div>
+        </div>
+
+        <p class="rsvp-note">
+          No account needed. Your info is only used to manage attendance.
+        </p>
+      </aside>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .rsvp-page {
+    padding: 2.5rem 0 4rem;
+  }
+
+  .rsvp-layout {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 2.5rem;
+    align-items: start;
+  }
+
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .breadcrumb a {
+    text-decoration: none;
+    font-weight: 600;
+    color: var(--color-text-muted);
+  }
+
+  .breadcrumb a:hover {
+    color: var(--color-primary);
+  }
+
+  h1 {
+    margin-bottom: 0.375rem;
+  }
+
+  .rsvp-subtitle {
+    color: var(--color-text-muted);
+    font-size: var(--size-lg);
+    margin-bottom: 1.75rem;
+  }
+
+  .rsvp-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    max-width: 480px;
+  }
+
+  .alert {
+    max-width: 480px;
+  }
+
+  /* Success state */
+  .success-state {
+    text-align: center;
+    padding: 3rem 2rem;
+    background: var(--color-surface);
+    border: 2px solid var(--color-accent);
+    border-radius: var(--radius-lg);
+    max-width: 480px;
+  }
+
+  .success-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+  }
+
+  .success-state h1 {
+    margin-bottom: 0.75rem;
+    color: var(--color-accent-dark);
+  }
+
+  .success-state p {
+    color: var(--color-text-muted);
+    margin-bottom: 0.75rem;
+  }
+
+  .calendar-section {
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px dashed var(--color-border);
+  }
+
+  .calendar-label {
+    font-size: var(--size-sm);
+    font-weight: 700;
+    color: var(--color-text-muted);
+    margin-bottom: 0.75rem;
+    max-width: none;
+  }
+
+  .calendar-btns {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .back-link-success {
+    display: inline-block;
+    margin-top: 1.25rem;
+    font-size: var(--size-sm);
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-decoration: none;
+  }
+
+  .back-link-success:hover {
+    color: var(--color-primary);
+  }
+
+  /* Sidebar */
+  .rsvp-sidebar {
+    position: sticky;
+    top: 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .meetup-details-card {
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+  }
+
+  .meetup-details-card h3 {
+    font-size: var(--size-lg);
+    margin-bottom: 1rem;
+    padding-bottom: 0.625rem;
+    border-bottom: 1px dashed var(--color-border);
+  }
+
+  .meetup-detail-row {
+    display: flex;
+    gap: 0.625rem;
+    align-items: flex-start;
+    font-size: var(--size-sm);
+    margin-bottom: 0.625rem;
+  }
+
+  .detail-icon {
+    flex-shrink: 0;
+    font-size: var(--size-base);
+  }
+
+  .address {
+    color: var(--color-text-muted);
+    font-size: var(--size-xs);
+    margin-top: 0.125rem;
+  }
+
+  .hosted-by {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: var(--size-sm);
+  }
+
+  .hosted-label {
+    color: var(--color-text-muted);
+    font-size: var(--size-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+  }
+
+  .hosted-group {
+    font-weight: 700;
+  }
+
+  .rsvp-note {
+    font-size: var(--size-xs);
+    color: var(--color-text-light);
+    text-align: center;
+    max-width: none;
+  }
+
+  @media (max-width: 768px) {
+    .rsvp-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .rsvp-sidebar {
+      position: static;
+      order: -1;
+    }
+  }
+</style>

@@ -1,0 +1,60 @@
+---
+import "../styles/global.css";
+import DashNav from "../components/nav/DashNav.astro";
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+const user = Astro.locals.user;
+
+if (!user) {
+  return Astro.redirect("/auth/login");
+}
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title} — DevRel(ish) Dashboard</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div class="dash-shell">
+      <DashNav user={user} />
+      <div class="dash-content">
+        <div class="dash-inner">
+          <slot />
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+
+<style>
+  .dash-shell {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  .dash-content {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--color-bg);
+  }
+
+  .dash-inner {
+    max-width: 900px;
+    margin-inline: auto;
+    padding: 2rem var(--content-padding);
+  }
+
+  @media (max-width: 768px) {
+    .dash-shell {
+      flex-direction: column;
+    }
+  }
+</style>

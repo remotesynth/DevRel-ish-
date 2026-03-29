@@ -1,0 +1,240 @@
+---
+import DashboardLayout from "../../../../layouts/DashboardLayout.astro";
+import { db, Groups, Meetups, RSVPs } from "astro:db";
+import { eq, and, asc } from "astro:db";
+import { formatDate, formatTime } from "../../../../lib/utils";
+
+if (!Astro.locals.user) return Astro.redirect("/auth/login");
+const user = Astro.locals.user;
+const { id } = Astro.params;
+
+if (!id) return Astro.redirect("/dashboard/meetups");
+
+const [group] = user.groupId
+  ? await db.select().from(Groups).where(eq(Groups.id, user.groupId))
+  : [];
+
+if (!group) return Astro.redirect("/dashboard");
+
+const [meetup] = await db
+  .select()
+  .from(Meetups)
+  .where(and(eq(Meetups.id, id), eq(Meetups.groupId, group.id)));
+
+if (!meetup) return Astro.redirect("/dashboard/meetups");
+
+const attendees = await db
+  .select()
+  .from(RSVPs)
+  .where(eq(RSVPs.meetupId, id))
+  .orderBy(asc(RSVPs.createdAt));
+---
+
+<DashboardLayout title={`Attendees — ${meetup.title}`}>
+  <div class="page-header">
+    <a href="/dashboard/meetups" class="back-link">← Back to meetups</a>
+    <h1>{meetup.title}</h1>
+    <p class="meetup-meta">
+      📅 {formatDate(meetup.date)} at {formatTime(meetup.time)} &bull; 📍 {meetup.venue}
+    </p>
+  </div>
+
+  <div class="attendee-stats">
+    <div class="stat">
+      <span class="stat-num">{attendees.length}</span>
+      <span class="stat-label">RSVPs</span>
+    </div>
+    <div class="stat">
+      <span class="stat-num">{meetup.capacity}</span>
+      <span class="stat-label">Capacity</span>
+    </div>
+    <div class="stat">
+      <span class="stat-num">{Math.max(0, meetup.capacity - attendees.length)}</span>
+      <span class="stat-label">Spots left</span>
+    </div>
+  </div>
+
+  {
+    attendees.length === 0 ? (
+      <div class="empty-state">
+        <p>No RSVPs yet. Share the meetup link to start getting sign-ups!</p>
+        <div class="share-link">
+          <code>{`/meetups/${meetup.id}/rsvp`}</code>
+        </div>
+      </div>
+    ) : (
+      <div class="attendees-table-wrap">
+        <table class="attendees-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Job Title</th>
+              <th>Company</th>
+              <th>RSVP'd</th>
+            </tr>
+          </thead>
+          <tbody>
+            {attendees.map((a, i) => (
+              <tr>
+                <td class="row-num">{i + 1}</td>
+                <td class="attendee-name">{a.name}</td>
+                <td>
+                  <a href={`mailto:${a.email}`}>{a.email}</a>
+                </td>
+                <td>{a.jobTitle}</td>
+                <td>{a.company}</td>
+                <td class="rsvp-date">
+                  {new Intl.DateTimeFormat("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  }).format(a.createdAt)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+</DashboardLayout>
+
+<style>
+  .page-header {
+    margin-bottom: 1.75rem;
+  }
+
+  .back-link {
+    font-size: var(--size-sm);
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--color-text-muted);
+    display: block;
+    margin-bottom: 0.75rem;
+  }
+
+  .back-link:hover {
+    color: var(--color-primary);
+  }
+
+  .page-header h1 {
+    font-size: var(--size-2xl);
+    margin-bottom: 0.25rem;
+  }
+
+  .meetup-meta {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+    max-width: none;
+  }
+
+  .attendee-stats {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .stat {
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 1rem 1.25rem;
+    text-align: center;
+    min-width: 80px;
+  }
+
+  .stat-num {
+    display: block;
+    font-family: var(--font-display);
+    font-size: var(--size-3xl);
+    color: var(--color-primary);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: var(--size-xs);
+    color: var(--color-text-muted);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+    background: var(--color-surface);
+    border: 2px dashed var(--color-border);
+    border-radius: var(--radius-lg);
+  }
+
+  .empty-state p {
+    color: var(--color-text-muted);
+    margin-bottom: 1rem;
+    max-width: none;
+  }
+
+  .share-link {
+    background: var(--color-surface-warm);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 0.625rem 1rem;
+    display: inline-block;
+  }
+
+  .share-link code {
+    font-size: var(--size-sm);
+    color: var(--color-primary);
+  }
+
+  .attendees-table-wrap {
+    overflow-x: auto;
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+  }
+
+  .attendees-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--size-sm);
+  }
+
+  .attendees-table th {
+    background: var(--color-surface-warm);
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-size: var(--size-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+    border-bottom: 2px solid var(--color-border);
+    white-space: nowrap;
+  }
+
+  .attendees-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: middle;
+  }
+
+  .attendees-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .row-num {
+    color: var(--color-text-muted);
+    font-size: var(--size-xs);
+    font-weight: 700;
+  }
+
+  .attendee-name {
+    font-weight: 700;
+  }
+
+  .rsvp-date {
+    color: var(--color-text-muted);
+    white-space: nowrap;
+  }
+</style>

@@ -1,0 +1,252 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import GroupForm from "../../components/groups/GroupForm";
+---
+
+<BaseLayout
+  title="Start a Group"
+  description="Apply to start a DevRel(ish) group in your city. We'll review your application and get back to you soon."
+>
+  <section class="page-hero">
+    <div class="container">
+      <div class="hero-eyebrow">✦ New group application</div>
+      <h1>Start a DevRel(ish) group</h1>
+      <p>
+        Think your city needs a regular gathering for DevRel folks? We agree. Fill out this form and
+        we'll get your group set up. All you need is enthusiasm and a city.
+      </p>
+    </div>
+  </section>
+
+  <section class="form-section">
+    <div class="container form-layout">
+      <div class="form-main">
+        <GroupForm client:load />
+      </div>
+
+      <aside class="form-sidebar">
+        <div class="sidebar-card">
+          <h3>What happens next</h3>
+          <ol class="steps-list">
+            <li>
+              <span class="step-num">1</span>
+              <div>
+                <strong>You submit this form</strong>
+                <p>Takes about 2 minutes.</p>
+              </div>
+            </li>
+            <li>
+              <span class="step-num">2</span>
+              <div>
+                <strong>We review your application</strong>
+                <p>Usually within a few days. We'll email you either way.</p>
+              </div>
+            </li>
+            <li>
+              <span class="step-num">3</span>
+              <div>
+                <strong>You get access</strong>
+                <p>Log in and start creating meetups for your group!</p>
+              </div>
+            </li>
+          </ol>
+        </div>
+
+        <div class="sidebar-card sidebar-card-warm">
+          <h3>What is DevRel(ish)?</h3>
+          <p>
+            The "(ish)" is intentional — your group should welcome anyone doing the work of DevRel,
+            regardless of their title. Developer advocates, community managers, DX engineers,
+            developer content writers... all welcome.
+          </p>
+        </div>
+      </aside>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .page-hero {
+    padding: 3rem 0 2rem;
+    background: var(--color-surface-warm);
+    border-bottom: 2px solid var(--color-border);
+  }
+
+  .hero-eyebrow {
+    display: inline-block;
+    font-size: var(--size-sm);
+    font-weight: 700;
+    color: var(--color-primary);
+    background: rgba(232, 112, 74, 0.1);
+    padding: 0.25rem 0.875rem;
+    border-radius: var(--radius-full);
+    margin-bottom: 0.75rem;
+  }
+
+  .page-hero h1 {
+    margin-bottom: 0.75rem;
+  }
+
+  .page-hero p {
+    font-size: var(--size-lg);
+    color: var(--color-text-muted);
+    max-width: 56ch;
+  }
+
+  .form-section {
+    padding: 2.5rem 0 4rem;
+  }
+
+  .form-layout {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 2.5rem;
+    align-items: start;
+  }
+
+  .form-main :global(.group-form) {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .form-main :global(.form-section) {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+  }
+
+  .form-main :global(.section-title) {
+    font-size: var(--size-lg);
+    margin: 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px dashed var(--color-border);
+  }
+
+  .form-main :global(.form-row) {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .form-main :global(.form-actions) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-main :global(.success-state) {
+    text-align: center;
+    padding: 3rem 2rem;
+    background: var(--color-surface);
+    border: 2px solid var(--color-accent);
+    border-radius: var(--radius-lg);
+  }
+
+  .form-main :global(.success-icon) {
+    font-size: 3rem;
+    color: var(--color-accent);
+    margin-bottom: 1rem;
+  }
+
+  .form-main :global(.success-state h2) {
+    margin-bottom: 0.75rem;
+    color: var(--color-accent-dark);
+  }
+
+  .form-main :global(.success-state p) {
+    color: var(--color-text-muted);
+    margin: 0 auto 0.75rem;
+    max-width: 44ch;
+  }
+
+  /* Sidebar */
+  .form-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    position: sticky;
+    top: 80px;
+  }
+
+  .sidebar-card {
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+  }
+
+  .sidebar-card-warm {
+    background: var(--color-surface-warm);
+    border-color: var(--color-border-strong);
+  }
+
+  .sidebar-card h3 {
+    font-size: var(--size-base);
+    margin-bottom: 0.875rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px dashed var(--color-border);
+  }
+
+  .sidebar-card p {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+  }
+
+  .steps-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+  }
+
+  .steps-list li {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+
+  .step-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: white;
+    font-size: var(--size-xs);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+  }
+
+  .steps-list strong {
+    display: block;
+    font-size: var(--size-sm);
+    margin-bottom: 0.125rem;
+  }
+
+  .steps-list p {
+    font-size: var(--size-xs);
+    margin: 0;
+  }
+
+  @media (max-width: 768px) {
+    .form-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .form-sidebar {
+      position: static;
+    }
+
+    .form-main :global(.form-row) {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

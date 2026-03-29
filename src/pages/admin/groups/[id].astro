@@ -1,0 +1,289 @@
+---
+import DashboardLayout from "../../../layouts/DashboardLayout.astro";
+import { db, Groups, User } from "astro:db";
+import { eq } from "astro:db";
+
+if (!Astro.locals.user) return Astro.redirect("/auth/login");
+if (Astro.locals.user.role !== "admin") return Astro.redirect("/dashboard");
+
+const user = Astro.locals.user;
+
+const { id } = Astro.params;
+if (!id) return Astro.redirect("/admin");
+
+const [group] = await db.select().from(Groups).where(eq(Groups.id, id));
+if (!group) return Astro.redirect("/admin");
+
+// Find manager if assigned
+const [manager] = group.managerId
+  ? await db.select().from(User).where(eq(User.id, group.managerId))
+  : [];
+
+let successMsg = "";
+let errorMsg = "";
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const action = form.get("action")?.toString();
+
+  if (action === "approve" || action === "reject") {
+    try {
+      const res = await fetch(`${Astro.url.origin}/api/groups/${id}/status`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: Astro.request.headers.get("cookie") ?? "",
+        },
+        body: JSON.stringify({ id, status: action === "approve" ? "approved" : "rejected" }),
+      });
+
+      if (res.ok) {
+        successMsg = action === "approve"
+          ? "Group approved! The contact will be able to log in."
+          : "Group application rejected.";
+        // Refresh group data
+        const [updated] = await db.select().from(Groups).where(eq(Groups.id, id));
+        if (updated) Object.assign(group, updated);
+      } else {
+        errorMsg = "Action failed. Please try again.";
+      }
+    } catch {
+      errorMsg = "Something went wrong.";
+    }
+  }
+}
+---
+
+<DashboardLayout title={`Review — ${group.name}`}>
+  <div class="page-header">
+    <a href="/admin" class="back-link">← Back to admin</a>
+    <div class="header-row">
+      <h1>{group.name}</h1>
+      <span class:list={["badge", `badge-${group.status}`]}>
+        {group.status}
+      </span>
+    </div>
+  </div>
+
+  {successMsg && <div class="alert alert-success">{successMsg}</div>}
+  {errorMsg && <div class="alert alert-error">{errorMsg}</div>}
+
+  <div class="review-layout">
+    <div class="review-main">
+      <div class="detail-card">
+        <h3>Group details</h3>
+        <dl class="detail-list">
+          <dt>Name</dt>
+          <dd>{group.name}</dd>
+
+          <dt>Location</dt>
+          <dd>
+            {group.region
+              ? `${group.city}, ${group.region}, ${group.country}`
+              : `${group.city}, ${group.country}`}
+          </dd>
+
+          <dt>Contact email</dt>
+          <dd><a href={`mailto:${group.contactEmail}`}>{group.contactEmail}</a></dd>
+
+          <dt>Applied</dt>
+          <dd>
+            {new Intl.DateTimeFormat("en-US", {
+              dateStyle: "long",
+            }).format(group.createdAt)}
+          </dd>
+
+          {manager && (
+            <>
+              <dt>Manager</dt>
+              <dd>{manager.name} ({manager.email})</dd>
+            </>
+          )}
+        </dl>
+      </div>
+
+      <div class="detail-card">
+        <h3>Description</h3>
+        <p class="description-text">{group.description}</p>
+      </div>
+    </div>
+
+    {
+      group.status === "pending" && (
+        <div class="action-card">
+          <h3>Take action</h3>
+          <p>Once approved, this group will appear publicly and the contact can sign in to manage meetups.</p>
+
+          <div class="action-btns">
+            <form method="POST">
+              <input type="hidden" name="action" value="approve" />
+              <button type="submit" class="btn btn-accent btn-lg">
+                ✓ Approve group
+              </button>
+            </form>
+            <form method="POST">
+              <input type="hidden" name="action" value="reject" />
+              <button type="submit" class="btn btn-danger">
+                ✗ Reject application
+              </button>
+            </form>
+          </div>
+        </div>
+      )
+    }
+
+    {
+      group.status !== "pending" && (
+        <div class="action-card">
+          <h3>Status</h3>
+          <p>
+            This group is <strong>{group.status}</strong>.
+          </p>
+          {group.status === "approved" && (
+            <a href={`/groups/${group.slug}`} class="btn btn-ghost" target="_blank" rel="noopener">
+              View public page ↗
+            </a>
+          )}
+          {group.status === "rejected" && (
+            <form method="POST">
+              <input type="hidden" name="action" value="approve" />
+              <button type="submit" class="btn btn-accent">
+                ✓ Approve anyway
+              </button>
+            </form>
+          )}
+        </div>
+      )
+    }
+  </div>
+</DashboardLayout>
+
+<style>
+  .page-header {
+    margin-bottom: 1.75rem;
+  }
+
+  .back-link {
+    font-size: var(--size-sm);
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--color-text-muted);
+    display: block;
+    margin-bottom: 0.75rem;
+  }
+
+  .back-link:hover {
+    color: var(--color-primary);
+  }
+
+  .header-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .header-row h1 {
+    font-size: var(--size-3xl);
+  }
+
+  .alert {
+    margin-bottom: 1.25rem;
+  }
+
+  .review-layout {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  .review-main {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .detail-card {
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+  }
+
+  .detail-card h3 {
+    font-size: var(--size-lg);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px dashed var(--color-border);
+  }
+
+  .detail-list {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 0.5rem 1rem;
+  }
+
+  .detail-list dt {
+    font-size: var(--size-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+    padding-top: 0.125rem;
+  }
+
+  .detail-list dd {
+    font-size: var(--size-sm);
+    color: var(--color-text);
+  }
+
+  .description-text {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+    line-height: 1.7;
+  }
+
+  /* Action card */
+  .action-card {
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    position: sticky;
+    top: 80px;
+  }
+
+  .action-card h3 {
+    font-size: var(--size-base);
+    margin-bottom: 0.625rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px dashed var(--color-border);
+  }
+
+  .action-card p {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+    margin-bottom: 1.25rem;
+  }
+
+  .action-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+  }
+
+  .action-btns form {
+    display: contents;
+  }
+
+  @media (max-width: 768px) {
+    .review-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .action-card {
+      position: static;
+    }
+  }
+</style>

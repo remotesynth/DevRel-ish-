@@ -1,0 +1,98 @@
+---
+import DashboardLayout from "../../../../layouts/DashboardLayout.astro";
+import MeetupForm from "../../../../components/meetups/MeetupForm";
+import { db, Groups, Meetups } from "astro:db";
+import { eq, and } from "astro:db";
+
+if (!Astro.locals.user) return Astro.redirect("/auth/login");
+const user = Astro.locals.user;
+const { id } = Astro.params;
+
+if (!id) return Astro.redirect("/dashboard/meetups");
+
+const [group] = user.groupId
+  ? await db.select().from(Groups).where(eq(Groups.id, user.groupId))
+  : [];
+
+if (!group) return Astro.redirect("/dashboard");
+
+const [meetup] = await db
+  .select()
+  .from(Meetups)
+  .where(and(eq(Meetups.id, id), eq(Meetups.groupId, group.id)));
+
+if (!meetup) return Astro.redirect("/dashboard/meetups");
+
+// Format date for the input
+const dateStr = meetup.date.toISOString().split("T")[0];
+---
+
+<DashboardLayout title="Edit Meetup">
+  <div class="page-header">
+    <a href="/dashboard/meetups" class="back-link">← Back to meetups</a>
+    <h1>Edit meetup</h1>
+  </div>
+
+  <div class="form-wrap">
+    <MeetupForm
+      client:load
+      mode="edit"
+      meetupId={meetup.id}
+      initial={{
+        title: meetup.title,
+        description: meetup.description,
+        date: dateStr,
+        time: meetup.time,
+        venue: meetup.venue,
+        address: meetup.address ?? "",
+        capacity: meetup.capacity,
+      }}
+    />
+  </div>
+</DashboardLayout>
+
+<style>
+  .page-header {
+    margin-bottom: 1.75rem;
+  }
+
+  .back-link {
+    font-size: var(--size-sm);
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--color-text-muted);
+    display: block;
+    margin-bottom: 0.75rem;
+  }
+
+  .back-link:hover {
+    color: var(--color-primary);
+  }
+
+  .page-header h1 {
+    font-size: var(--size-3xl);
+  }
+
+  .form-wrap :global(.meetup-form) {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.75rem;
+    max-width: 600px;
+  }
+
+  .form-wrap :global(.form-row) {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .form-wrap :global(.form-actions) {
+    display: flex;
+    gap: 0.875rem;
+    align-items: center;
+  }
+</style>
