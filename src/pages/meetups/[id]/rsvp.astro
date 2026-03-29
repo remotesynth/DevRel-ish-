@@ -23,45 +23,56 @@ let result: FormResult | null = null;
 
 if (Astro.request.method === "POST") {
   const form = await Astro.request.formData();
-  const name = form.get("name")?.toString().trim() ?? "";
-  const email = form.get("email")?.toString().trim().toLowerCase() ?? "";
-  const jobTitle = form.get("jobTitle")?.toString().trim() ?? "";
-  const company = form.get("company")?.toString().trim() ?? "";
 
-  if (!name || !email || !jobTitle || !company) {
-    result = { type: "error", message: "All fields are required." };
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    result = { type: "error", message: "Please enter a valid email address." };
+  // Bot protection: honeypot field must be empty
+  const hp = form.get("_hp")?.toString() ?? "";
+  // Bot protection: form must have been open for at least 3 seconds
+  const submittedAt = parseInt(form.get("_t")?.toString() ?? "0", 10);
+  const elapsed = Date.now() - submittedAt;
+  if (hp || elapsed < 3000) {
+    // Silently fake success so bots don't know they were blocked
+    result = { type: "success", name: form.get("name")?.toString().trim() ?? "", email: form.get("email")?.toString().trim().toLowerCase() ?? "" };
   } else {
-    // Re-fetch fresh RSVP count inside the POST handler
-    const [countResult] = await db
-      .select({ val: count() })
-      .from(RSVPs)
-      .where(eq(RSVPs.meetupId, id));
-    const currentCount = countResult?.val ?? 0;
+    const name = form.get("name")?.toString().trim() ?? "";
+    const email = form.get("email")?.toString().trim().toLowerCase() ?? "";
+    const jobTitle = form.get("jobTitle")?.toString().trim() ?? "";
+    const company = form.get("company")?.toString().trim() ?? "";
 
-    if (currentCount >= meetup.capacity) {
-      result = { type: "full" };
+    if (!name || !email || !jobTitle || !company) {
+      result = { type: "error", message: "All fields are required." };
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      result = { type: "error", message: "Please enter a valid email address." };
     } else {
-      // Check for duplicate
-      const [duplicate] = await db
-        .select()
+      // Re-fetch fresh RSVP count inside the POST handler
+      const [countResult] = await db
+        .select({ val: count() })
         .from(RSVPs)
-        .where(and(eq(RSVPs.meetupId, id), eq(RSVPs.email, email)));
+        .where(eq(RSVPs.meetupId, id));
+      const currentCount = countResult?.val ?? 0;
 
-      if (duplicate) {
-        result = { type: "duplicate", email };
+      if (currentCount >= meetup.capacity) {
+        result = { type: "full" };
       } else {
-        await db.insert(RSVPs).values({
-          id: generateId(),
-          meetupId: id,
-          name,
-          email,
-          jobTitle,
-          company,
-          createdAt: new Date(),
-        });
-        result = { type: "success", name, email };
+        // Check for duplicate
+        const [duplicate] = await db
+          .select()
+          .from(RSVPs)
+          .where(and(eq(RSVPs.meetupId, id), eq(RSVPs.email, email)));
+
+        if (duplicate) {
+          result = { type: "duplicate", email };
+        } else {
+          await db.insert(RSVPs).values({
+            id: generateId(),
+            meetupId: id,
+            name,
+            email,
+            jobTitle,
+            company,
+            createdAt: new Date(),
+          });
+          result = { type: "success", name, email };
+        }
       }
     }
   }
@@ -169,6 +180,10 @@ const isFull = spots === 0;
               </div>
             ) : (
               <form method="POST" class="rsvp-form">
+                {/* Bot protection: honeypot (off-screen, invisible to humans) */}
+                <input name="_hp" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" class="hp-field" />
+                {/* Bot protection: form render timestamp */}
+                <input name="_t" type="hidden" value={String(Date.now())} />
                 {result?.type === "error" && (
                   <div class="alert alert-error" role="alert">
                     {result.message}
@@ -272,6 +287,15 @@ const isFull = spots === 0;
 </BaseLayout>
 
 <style>
+  .hp-field {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    tab-size: 0;
+  }
+
   .rsvp-page {
     padding: 2.5rem 0 4rem;
   }

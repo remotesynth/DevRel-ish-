@@ -13,7 +13,13 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: "Invalid request body." }, 400);
   }
 
-  const { name, city, region, country, description, contactEmail } = body as Record<string, string>;
+  const { name, city, region, country, description, contactEmail, _hp, _t } = body as Record<string, string>;
+
+  // Bot protection: honeypot must be empty; form must have been open ≥3 seconds
+  const submittedAt = parseInt(_t ?? "0", 10);
+  if (_hp || !submittedAt || Date.now() - submittedAt < 3000) {
+    return json({ ok: true }, 201); // Silently fake success
+  }
 
   // Basic validation
   if (!name?.trim() || !city?.trim() || !country?.trim() || !description?.trim() || !contactEmail?.trim()) {

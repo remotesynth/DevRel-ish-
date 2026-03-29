@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface FormData {
   name: string;
@@ -18,6 +18,8 @@ export default function GroupForm() {
     description: "",
     contactEmail: "",
   });
+  const mountedAt = useRef<number>(0);
+  useEffect(() => { mountedAt.current = Date.now(); }, []);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -33,10 +35,15 @@ export default function GroupForm() {
     setErrorMsg("");
 
     try {
+      const honeypotEl = document.querySelector<HTMLInputElement>(".group-form .hp-field");
       const res = await fetch("/api/groups/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          _hp: honeypotEl?.value ?? "",
+          _t: String(mountedAt.current),
+        }),
       });
       const data = await res.json();
 
@@ -72,6 +79,22 @@ export default function GroupForm() {
 
   return (
     <form onSubmit={handleSubmit} className="group-form" noValidate>
+      {/* Bot protection: honeypot field — invisible to humans, filled by bots */}
+      <input
+        name="_hp"
+        type="text"
+        className="hp-field"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          left: "-9999px",
+          width: "1px",
+          height: "1px",
+          opacity: 0,
+        }}
+      />
       {status === "error" && (
         <div className="alert alert-error" role="alert">
           {errorMsg}
