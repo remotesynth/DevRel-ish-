@@ -1,0 +1,359 @@
+---
+import DashboardLayout from "../../layouts/DashboardLayout.astro";
+import { db, User, Groups, GroupInvites } from "astro:db";
+import { eq, and, gt } from "astro:db";
+import { generateId } from "../../lib/utils";
+
+if (!Astro.locals.user) return Astro.redirect("/auth/login");
+const user = Astro.locals.user;
+if (!user.groupId) return Astro.redirect("/dashboard");
+
+const [group] = await db.select().from(Groups).where(eq(Groups.id, user.groupId));
+if (!group) return Astro.redirect("/dashboard");
+
+let successMsg = "";
+let errorMsg = "";
+let newInviteUrl = "";
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const action = form.get("action")?.toString();
+
+  if (action === "create_invite") {
+    // Replace any existing invite for this group
+    await db.delete(GroupInvites).where(eq(GroupInvites.groupId, user.groupId!));
+
+    const token = generateId();
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    await db.insert(GroupInvites).values({
+      id: token,
+      groupId: user.groupId!,
+      createdAt: new Date(),
+      expiresAt,
+    });
+
+    newInviteUrl = `${Astro.url.origin}/invite/${token}`;
+    successMsg = "Invite link generated! Copy it and share with your co-organizer.";
+  } else if (action === "revoke_invite") {
+    await db.delete(GroupInvites).where(eq(GroupInvites.groupId, user.groupId!));
+    successMsg = "Invite link revoked.";
+  } else if (action === "remove_member") {
+    const memberId = form.get("memberId")?.toString();
+    if (!memberId || memberId === user.id) {
+      errorMsg = "You cannot remove yourself from the team.";
+    } else {
+      const [member] = await db.select().from(User).where(eq(User.id, memberId));
+      if (!member || member.groupId !== user.groupId) {
+        errorMsg = "Member not found.";
+      } else {
+        await db.update(User).set({ groupId: null }).where(eq(User.id, memberId));
+        successMsg = `${member.name} has been removed from the team.`;
+      }
+    }
+  }
+}
+
+const members = await db.select().from(User).where(eq(User.groupId, user.groupId!));
+
+const now = new Date();
+const [activeInvite] = await db
+  .select()
+  .from(GroupInvites)
+  .where(and(eq(GroupInvites.groupId, user.groupId!), gt(GroupInvites.expiresAt, now)));
+
+const inviteUrl = newInviteUrl || (activeInvite ? `${Astro.url.origin}/invite/${activeInvite.id}` : "");
+
+function formatExpiry(d: Date) {
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(d);
+}
+---
+
+<DashboardLayout title="Team">
+  <div class="page-header">
+    <h1>Team</h1>
+    <p>Co-organizers have the same access you do — they can create meetups, manage attendees, and read messages.</p>
+  </div>
+
+  {successMsg && <div class="alert alert-success">{successMsg}</div>}
+  {errorMsg && <div class="alert alert-error">{errorMsg}</div>}
+
+  <div class="team-layout">
+    <!-- Current members -->
+    <section class="team-card">
+      <h2>Current team</h2>
+
+      <div class="members-list">
+        {members.map((m) => (
+          <div class="member-row">
+            <div class="member-avatar" aria-hidden="true">
+              {m.name?.[0]?.toUpperCase() ?? "?"}
+            </div>
+            <div class="member-info">
+              <strong>{m.name}</strong>
+              <span class="member-email">{m.email}</span>
+            </div>
+            {m.id === user.id ? (
+              <span class="member-you">You</span>
+            ) : (
+              <form method="POST" class="remove-form">
+                <input type="hidden" name="action" value="remove_member" />
+                <input type="hidden" name="memberId" value={m.id} />
+                <button
+                  type="submit"
+                  class="btn-remove"
+                  onclick="return confirm(`Remove ${m.name} from the team?`)"
+                >
+                  Remove
+                </button>
+              </form>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <!-- Invite link -->
+    <section class="team-card">
+      <h2>Invite a co-organizer</h2>
+      <p class="invite-desc">
+        Generate a one-time invite link and share it with someone you trust. The link expires in 7 days
+        and can only be used by one person.
+      </p>
+
+      {inviteUrl ? (
+        <div class="invite-active">
+          <label class="invite-label">Invite link</label>
+          <div class="invite-link-row">
+            <input
+              id="invite-url"
+              type="text"
+              value={inviteUrl}
+              readonly
+              class="invite-input"
+            />
+            <button type="button" id="copy-btn" class="btn btn-ghost btn-sm">
+              Copy
+            </button>
+          </div>
+          {activeInvite && (
+            <p class="invite-expiry">
+              Expires {formatExpiry(activeInvite.expiresAt)}
+            </p>
+          )}
+          <form method="POST" class="revoke-form">
+            <input type="hidden" name="action" value="revoke_invite" />
+            <button type="submit" class="btn-text-danger">Revoke link</button>
+          </form>
+        </div>
+      ) : (
+        <form method="POST">
+          <input type="hidden" name="action" value="create_invite" />
+          <button type="submit" class="btn btn-primary">
+            Generate invite link →
+          </button>
+        </form>
+      )}
+    </section>
+  </div>
+</DashboardLayout>
+
+<script>
+  const copyBtn = document.getElementById("copy-btn");
+  const inviteInput = document.getElementById("invite-url") as HTMLInputElement | null;
+
+  copyBtn?.addEventListener("click", () => {
+    if (!inviteInput) return;
+    navigator.clipboard.writeText(inviteInput.value).then(() => {
+      copyBtn.textContent = "Copied!";
+      setTimeout(() => { copyBtn.textContent = "Copy"; }, 2000);
+    }).catch(() => {
+      // Fallback for browsers that block clipboard API
+      inviteInput.select();
+      document.execCommand("copy");
+      copyBtn.textContent = "Copied!";
+      setTimeout(() => { copyBtn.textContent = "Copy"; }, 2000);
+    });
+  });
+</script>
+
+<style>
+  .page-header {
+    margin-bottom: 2rem;
+  }
+
+  .page-header h1 {
+    font-size: var(--size-3xl);
+    margin-bottom: 0.25rem;
+  }
+
+  .page-header p {
+    color: var(--color-text-muted);
+    max-width: 60ch;
+  }
+
+  .alert {
+    margin-bottom: 1.25rem;
+  }
+
+  .team-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .team-card {
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+  }
+
+  .team-card h2 {
+    font-size: var(--size-lg);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px dashed var(--color-border);
+  }
+
+  /* Members list */
+  .members-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+  }
+
+  .member-row {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    padding: 0.75rem;
+    background: var(--color-surface-warm);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+  }
+
+  .member-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: white;
+    font-weight: 700;
+    font-size: var(--size-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .member-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+
+  .member-info strong {
+    font-size: var(--size-sm);
+  }
+
+  .member-email {
+    font-size: var(--size-xs);
+    color: var(--color-text-muted);
+  }
+
+  .member-you {
+    font-size: var(--size-xs);
+    font-weight: 700;
+    color: var(--color-text-light);
+    background: var(--color-border);
+    padding: 0.2rem 0.6rem;
+    border-radius: var(--radius-full);
+    flex-shrink: 0;
+  }
+
+  .remove-form {
+    flex-shrink: 0;
+  }
+
+  .btn-remove {
+    background: none;
+    border: none;
+    font-size: var(--size-xs);
+    font-weight: 700;
+    color: var(--color-text-light);
+    cursor: pointer;
+    padding: 0.2rem 0.5rem;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .btn-remove:hover {
+    color: var(--color-danger);
+  }
+
+  /* Invite */
+  .invite-desc {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+    margin-bottom: 1.25rem;
+  }
+
+  .invite-active {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .invite-label {
+    font-size: var(--size-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+  }
+
+  .invite-link-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .invite-input {
+    flex: 1;
+    font-size: var(--size-sm);
+    font-family: var(--font-mono, monospace);
+    background: var(--color-surface-warm);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 0.5rem 0.75rem;
+    color: var(--color-text);
+  }
+
+  .invite-expiry {
+    font-size: var(--size-xs);
+    color: var(--color-text-light);
+    margin: 0;
+  }
+
+  .revoke-form {
+    margin-top: 0.25rem;
+  }
+
+  .btn-text-danger {
+    background: none;
+    border: none;
+    font-size: var(--size-xs);
+    font-weight: 700;
+    color: var(--color-text-light);
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .btn-text-danger:hover {
+    color: var(--color-danger);
+  }
+</style>

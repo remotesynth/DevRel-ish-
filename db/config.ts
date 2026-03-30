@@ -46,6 +46,15 @@ const RSVPs = defineTable({
   },
 });
 
+const GroupInvites = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }), // the invite token used in the URL
+    groupId: column.text({ references: () => Groups.columns.id }),
+    createdAt: column.date(),
+    expiresAt: column.date(),
+  },
+});
+
 const ContactMessages = defineTable({
   columns: {
     id: column.text({ primaryKey: true }),
@@ -124,5 +133,5 @@ const Verification = defineTable({
 });
 
 export default defineDb({
-  tables: { Groups, Meetups, RSVPs, ContactMessages, User, Session, Account, Verification },
+  tables: { Groups, Meetups, RSVPs, GroupInvites, ContactMessages, User, Session, Account, Verification },
 });

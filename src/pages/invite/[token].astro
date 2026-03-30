@@ -1,0 +1,382 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { db, User, Account, Groups, GroupInvites } from "astro:db";
+import { eq } from "astro:db";
+import { generateId } from "../../lib/utils";
+import { hashPassword } from "better-auth/crypto";
+import { auth } from "../../lib/auth";
+
+const { token } = Astro.params;
+if (!token) return Astro.redirect("/");
+
+const [invite] = await db.select().from(GroupInvites).where(eq(GroupInvites.id, token));
+
+// Validate token exists and isn't expired
+const now = new Date();
+const isExpired = !invite || invite.expiresAt < now;
+
+const [group] = invite
+  ? await db.select().from(Groups).where(eq(Groups.id, invite.groupId))
+  : [];
+
+const isValid = !!invite && !isExpired && !!group && group.status === "approved";
+
+const user = Astro.locals.user;
+
+type Result =
+  | { type: "success" }
+  | { type: "error"; message: string };
+
+let result: Result | null = null;
+let registerVals = { name: "", email: "" };
+
+if (isValid && Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const action = form.get("action")?.toString();
+
+  if (action === "accept" && user) {
+    // Logged-in user accepting the invite
+    if (user.groupId === invite.groupId) {
+      result = { type: "error", message: "You're already a member of this group." };
+    } else if (user.groupId) {
+      result = { type: "error", message: "You already belong to a different group. Contact the site admin if you need to change groups." };
+    } else {
+      await db.update(User).set({ groupId: invite.groupId }).where(eq(User.id, user.id));
+      await db.delete(GroupInvites).where(eq(GroupInvites.id, token));
+      return Astro.redirect("/dashboard?joined=1");
+    }
+  } else if (action === "register" && !user) {
+    // New user creating an account to accept the invite
+    const name     = form.get("name")?.toString().trim() ?? "";
+    const email    = form.get("email")?.toString().trim().toLowerCase() ?? "";
+    const password = form.get("password")?.toString() ?? "";
+
+    registerVals = { name, email };
+
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!name || !email || !password) {
+      result = { type: "error", message: "All fields are required." };
+    } else if (!emailRe.test(email)) {
+      result = { type: "error", message: "Please enter a valid email address." };
+    } else if (password.length < 8) {
+      result = { type: "error", message: "Password must be at least 8 characters." };
+    } else {
+      const [existing] = await db.select({ id: User.id }).from(User).where(eq(User.email, email));
+      if (existing) {
+        result = {
+          type: "error",
+          message: "An account with that email already exists. Sign in instead.",
+        };
+      } else {
+        const userId = generateId();
+        const passwordHash = await hashPassword(password);
+
+        await db.insert(User).values({
+          id: userId,
+          name,
+          email,
+          emailVerified: true,
+          groupId: invite.groupId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+
+        await db.insert(Account).values({
+          id: generateId(),
+          accountId: userId,
+          providerId: "credential",
+          userId,
+          password: passwordHash,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+
+        // Delete invite after it's been used
+        await db.delete(GroupInvites).where(eq(GroupInvites.id, token));
+
+        // Sign the new user in via better-auth
+        const signInReq = new Request(
+          new URL("/api/auth/sign-in/email", Astro.url.origin),
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ email, password }),
+          }
+        );
+        const signInRes = await auth.handler(signInReq);
+        if (signInRes.ok) {
+          const setCookie = signInRes.headers.get("set-cookie") ?? "";
+          return new Response(null, {
+            status: 302,
+            headers: { "set-cookie": setCookie, location: "/dashboard?joined=1" },
+          });
+        }
+
+        // Sign-in failed but account was created — just redirect to login
+        return Astro.redirect("/auth/login");
+      }
+    }
+  }
+}
+---
+
+<BaseLayout title="Join group — DevRel(ish)">
+  <section class="invite-page">
+    <div class="container">
+      <div class="invite-card">
+        <div class="invite-logo" aria-hidden="true">◎</div>
+
+        {!isValid ? (
+          <div class="state-block">
+            <h1>{!invite || isExpired ? "Invite expired" : "Invite not found"}</h1>
+            <p>
+              {isExpired
+                ? "This invite link has expired. Ask your organizer to generate a new one."
+                : "This invite link is invalid or has already been used."}
+            </p>
+            <a href="/" class="btn btn-ghost">Go to homepage →</a>
+          </div>
+
+        ) : user ? (
+          /* Logged-in: accept or error */
+          <div>
+            <h1>You've been invited</h1>
+            <p class="invite-group-name">
+              Join <strong>{group!.name}</strong> as a co-organizer
+            </p>
+
+            {result?.type === "error" && (
+              <div class="alert alert-error">{result.message}</div>
+            )}
+
+            {!result && (
+              <form method="POST" class="accept-form">
+                <input type="hidden" name="action" value="accept" />
+                <p class="accept-desc">
+                  You're signed in as <strong>{user.name}</strong> ({user.email}).
+                  Accepting gives you organizer access to {group!.name}.
+                </p>
+                <button type="submit" class="btn btn-primary btn-lg accept-btn">
+                  Accept invite →
+                </button>
+              </form>
+            )}
+
+            <p class="switch-hint">
+              Wrong account? <a href="/auth/signout">Sign out</a> first.
+            </p>
+          </div>
+
+        ) : (
+          /* Not logged in: show sign-in link or create account form */
+          <div>
+            <h1>You've been invited</h1>
+            <p class="invite-group-name">
+              Join <strong>{group!.name}</strong> as a co-organizer
+            </p>
+
+            <div class="auth-choice">
+              <div class="choice-section">
+                <h2>Already have an account?</h2>
+                <a
+                  href={`/auth/login?redirect=/invite/${token}`}
+                  class="btn btn-primary"
+                >
+                  Sign in to accept →
+                </a>
+              </div>
+
+              <div class="divider"><span>or</span></div>
+
+              <div class="choice-section">
+                <h2>New here? Create an account</h2>
+
+                {result?.type === "error" && (
+                  <div class="alert alert-error">{result.message}</div>
+                )}
+
+                <form method="POST" class="register-form">
+                  <input type="hidden" name="action" value="register" />
+
+                  <div class="form-group">
+                    <label for="name">Full name *</label>
+                    <input
+                      id="name"
+                      name="name"
+                      type="text"
+                      value={registerVals.name}
+                      required
+                      placeholder="Your name"
+                      autocomplete="name"
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="email">Email address *</label>
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
+                      value={registerVals.email}
+                      required
+                      placeholder="you@example.com"
+                      autocomplete="email"
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="password">Password *</label>
+                    <input
+                      id="password"
+                      name="password"
+                      type="password"
+                      required
+                      placeholder="At least 8 characters"
+                      minlength="8"
+                      autocomplete="new-password"
+                    />
+                  </div>
+
+                  <button type="submit" class="btn btn-accent">
+                    Create account & join →
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .invite-page {
+    min-height: calc(100vh - 64px - 200px);
+    display: flex;
+    align-items: center;
+    padding: 3rem 0;
+  }
+
+  .invite-card {
+    max-width: 480px;
+    margin-inline: auto;
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: 2.5rem;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .invite-logo {
+    font-size: 2.5rem;
+    color: var(--color-primary);
+    text-align: center;
+    display: block;
+    margin-bottom: 1.25rem;
+    line-height: 1;
+  }
+
+  h1 {
+    font-size: var(--size-2xl);
+    text-align: center;
+    margin-bottom: 0.375rem;
+  }
+
+  .invite-group-name {
+    text-align: center;
+    color: var(--color-text-muted);
+    margin-bottom: 1.75rem;
+  }
+
+  /* Logged-in accept state */
+  .accept-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .accept-desc {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+    background: var(--color-surface-warm);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 0.875rem;
+  }
+
+  .accept-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .switch-hint {
+    text-align: center;
+    font-size: var(--size-xs);
+    color: var(--color-text-light);
+    margin-top: 1rem;
+    max-width: none;
+  }
+
+  /* Not logged-in choice state */
+  .auth-choice {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .choice-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+  }
+
+  .choice-section h2 {
+    font-size: var(--size-base);
+    color: var(--color-text-muted);
+  }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--color-text-light);
+    font-size: var(--size-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .divider::before,
+  .divider::after {
+    content: "";
+    flex: 1;
+    border-top: 1px dashed var(--color-border);
+  }
+
+  .register-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+  }
+
+  /* Invalid state */
+  .state-block {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .state-block p {
+    color: var(--color-text-muted);
+    font-size: var(--size-sm);
+    max-width: 34ch;
+  }
+
+  .alert {
+    margin-bottom: 0.25rem;
+  }
+</style>

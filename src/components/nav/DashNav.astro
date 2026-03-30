@@ -78,6 +78,11 @@ function isActive(href: string) {
                 </span>
               </a>
             </li>
+            <li>
+              <a href="/dashboard/team" class:list={["dash-link", { active: isActive("/dashboard/team") }]}>
+                ◎ Team
+              </a>
+            </li>
           </ul>
         )
       }

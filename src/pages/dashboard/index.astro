@@ -4,6 +4,7 @@ import { db, Groups, Meetups, eq, and, gte, asc } from "astro:db";
 
 if (!Astro.locals.user) return Astro.redirect("/auth/login");
 const user = Astro.locals.user;
+const justJoined = Astro.url.searchParams.get("joined") === "1";
 
 // Find the user's group
 const [group] = user.groupId
@@ -30,6 +31,12 @@ if (group) {
     <div class="dash-page-header">
       <h1>Hello, {user.name?.split(" ")[0]}! 👋</h1>
     </div>
+
+    {justJoined && (
+      <div class="alert alert-success" style="margin-bottom: 1.5rem;">
+        Welcome to the team! You now have organizer access to your group.
+      </div>
+    )}
 
     {
       !group ? (

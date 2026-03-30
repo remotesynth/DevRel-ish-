@@ -2,9 +2,14 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { auth } from "../../lib/auth";
 
+// Only allow local redirects (must start with /)
+const redirectParam = Astro.url.searchParams.get("redirect") ?? "";
+const redirectTo = redirectParam.startsWith("/") ? redirectParam : "";
+
 // Redirect if already logged in
 if (Astro.locals.user) {
-  return Astro.redirect(Astro.locals.user.role === "admin" ? "/admin" : "/dashboard");
+  const dest = redirectTo || (Astro.locals.user.role === "admin" ? "/admin" : "/dashboard");
+  return Astro.redirect(dest);
 }
 
 let error = "";
@@ -33,7 +38,7 @@ if (Astro.request.method === "POST") {
       const setCookie = result.headers.get("set-cookie") ?? "";
       const tempHeaders = new Headers({ cookie: setCookie.split(";")[0] });
       const session = await auth.api.getSession({ headers: tempHeaders });
-      const destination = session?.user?.role === "admin" ? "/admin" : "/dashboard";
+      const destination = redirectTo || (session?.user?.role === "admin" ? "/admin" : "/dashboard");
 
       return new Response(null, {
         status: 302,
