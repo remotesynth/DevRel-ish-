@@ -6,157 +6,48 @@ import { eq, desc } from "astro:db";
 if (!Astro.locals.user) return Astro.redirect("/auth/login");
 if (Astro.locals.user.role !== "admin") return Astro.redirect("/dashboard");
 
-const user = Astro.locals.user;
-
 const pendingGroups = await db
   .select()
   .from(Groups)
   .where(eq(Groups.status, "pending"))
   .orderBy(desc(Groups.createdAt));
-
-const approvedGroups = await db
-  .select()
-  .from(Groups)
-  .where(eq(Groups.status, "approved"))
-  .orderBy(Groups.city);
-
-const closedGroups = await db
-  .select()
-  .from(Groups)
-  .where(eq(Groups.status, "closed"))
-  .orderBy(Groups.city);
 ---
 
-<DashboardLayout title="Admin">
+<DashboardLayout title="Pending Groups">
   <div class="page-header">
-    <h1>Admin Dashboard</h1>
-    <p>Review group applications and manage the DevRel(ish) community.</p>
+    <h1>
+      Pending applications
+      {pendingGroups.length > 0 && (
+        <span class="count-badge">{pendingGroups.length}</span>
+      )}
+    </h1>
+    <p>Review and approve new group applications.</p>
   </div>
 
-  <!-- Pending queue -->
-  <section class="admin-section">
-    <div class="section-row">
-      <h2>
-        Pending applications
-        {pendingGroups.length > 0 && (
-          <span class="count-badge">{pendingGroups.length}</span>
-        )}
-      </h2>
+  {pendingGroups.length === 0 ? (
+    <div class="empty-state">
+      <p>No pending applications. You're all caught up! ✦</p>
     </div>
-
-    {
-      pendingGroups.length === 0 ? (
-        <div class="empty-state">
-          <p>No pending applications. You're all caught up! ✦</p>
+  ) : (
+    <div class="groups-list">
+      {pendingGroups.map((g) => (
+        <div class="group-row">
+          <div class="group-info">
+            <h3 class="group-name">{g.name}</h3>
+            <p class="group-location">
+              📍 {g.region ? `${g.city}, ${g.region}, ${g.country}` : `${g.city}, ${g.country}`}
+            </p>
+            <p class="group-contact">✉️ {g.contactEmail}</p>
+            <p class="group-desc">{g.description.slice(0, 200)}{g.description.length > 200 ? "…" : ""}</p>
+          </div>
+          <div class="group-actions">
+            <a href={`/admin/groups/${g.id}`} class="btn btn-ghost btn-sm">
+              Review →
+            </a>
+          </div>
         </div>
-      ) : (
-        <div class="groups-list">
-          {pendingGroups.map((g) => (
-            <div class="group-row">
-              <div class="group-info">
-                <h3 class="group-name">{g.name}</h3>
-                <p class="group-location">
-                  📍 {g.region ? `${g.city}, ${g.region}, ${g.country}` : `${g.city}, ${g.country}`}
-                </p>
-                <p class="group-contact">✉️ {g.contactEmail}</p>
-                <p class="group-desc">{g.description.slice(0, 200)}{g.description.length > 200 ? "…" : ""}</p>
-              </div>
-              <div class="group-actions">
-                <a href={`/admin/groups/${g.id}`} class="btn btn-ghost btn-sm">
-                  Review →
-                </a>
-              </div>
-            </div>
-          ))}
-        </div>
-      )
-    }
-  </section>
-
-  <!-- Active groups -->
-  <section class="admin-section">
-    <h2>Active groups <span class="count-badge count-badge-subtle">{approvedGroups.length}</span></h2>
-    {
-      approvedGroups.length === 0 ? (
-        <div class="empty-state">
-          <p>No approved groups yet.</p>
-        </div>
-      ) : (
-        <div class="approved-table-wrap">
-          <table class="approved-table">
-            <thead>
-              <tr>
-                <th>Group</th>
-                <th>Location</th>
-                <th>Contact</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {approvedGroups.map((g) => (
-                <tr>
-                  <td><strong>{g.name}</strong></td>
-                  <td>
-                    {g.region ? `${g.city}, ${g.region}` : `${g.city}`}, {g.country}
-                  </td>
-                  <td>{g.contactEmail}</td>
-                  <td>
-                    <div class="action-btns">
-                      <a href={`/groups/${g.slug}`} class="btn btn-ghost btn-sm" target="_blank" rel="noopener">
-                        View ↗
-                      </a>
-                      <a href={`/admin/groups/${g.id}`} class="btn btn-ghost btn-sm">
-                        Manage
-                      </a>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )
-    }
-  </section>
-
-  <!-- Closed groups -->
-  {closedGroups.length > 0 && (
-    <section class="admin-section">
-      <h2>Closed groups <span class="count-badge count-badge-subtle">{closedGroups.length}</span></h2>
-      <div class="approved-table-wrap">
-        <table class="approved-table">
-          <thead>
-            <tr>
-              <th>Group</th>
-              <th>Location</th>
-              <th>Contact</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {closedGroups.map((g) => (
-              <tr class="closed-row">
-                <td><strong>{g.name}</strong></td>
-                <td>
-                  {g.region ? `${g.city}, ${g.region}` : `${g.city}`}, {g.country}
-                </td>
-                <td>{g.contactEmail}</td>
-                <td>
-                  <div class="action-btns">
-                    <a href={`/groups/${g.slug}`} class="btn btn-ghost btn-sm" target="_blank" rel="noopener">
-                      View ↗
-                    </a>
-                    <a href={`/admin/groups/${g.id}`} class="btn btn-ghost btn-sm">
-                      Manage
-                    </a>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
+      ))}
+    </div>
   )}
 </DashboardLayout>
 
@@ -167,30 +58,14 @@ const closedGroups = await db
 
   .page-header h1 {
     font-size: var(--size-3xl);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
     margin-bottom: 0.25rem;
   }
 
   .page-header p {
     color: var(--color-text-muted);
-  }
-
-  .admin-section {
-    margin-bottom: 2.5rem;
-  }
-
-  .section-row {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-  }
-
-  .admin-section h2 {
-    font-size: var(--size-xl);
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
   }
 
   .count-badge {
@@ -208,13 +83,8 @@ const closedGroups = await db
     padding: 0 6px;
   }
 
-  .count-badge-subtle {
-    background: var(--color-border);
-    color: var(--color-text-muted);
-  }
-
   .empty-state {
-    padding: 1.5rem;
+    padding: 2rem;
     background: var(--color-surface);
     border: 2px dashed var(--color-border);
     border-radius: var(--radius-lg);
@@ -226,7 +96,6 @@ const closedGroups = await db
     max-width: none;
   }
 
-  /* Pending groups */
   .groups-list {
     display: flex;
     flex-direction: column;
@@ -270,50 +139,5 @@ const closedGroups = await db
 
   .group-actions {
     flex-shrink: 0;
-  }
-
-  /* Approved table */
-  .approved-table-wrap {
-    overflow-x: auto;
-    background: var(--color-surface);
-    border: 2px solid var(--color-border);
-    border-radius: var(--radius-lg);
-  }
-
-  .approved-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: var(--size-sm);
-  }
-
-  .approved-table th {
-    background: var(--color-surface-warm);
-    padding: 0.75rem 1rem;
-    text-align: left;
-    font-size: var(--size-xs);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--color-text-muted);
-    border-bottom: 2px solid var(--color-border);
-  }
-
-  .approved-table td {
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid var(--color-border);
-    vertical-align: middle;
-  }
-
-  .approved-table tr:last-child td {
-    border-bottom: none;
-  }
-
-  .closed-row td {
-    opacity: 0.65;
-  }
-
-  .action-btns {
-    display: flex;
-    gap: 0.375rem;
-    flex-wrap: wrap;
   }
 </style>

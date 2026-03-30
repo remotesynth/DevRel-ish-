@@ -1,6 +1,65 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import GroupForm from "../../components/groups/GroupForm";
+import { db, Groups } from "astro:db";
+import { eq } from "astro:db";
+import { generateId, slugify } from "../../lib/utils";
+
+type Result =
+  | { type: "success"; email: string }
+  | { type: "error"; message: string };
+
+let result: Result | null = null;
+
+let vals = {
+  name: "", city: "", region: "", country: "", description: "", contactEmail: "",
+};
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+
+  vals = {
+    name:         form.get("name")?.toString().trim() ?? "",
+    city:         form.get("city")?.toString().trim() ?? "",
+    region:       form.get("region")?.toString().trim() ?? "",
+    country:      form.get("country")?.toString().trim() ?? "",
+    description:  form.get("description")?.toString().trim() ?? "",
+    contactEmail: form.get("contactEmail")?.toString().trim().toLowerCase() ?? "",
+  };
+
+  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!vals.name || !vals.city || !vals.country || !vals.description || !vals.contactEmail) {
+    result = { type: "error", message: "All required fields must be filled in." };
+  } else if (vals.description.length < 50) {
+    result = { type: "error", message: "Description must be at least 50 characters." };
+  } else if (!emailRe.test(vals.contactEmail)) {
+    result = { type: "error", message: "Please enter a valid email address." };
+  } else {
+    const [existing] = await db.select().from(Groups).where(eq(Groups.name, vals.name));
+    if (existing) {
+      result = { type: "error", message: "A group with that name already exists." };
+    } else {
+      let slug = slugify(vals.name);
+      const [slugConflict] = await db.select().from(Groups).where(eq(Groups.slug, slug));
+      if (slugConflict) slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
+
+      await db.insert(Groups).values({
+        id: generateId(),
+        name: vals.name,
+        slug,
+        city: vals.city,
+        region: vals.region || null,
+        country: vals.country,
+        description: vals.description,
+        contactEmail: vals.contactEmail,
+        status: "pending",
+        createdAt: new Date(),
+      });
+
+      result = { type: "success", email: vals.contactEmail };
+    }
+  }
+}
 ---
 
 <BaseLayout
@@ -21,7 +80,99 @@ import GroupForm from "../../components/groups/GroupForm";
   <section class="form-section">
     <div class="container form-layout">
       <div class="form-main">
-        <GroupForm client:load />
+        {result?.type === "success" ? (
+          <div class="success-state">
+            <div class="success-icon" aria-hidden="true">✦</div>
+            <h2>Application submitted!</h2>
+            <p>
+              Thanks for wanting to start a DevRel(ish) group! We'll review your application
+              and be in touch at <strong>{result.email}</strong> shortly.
+            </p>
+            <p>
+              In the meantime, check out the <a href="/groups">existing groups</a> to see if
+              there's one near you.
+            </p>
+          </div>
+        ) : (
+          <form method="POST" class="group-form">
+            {result?.type === "error" && (
+              <div class="alert alert-error" role="alert">{result.message}</div>
+            )}
+
+            <div class="form-section-block">
+              <h3 class="section-title">About your group</h3>
+
+              <div class="form-group">
+                <label for="name">Group name *</label>
+                <input
+                  id="name" name="name" type="text"
+                  value={vals.name}
+                  placeholder="DevRel(ish) Portland"
+                  required minlength="3" maxlength="80"
+                />
+                <span class="form-hint">
+                  Keep it short and location-based. We'll turn it into a URL like <code>/groups/portland</code>.
+                </span>
+              </div>
+
+              <div class="form-group">
+                <label for="description">Description *</label>
+                <textarea
+                  id="description" name="description"
+                  placeholder="Tell us about your group — who it's for, the vibe, what you'll do together..."
+                  required minlength="50" maxlength="1000"
+                  rows="5"
+                >{vals.description}</textarea>
+              </div>
+            </div>
+
+            <div class="form-section-block">
+              <h3 class="section-title">Location</h3>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="city">City *</label>
+                  <input id="city" name="city" type="text" value={vals.city} placeholder="Portland" required />
+                </div>
+                <div class="form-group">
+                  <label for="region">State / Province</label>
+                  <input id="region" name="region" type="text" value={vals.region} placeholder="OR" maxlength="50" />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="country">Country *</label>
+                <input id="country" name="country" type="text" value={vals.country} placeholder="USA" required />
+              </div>
+            </div>
+
+            <div class="form-section-block">
+              <h3 class="section-title">Your contact info</h3>
+
+              <div class="form-group">
+                <label for="contactEmail">Email address *</label>
+                <input
+                  id="contactEmail" name="contactEmail" type="email"
+                  value={vals.contactEmail}
+                  placeholder="you@example.com"
+                  required
+                />
+                <span class="form-hint">
+                  This is how we'll reach you when your group is approved. You'll use this to sign in.
+                </span>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary btn-lg">
+                Submit application →
+              </button>
+              <p class="form-hint">
+                We review all applications within a few days. You'll hear from us either way!
+              </p>
+            </div>
+          </form>
+        )}
       </div>
 
       <aside class="form-sidebar">
@@ -114,13 +265,14 @@ import GroupForm from "../../components/groups/GroupForm";
     align-items: start;
   }
 
-  .form-main :global(.group-form) {
+  /* Form */
+  .group-form {
     display: flex;
     flex-direction: column;
     gap: 2rem;
   }
 
-  .form-main :global(.form-section) {
+  .form-section-block {
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -130,26 +282,27 @@ import GroupForm from "../../components/groups/GroupForm";
     padding: 1.5rem;
   }
 
-  .form-main :global(.section-title) {
+  .section-title {
     font-size: var(--size-lg);
     margin: 0;
     padding-bottom: 0.5rem;
     border-bottom: 1px dashed var(--color-border);
   }
 
-  .form-main :global(.form-row) {
+  .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
   }
 
-  .form-main :global(.form-actions) {
+  .form-actions {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
   }
 
-  .form-main :global(.success-state) {
+  /* Success */
+  .success-state {
     text-align: center;
     padding: 3rem 2rem;
     background: var(--color-surface);
@@ -157,18 +310,19 @@ import GroupForm from "../../components/groups/GroupForm";
     border-radius: var(--radius-lg);
   }
 
-  .form-main :global(.success-icon) {
+  .success-icon {
     font-size: 3rem;
     color: var(--color-accent);
     margin-bottom: 1rem;
+    display: block;
   }
 
-  .form-main :global(.success-state h2) {
+  .success-state h2 {
     margin-bottom: 0.75rem;
     color: var(--color-accent-dark);
   }
 
-  .form-main :global(.success-state p) {
+  .success-state p {
     color: var(--color-text-muted);
     margin: 0 auto 0.75rem;
     max-width: 44ch;
@@ -261,7 +415,7 @@ import GroupForm from "../../components/groups/GroupForm";
       position: static;
     }
 
-    .form-main :global(.form-row) {
+    .form-row {
       grid-template-columns: 1fr;
     }
   }

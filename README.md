@@ -44,15 +44,11 @@ npm run dev
 
 To create your first admin user you'll need to call the better-auth API to sign up and then manually set `role = "admin"` in the database, or add it to the seed file.
 
-┌──────────────────────┬─────────────────┬─────────────────────┐
-│ Email │ Password │ Role |
-├──────────────────────┼─────────────────┼─────────────────────┤  
-│ admin@devrelish.tech │ admin-devrelish │ Admin │
-├──────────────────────┼─────────────────┼─────────────────────┤
-│ alex@example.com │ alex-devrelish │ Group manager (SF) │
-├──────────────────────┼─────────────────┼─────────────────────┤
-│ sam@example.com │ sam-devrelish │ Group manager (NYC) │
-└──────────────────────┴─────────────────┴─────────────────────┘
+| Email                | Password        | Role                |
+| -------------------- | --------------- | ------------------- |
+| admin@devrelish.tech | admin-devrelish | Admin               |
+| alex@example.com     | alex-devrelish  | Group manager (SF)  |
+| sam@example.com      | sam-devrelish   | Group manager (NYC) |
 
 ## Deploy
 
