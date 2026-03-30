@@ -1,7 +1,8 @@
 ---
 import DashboardLayout from "../../../layouts/DashboardLayout.astro";
-import { db, Groups, User } from "astro:db";
+import { db, Groups, GroupInvites, User } from "astro:db";
 import { eq } from "astro:db";
+import { generateId } from "../../../lib/utils";
 
 if (!Astro.locals.user) return Astro.redirect("/auth/login");
 if (Astro.locals.user.role !== "admin") return Astro.redirect("/dashboard");
@@ -21,6 +22,7 @@ const [manager] = group.managerId
 
 let successMsg = "";
 let errorMsg = "";
+let approvalInviteUrl = ""; // set after a successful approve action
 
 if (Astro.request.method === "POST") {
   const form = await Astro.request.formData();
@@ -46,14 +48,27 @@ if (Astro.request.method === "POST") {
 
       if (res.ok) {
         const msgs: Record<string, string> = {
-          approve: "Group approved! The contact will be able to log in.",
           reject: "Group application rejected.",
           close: "Group closed. It will no longer appear in public listings.",
           reopen: "Group reopened and is now publicly visible again.",
         };
         successMsg = msgs[action] ?? "Done.";
+
         const [updated] = await db.select().from(Groups).where(eq(Groups.id, id));
         if (updated) Object.assign(group, updated);
+
+        // After approving, generate an invite link for the new organizer
+        if (action === "approve") {
+          await db.delete(GroupInvites).where(eq(GroupInvites.groupId, id));
+          const token = generateId();
+          await db.insert(GroupInvites).values({
+            id: token,
+            groupId: id,
+            createdAt: new Date(),
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          });
+          approvalInviteUrl = `${Astro.url.origin}/invite/${token}`;
+        }
       } else {
         errorMsg = "Action failed. Please try again.";
       }
@@ -75,7 +90,41 @@ if (Astro.request.method === "POST") {
     </div>
   </div>
 
-  {successMsg && <div class="alert alert-success">{successMsg}</div>}
+  {approvalInviteUrl ? (
+    <div class="approval-panel">
+      <div class="approval-header">
+        <span class="approval-check">✓</span>
+        <div>
+          <strong>Group approved!</strong>
+          <p>Copy the email below and send it to <strong>{group.contactEmail}</strong>.</p>
+        </div>
+      </div>
+
+      <div class="email-template">
+        <div class="email-template-header">
+          <span class="email-label">Email to send</span>
+          <button type="button" id="copy-email-btn" class="btn btn-ghost btn-sm">Copy</button>
+        </div>
+        <pre id="email-body" class="email-body">{`Hi there,
+
+Great news — your DevRel(ish) group "${group.name}" has been approved!
+
+You can now create your organizer account and start setting up meetups. Use the link below to get started — it'll walk you through creating your account and give you access to the dashboard.
+
+${approvalInviteUrl}
+
+This link expires in 7 days. If it expires before you use it, just reply to this email and I'll send a new one.
+
+Welcome to the community!`}</pre>
+      </div>
+
+      <p class="approval-hint">
+        The invite link is also saved — you can find it again under the group's public page or regenerate it from the organizer's Team page.
+      </p>
+    </div>
+  ) : successMsg ? (
+    <div class="alert alert-success">{successMsg}</div>
+  ) : null}
   {errorMsg && <div class="alert alert-error">{errorMsg}</div>}
 
   <div class="review-layout">
@@ -310,6 +359,85 @@ if (Astro.request.method === "POST") {
     display: contents;
   }
 
+  /* Approval panel */
+  .approval-panel {
+    background: #f0fdf4;
+    border: 2px solid #86efac;
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .approval-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.875rem;
+  }
+
+  .approval-check {
+    font-size: var(--size-lg);
+    font-weight: 700;
+    color: #16a34a;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+  }
+
+  .approval-header strong {
+    display: block;
+    color: #15803d;
+    font-size: var(--size-base);
+    margin-bottom: 0.125rem;
+  }
+
+  .approval-header p {
+    font-size: var(--size-sm);
+    color: #166534;
+    margin: 0;
+    max-width: none;
+  }
+
+  .email-template {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+  }
+
+  .email-template-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.625rem 1rem;
+    border-bottom: 1px dashed var(--color-border);
+  }
+
+  .email-label {
+    font-size: var(--size-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+  }
+
+  .email-body {
+    font-family: var(--font-body, sans-serif);
+    font-size: var(--size-sm);
+    color: var(--color-text);
+    line-height: 1.7;
+    white-space: pre-wrap;
+    padding: 1rem;
+    margin: 0;
+  }
+
+  .approval-hint {
+    font-size: var(--size-xs);
+    color: #166534;
+    margin: 0;
+    max-width: none;
+  }
+
   @media (max-width: 768px) {
     .review-layout {
       grid-template-columns: 1fr;
@@ -320,3 +448,26 @@ if (Astro.request.method === "POST") {
     }
   }
 </style>
+
+<script>
+  const copyEmailBtn = document.getElementById("copy-email-btn");
+  const emailBody = document.getElementById("email-body");
+
+  copyEmailBtn?.addEventListener("click", () => {
+    if (!emailBody) return;
+    const text = emailBody.textContent ?? "";
+    navigator.clipboard.writeText(text).then(() => {
+      copyEmailBtn.textContent = "Copied!";
+      setTimeout(() => { copyEmailBtn.textContent = "Copy"; }, 2500);
+    }).catch(() => {
+      const range = document.createRange();
+      range.selectNodeContents(emailBody);
+      window.getSelection()?.removeAllRanges();
+      window.getSelection()?.addRange(range);
+      document.execCommand("copy");
+      window.getSelection()?.removeAllRanges();
+      copyEmailBtn.textContent = "Copied!";
+      setTimeout(() => { copyEmailBtn.textContent = "Copy"; }, 2500);
+    });
+  });
+</script>
