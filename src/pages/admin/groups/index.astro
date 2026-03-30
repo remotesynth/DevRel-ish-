@@ -1,7 +1,7 @@
 ---
 import DashboardLayout from "../../../layouts/DashboardLayout.astro";
-import { db, Groups } from "astro:db";
-import { desc } from "astro:db";
+import { db, Groups, User } from "astro:db";
+import { desc, isNotNull } from "astro:db";
 
 if (!Astro.locals.user) return Astro.redirect("/auth/login");
 if (Astro.locals.user.role !== "admin") return Astro.redirect("/dashboard");
@@ -10,6 +10,13 @@ const allGroups = await db
   .select()
   .from(Groups)
   .orderBy(desc(Groups.createdAt));
+
+// Build set of group IDs that have at least one organizer
+const usersWithGroup = await db
+  .select({ groupId: User.groupId })
+  .from(User)
+  .where(isNotNull(User.groupId));
+const claimedGroupIds = new Set(usersWithGroup.map((u) => u.groupId));
 
 const statusOrder: Record<string, number> = { pending: 0, approved: 1, closed: 2, rejected: 3 };
 const grouped = allGroups.slice().sort((a, b) => {
@@ -51,6 +58,9 @@ const grouped = allGroups.slice().sort((a, b) => {
           </div>
           <div class="cell-status">
             <span class={`badge badge-${g.status}`}>{g.status}</span>
+            {g.status === "approved" && !claimedGroupIds.has(g.id) && (
+              <span class="badge-unclaimed">unclaimed</span>
+            )}
           </div>
           <div class="cell-action">
             <a href={`/admin/groups/${g.id}`} class="btn btn-ghost btn-sm">
@@ -164,10 +174,6 @@ const grouped = allGroups.slice().sort((a, b) => {
     color: var(--color-text-muted);
   }
 
-  .cell-status {
-    display: flex;
-  }
-
   .cell-action {
     display: flex;
     justify-content: flex-end;
@@ -200,5 +206,24 @@ const grouped = allGroups.slice().sort((a, b) => {
   .badge-rejected {
     background: rgba(239, 68, 68, 0.12);
     color: #991b1b;
+  }
+
+  .badge-unclaimed {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    background: rgba(234, 179, 8, 0.15);
+    color: #854d0e;
+    border-radius: var(--radius-full);
+    padding: 0.1rem 0.4rem;
+    margin-left: 0.25rem;
+    vertical-align: middle;
+  }
+
+  .cell-status {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.25rem;
   }
 </style>

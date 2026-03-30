@@ -15,68 +15,86 @@ if (!id) return Astro.redirect("/admin");
 const [group] = await db.select().from(Groups).where(eq(Groups.id, id));
 if (!group) return Astro.redirect("/admin");
 
-// Find manager if assigned
-const [manager] = group.managerId
-  ? await db.select().from(User).where(eq(User.id, group.managerId))
-  : [];
-
 let successMsg = "";
 let errorMsg = "";
-let approvalInviteUrl = ""; // set after a successful approve action
+let approvalInviteUrl = ""; // set after approve or regenerate_invite
 
 if (Astro.request.method === "POST") {
   const form = await Astro.request.formData();
   const action = form.get("action")?.toString();
 
-  const statusMap: Record<string, string> = {
-    approve: "approved",
-    reject: "rejected",
-    close: "closed",
-    reopen: "approved",
-  };
+  if (action === "regenerate_invite") {
+    await db.delete(GroupInvites).where(eq(GroupInvites.groupId, id));
+    const token = generateId();
+    await db.insert(GroupInvites).values({
+      id: token,
+      groupId: id,
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    });
+    approvalInviteUrl = `${Astro.url.origin}/invite/${token}`;
+  } else {
+    const statusMap: Record<string, string> = {
+      approve: "approved",
+      reject: "rejected",
+      close: "closed",
+      reopen: "approved",
+    };
 
-  if (action && action in statusMap) {
-    try {
-      const res = await fetch(`${Astro.url.origin}/api/groups/${id}/status`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          cookie: Astro.request.headers.get("cookie") ?? "",
-        },
-        body: JSON.stringify({ id, status: statusMap[action] }),
-      });
+    if (action && action in statusMap) {
+      try {
+        const res = await fetch(`${Astro.url.origin}/api/groups/${id}/status`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            cookie: Astro.request.headers.get("cookie") ?? "",
+          },
+          body: JSON.stringify({ id, status: statusMap[action] }),
+        });
 
-      if (res.ok) {
-        const msgs: Record<string, string> = {
-          reject: "Group application rejected.",
-          close: "Group closed. It will no longer appear in public listings.",
-          reopen: "Group reopened and is now publicly visible again.",
-        };
-        successMsg = msgs[action] ?? "Done.";
+        if (res.ok) {
+          const msgs: Record<string, string> = {
+            reject: "Group application rejected.",
+            close: "Group closed. It will no longer appear in public listings.",
+            reopen: "Group reopened and is now publicly visible again.",
+          };
+          successMsg = msgs[action] ?? "Done.";
 
-        const [updated] = await db.select().from(Groups).where(eq(Groups.id, id));
-        if (updated) Object.assign(group, updated);
+          const [updated] = await db.select().from(Groups).where(eq(Groups.id, id));
+          if (updated) Object.assign(group, updated);
 
-        // After approving, generate an invite link for the new organizer
-        if (action === "approve") {
-          await db.delete(GroupInvites).where(eq(GroupInvites.groupId, id));
-          const token = generateId();
-          await db.insert(GroupInvites).values({
-            id: token,
-            groupId: id,
-            createdAt: new Date(),
-            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-          });
-          approvalInviteUrl = `${Astro.url.origin}/invite/${token}`;
+          if (action === "approve") {
+            await db.delete(GroupInvites).where(eq(GroupInvites.groupId, id));
+            const token = generateId();
+            await db.insert(GroupInvites).values({
+              id: token,
+              groupId: id,
+              createdAt: new Date(),
+              expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+            });
+            approvalInviteUrl = `${Astro.url.origin}/invite/${token}`;
+          }
+        } else {
+          errorMsg = "Action failed. Please try again.";
         }
-      } else {
-        errorMsg = "Action failed. Please try again.";
+      } catch {
+        errorMsg = "Something went wrong.";
       }
-    } catch {
-      errorMsg = "Something went wrong.";
     }
   }
 }
+
+// Team members and active invite (queried after POST so state is current)
+const members = await db.select().from(User).where(eq(User.groupId, id));
+const isUnclaimed = group.status === "approved" && members.length === 0;
+
+const now = new Date();
+const [activeInviteRow] = await db
+  .select()
+  .from(GroupInvites)
+  .where(eq(GroupInvites.groupId, id));
+const activeInvite = activeInviteRow && activeInviteRow.expiresAt > now ? activeInviteRow : null;
+const existingInviteUrl = activeInvite ? `${Astro.url.origin}/invite/${activeInvite.id}` : "";
 ---
 
 <DashboardLayout title={`Review — ${group.name}`}>
@@ -152,12 +170,6 @@ Welcome to the community!`}</pre>
             }).format(group.createdAt)}
           </dd>
 
-          {manager && (
-            <>
-              <dt>Manager</dt>
-              <dd>{manager.name} ({manager.email})</dd>
-            </>
-          )}
         </dl>
       </div>
 
@@ -165,6 +177,32 @@ Welcome to the community!`}</pre>
         <h3>Description</h3>
         <p class="description-text">{group.description}</p>
       </div>
+
+      {group.status !== "pending" && (
+        <div class="detail-card">
+          <h3>
+            Organizers
+            {isUnclaimed && <span class="badge-unclaimed">Unclaimed</span>}
+          </h3>
+          {members.length === 0 ? (
+            <p class="no-members">
+              No one has claimed this group yet. Use the invite link in the action panel to send them access.
+            </p>
+          ) : (
+            <ul class="member-list">
+              {members.map((m) => (
+                <li class="member-item">
+                  <div class="member-avatar">{m.name?.[0]?.toUpperCase() ?? "?"}</div>
+                  <div class="member-info">
+                    <strong>{m.name}</strong>
+                    <a href={`mailto:${m.email}`} class="member-email">{m.email}</a>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
 
     {
@@ -201,6 +239,33 @@ Welcome to the community!`}</pre>
           <div class="action-btns">
             {group.status === "approved" && (
               <>
+                {isUnclaimed && (
+                  <div class="invite-section">
+                    <p class="invite-section-label">
+                      {approvalInviteUrl || existingInviteUrl
+                        ? "Invite link — share with the organizer:"
+                        : "No active invite link."}
+                    </p>
+                    {(approvalInviteUrl || existingInviteUrl) && (
+                      <div class="invite-url-row">
+                        <input
+                          id="regen-invite-url"
+                          type="text"
+                          value={approvalInviteUrl || existingInviteUrl}
+                          readonly
+                          class="invite-input"
+                        />
+                        <button type="button" id="copy-invite-btn" class="btn btn-ghost btn-sm">Copy</button>
+                      </div>
+                    )}
+                    <form method="POST">
+                      <input type="hidden" name="action" value="regenerate_invite" />
+                      <button type="submit" class="btn btn-accent btn-sm">
+                        {approvalInviteUrl || existingInviteUrl ? "Regenerate link" : "Generate invite link →"}
+                      </button>
+                    </form>
+                  </div>
+                )}
                 <a href={`/groups/${group.slug}`} class="btn btn-ghost" target="_blank" rel="noopener">
                   View public page ↗
                 </a>
@@ -438,6 +503,109 @@ Welcome to the community!`}</pre>
     max-width: none;
   }
 
+  /* Organizers card */
+  .badge-unclaimed {
+    display: inline-block;
+    font-size: var(--size-xs);
+    font-weight: 700;
+    background: rgba(234, 179, 8, 0.15);
+    color: #854d0e;
+    border-radius: var(--radius-full);
+    padding: 0.15rem 0.5rem;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+  }
+
+  .no-members {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+    margin: 0;
+    max-width: none;
+  }
+
+  .member-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .member-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem;
+    background: var(--color-surface-warm);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+  }
+
+  .member-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: white;
+    font-weight: 700;
+    font-size: var(--size-xs);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .member-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+
+  .member-info strong {
+    font-size: var(--size-sm);
+  }
+
+  .member-email {
+    font-size: var(--size-xs);
+    color: var(--color-text-muted);
+  }
+
+  /* Invite section inside action card */
+  .invite-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: rgba(234, 179, 8, 0.08);
+    border: 1px solid rgba(234, 179, 8, 0.3);
+    border-radius: var(--radius-md);
+  }
+
+  .invite-section-label {
+    font-size: var(--size-xs);
+    font-weight: 700;
+    color: #854d0e;
+    margin: 0;
+    max-width: none;
+  }
+
+  .invite-url-row {
+    display: flex;
+    gap: 0.375rem;
+    align-items: center;
+  }
+
+  .invite-input {
+    flex: 1;
+    font-size: 11px;
+    font-family: var(--font-mono, monospace);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 0.375rem 0.5rem;
+    color: var(--color-text);
+    min-width: 0;
+  }
+
   @media (max-width: 768px) {
     .review-layout {
       grid-template-columns: 1fr;
@@ -450,24 +618,35 @@ Welcome to the community!`}</pre>
 </style>
 
 <script>
-  const copyEmailBtn = document.getElementById("copy-email-btn");
-  const emailBody = document.getElementById("email-body");
-
-  copyEmailBtn?.addEventListener("click", () => {
-    if (!emailBody) return;
-    const text = emailBody.textContent ?? "";
-    navigator.clipboard.writeText(text).then(() => {
-      copyEmailBtn.textContent = "Copied!";
-      setTimeout(() => { copyEmailBtn.textContent = "Copy"; }, 2500);
-    }).catch(() => {
-      const range = document.createRange();
-      range.selectNodeContents(emailBody);
-      window.getSelection()?.removeAllRanges();
-      window.getSelection()?.addRange(range);
-      document.execCommand("copy");
-      window.getSelection()?.removeAllRanges();
-      copyEmailBtn.textContent = "Copied!";
-      setTimeout(() => { copyEmailBtn.textContent = "Copy"; }, 2500);
+  function setupCopy(btnId: string, getText: () => string) {
+    const btn = document.getElementById(btnId) as HTMLButtonElement | null;
+    if (!btn) return;
+    btn.addEventListener("click", () => {
+      const text = getText();
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = "Copied!";
+        setTimeout(() => { btn.textContent = "Copy"; }, 2500);
+      }).catch(() => {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        btn.textContent = "Copied!";
+        setTimeout(() => { btn.textContent = "Copy"; }, 2500);
+      });
     });
+  }
+
+  setupCopy("copy-email-btn", () => {
+    return (document.getElementById("email-body") as HTMLElement | null)?.textContent ?? "";
+  });
+
+  setupCopy("copy-invite-btn", () => {
+    return (document.getElementById("regen-invite-url") as HTMLInputElement | null)?.value ?? "";
   });
 </script>
