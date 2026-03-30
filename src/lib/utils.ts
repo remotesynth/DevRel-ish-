@@ -34,6 +34,12 @@ export function spotsLeft(capacity: number, rsvpCount: number): number {
   return Math.max(0, capacity - rsvpCount);
 }
 
+/** Build an OpenStreetMap search URL for a venue + optional address */
+export function osmUrl(venue: string, address?: string | null): string {
+  const query = [venue, address].filter(Boolean).join(", ");
+  return `https://www.openstreetmap.org/search?query=${encodeURIComponent(query)}`;
+}
+
 /**
  * Build a Google Calendar "add event" URL.
  * Uses floating (no-timezone) datetime so it matches the stored wall-clock time.

@@ -1,7 +1,7 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import { db, Meetups, RSVPs, Groups, count, eq, and } from "astro:db";
-import { formatDate, formatTime, spotsLeft, generateId, googleCalendarUrl } from "../../../lib/utils";
+import { formatDate, formatTime, spotsLeft, generateId, googleCalendarUrl, osmUrl } from "../../../lib/utils";
 
 const { id } = Astro.params;
 
@@ -278,7 +278,9 @@ const isFull = spots === 0;
           <div class="meetup-detail-row">
             <span class="detail-icon">📍</span>
             <div>
-              <div>{meetup.venue}</div>
+              <a href={osmUrl(meetup.venue, meetup.address)} class="venue-link" target="_blank" rel="noopener noreferrer">
+                {meetup.venue}
+              </a>
               {meetup.address && <div class="address">{meetup.address}</div>}
             </div>
           </div>
@@ -471,6 +473,19 @@ const isFull = spots === 0;
   .detail-icon {
     flex-shrink: 0;
     font-size: var(--size-base);
+  }
+
+  .venue-link {
+    color: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 2px;
+  }
+
+  .venue-link:hover {
+    color: var(--color-primary);
+    text-decoration-style: solid;
   }
 
   .address {

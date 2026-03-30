@@ -1,5 +1,5 @@
 ---
-import { formatDate, formatTime, spotsLeft } from "../../lib/utils";
+import { formatDate, formatTime, spotsLeft, osmUrl } from "../../lib/utils";
 import { renderMarkdown } from "../../lib/markdown";
 
 interface Props {
@@ -38,7 +38,9 @@ const descHtml = renderMarkdown(description);
         {title}
         {isCanceled && <span class="badge-canceled">Cancelled</span>}
       </h3>
-      <p class="meetup-time">🕐 {formatTime(time)} &bull; 📍 {venue}</p>
+      <p class="meetup-time">
+        🕐 {formatTime(time)} &bull; 📍 <a href={osmUrl(venue, address)} class="venue-link" target="_blank" rel="noopener noreferrer">{venue}</a>
+      </p>
     </div>
   </div>
 
@@ -124,6 +126,18 @@ const descHtml = renderMarkdown(description);
     color: var(--color-text-muted);
     margin-top: 0.25rem;
     max-width: none;
+  }
+
+  .venue-link {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 2px;
+  }
+
+  .venue-link:hover {
+    color: var(--color-primary);
+    text-decoration-style: solid;
   }
 
   .meetup-desc {
