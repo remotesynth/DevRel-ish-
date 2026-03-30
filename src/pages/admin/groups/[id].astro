@@ -3,6 +3,7 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
 import { db, Groups, GroupInvites, User } from "astro:db";
 import { eq } from "astro:db";
 import { generateId } from "../../../lib/utils";
+import { renderMarkdown } from "../../../lib/markdown";
 
 if (!Astro.locals.user) return Astro.redirect("/auth/login");
 if (Astro.locals.user.role !== "admin") return Astro.redirect("/dashboard");
@@ -175,7 +176,7 @@ Welcome to the community!`}</pre>
 
       <div class="detail-card">
         <h3>Description</h3>
-        <p class="description-text">{group.description}</p>
+        <div class="description-text prose" set:html={renderMarkdown(group.description)} />
       </div>
 
       {group.status !== "pending" && (
@@ -390,6 +391,11 @@ Welcome to the community!`}</pre>
     color: var(--color-text-muted);
     line-height: 1.7;
   }
+  .description-text :global(p) { margin-bottom: 0.5rem; }
+  .description-text :global(p:last-child) { margin-bottom: 0; }
+  .description-text :global(ul), .description-text :global(ol) { padding-left: 1.25rem; margin-bottom: 0.5rem; }
+  .description-text :global(strong) { color: var(--color-text); }
+  .description-text :global(a) { color: var(--color-primary); }
 
   /* Action card */
   .action-card {

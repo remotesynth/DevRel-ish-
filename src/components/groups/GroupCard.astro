@@ -10,10 +10,13 @@ interface Props {
   upcomingCount?: number;
 }
 
+import { stripMarkdown } from "../../lib/markdown";
+
 const { name, slug, city, region, country, description, upcomingCount = 0 } = Astro.props;
 
 const location = region ? `${city}, ${region}` : `${city}, ${country}`;
-const snippet = description.length > 140 ? description.slice(0, 140) + "…" : description;
+const plain = stripMarkdown(description);
+const snippet = plain.length > 140 ? plain.slice(0, 140) + "…" : plain;
 ---
 
 <article class="group-card card">

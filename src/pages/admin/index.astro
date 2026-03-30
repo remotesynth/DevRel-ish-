@@ -2,6 +2,7 @@
 import DashboardLayout from "../../layouts/DashboardLayout.astro";
 import { db, Groups } from "astro:db";
 import { eq, desc } from "astro:db";
+import { stripMarkdown } from "../../lib/markdown";
 
 if (!Astro.locals.user) return Astro.redirect("/auth/login");
 if (Astro.locals.user.role !== "admin") return Astro.redirect("/dashboard");
@@ -38,7 +39,7 @@ const pendingGroups = await db
               📍 {g.region ? `${g.city}, ${g.region}, ${g.country}` : `${g.city}, ${g.country}`}
             </p>
             <p class="group-contact">✉️ {g.contactEmail}</p>
-            <p class="group-desc">{g.description.slice(0, 200)}{g.description.length > 200 ? "…" : ""}</p>
+            <p class="group-desc">{(({ t }) => t.length > 200 ? t.slice(0, 200) + "…" : t)({ t: stripMarkdown(g.description) })}</p>
           </div>
           <div class="group-actions">
             <a href={`/admin/groups/${g.id}`} class="btn btn-ghost btn-sm">

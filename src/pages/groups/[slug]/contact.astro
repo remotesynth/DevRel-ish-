@@ -2,6 +2,7 @@
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import { db, Groups, ContactMessages, eq, and } from "astro:db";
 import { generateId } from "../../../lib/utils";
+import { stripMarkdown } from "../../../lib/markdown";
 
 const { slug } = Astro.params;
 if (!slug) return Astro.redirect("/groups");
@@ -19,6 +20,8 @@ const isGroupClosed = group.status === "closed";
 
 type FormResult = { type: "success" } | { type: "error"; message: string };
 let result: FormResult | null = null;
+const descPlain = stripMarkdown(group.description);
+const descSnippet = descPlain.length > 200 ? descPlain.slice(0, 200) + "…" : descPlain;
 
 if (!isGroupClosed && Astro.request.method === "POST") {
   const form = await Astro.request.formData();
@@ -133,7 +136,7 @@ if (!isGroupClosed && Astro.request.method === "POST") {
         <div class="group-card">
           <h3>{group.name}</h3>
           <p class="group-location">📍 {group.city}{group.region ? `, ${group.region}` : ""}, {group.country}</p>
-          <p>{group.description.slice(0, 200)}{group.description.length > 200 ? "…" : ""}</p>
+          <p>{descSnippet}</p>
           <a href={`/groups/${group.slug}`} class="btn btn-ghost btn-sm" style="margin-top: 0.75rem;">View group →</a>
         </div>
         <p class="contact-note">

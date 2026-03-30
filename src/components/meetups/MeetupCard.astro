@@ -1,5 +1,6 @@
 ---
 import { formatDate, formatTime, spotsLeft } from "../../lib/utils";
+import { renderMarkdown } from "../../lib/markdown";
 
 interface Props {
   id: string;
@@ -21,7 +22,7 @@ const { id, title, description, date, time, venue, address, capacity, rsvpCount,
 const isCanceled = status === "canceled";
 const spots = spotsLeft(capacity, rsvpCount);
 const isFull = spots === 0;
-const snippet = description.length > 160 ? description.slice(0, 160) + "…" : description;
+const descHtml = renderMarkdown(description);
 ---
 
 <article class:list={["meetup-card card", { canceled: isCanceled }]}>
@@ -41,7 +42,7 @@ const snippet = description.length > 160 ? description.slice(0, 160) + "…" : d
     </div>
   </div>
 
-  <p class="meetup-desc">{snippet}</p>
+  <div class="meetup-desc" set:html={descHtml} />
 
   <div class="meetup-footer">
     <div class="meetup-stats">
@@ -128,7 +129,17 @@ const snippet = description.length > 160 ? description.slice(0, 160) + "…" : d
   .meetup-desc {
     font-size: var(--size-sm);
     color: var(--color-text-muted);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
+
+  .meetup-desc :global(p) { margin: 0; }
+  .meetup-desc :global(p + p) { margin-top: 0.375rem; }
+  .meetup-desc :global(ul),
+  .meetup-desc :global(ol) { padding-left: 1.25rem; margin: 0; }
+  .meetup-desc :global(strong) { color: var(--color-text); }
 
   .meetup-footer {
     display: flex;

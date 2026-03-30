@@ -92,6 +92,7 @@ if (Astro.request.method === "POST") {
       <div class="form-group">
         <label for="description">Description *</label>
         <textarea id="description" name="description" rows="5" placeholder="What will you do? What's the vibe? Who should come?" required minlength="20" maxlength="2000">{vals.description}</textarea>
+        <span class="form-hint">Markdown supported: **bold**, *italic*, # headings, - lists, [links](url).</span>
       </div>
 
       <div class="form-row">
