@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { auth } from "../../lib/auth";
+import { db, Groups, eq } from "astro:db";
 
 // Only allow local redirects (must start with /)
 const redirectParam = Astro.url.searchParams.get("redirect") ?? "";
@@ -38,12 +39,30 @@ if (Astro.request.method === "POST") {
       const setCookie = result.headers.get("set-cookie") ?? "";
       const tempHeaders = new Headers({ cookie: setCookie.split(";")[0] });
       const session = await auth.api.getSession({ headers: tempHeaders });
-      const destination = redirectTo || (session?.user?.role === "admin" ? "/admin" : "/dashboard");
 
-      return new Response(null, {
-        status: 302,
-        headers: { "set-cookie": setCookie, location: destination },
-      });
+      // Block organizers of closed groups
+      if (session?.user?.groupId) {
+        const [userGroup] = await db
+          .select({ status: Groups.status, name: Groups.name })
+          .from(Groups)
+          .where(eq(Groups.id, session.user.groupId));
+        if (userGroup?.status === "closed") {
+          error = `<strong>${userGroup.name}</strong> has been deactivated. If you believe this is in error, please contact <a href="mailto:admin@devrelish.tech">admin@devrelish.tech</a>.`;
+          // Do not issue cookie or redirect
+        } else {
+          const destination = redirectTo || (session?.user?.role === "admin" ? "/admin" : "/dashboard");
+          return new Response(null, {
+            status: 302,
+            headers: { "set-cookie": setCookie, location: destination },
+          });
+        }
+      } else {
+        const destination = redirectTo || (session?.user?.role === "admin" ? "/admin" : "/dashboard");
+        return new Response(null, {
+          status: 302,
+          headers: { "set-cookie": setCookie, location: destination },
+        });
+      }
     } else {
       error = "Invalid email or password.";
     }
@@ -65,9 +84,7 @@ if (Astro.request.method === "POST") {
         </div>
 
         {error && (
-          <div class="alert alert-error" role="alert">
-            {error}
-          </div>
+          <div class="alert alert-error" role="alert" set:html={error} />
         )}
 
         <form method="POST" class="auth-form">
