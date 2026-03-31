@@ -13,7 +13,7 @@ const Groups = defineTable({
     description: column.text(),
     contactEmail: column.text(),
     status: column.text({ default: "pending" }), // pending | approved | rejected
-    managerId: column.text({ optional: true, references: () => User.columns.id }),
+    managerId: column.text({ optional: true }), // soft ref to User.id
     createdAt: column.date({ default: new Date() }),
   },
 });
@@ -21,7 +21,7 @@ const Groups = defineTable({
 const Meetups = defineTable({
   columns: {
     id: column.text({ primaryKey: true }),
-    groupId: column.text({ references: () => Groups.columns.id }),
+    groupId: column.text(), // soft ref to Groups.id
     title: column.text(),
     description: column.text(),
     date: column.date(),
@@ -37,7 +37,7 @@ const Meetups = defineTable({
 const RSVPs = defineTable({
   columns: {
     id: column.text({ primaryKey: true }),
-    meetupId: column.text({ references: () => Meetups.columns.id }),
+    meetupId: column.text(), // soft ref to Meetups.id
     name: column.text(),
     email: column.text(),
     jobTitle: column.text(),
@@ -49,7 +49,7 @@ const RSVPs = defineTable({
 const GroupInvites = defineTable({
   columns: {
     id: column.text({ primaryKey: true }), // the invite token used in the URL
-    groupId: column.text({ references: () => Groups.columns.id }),
+    groupId: column.text(), // soft ref to Groups.id
     createdAt: column.date(),
     expiresAt: column.date(),
   },
@@ -58,7 +58,7 @@ const GroupInvites = defineTable({
 const ContactMessages = defineTable({
   columns: {
     id: column.text({ primaryKey: true }),
-    groupId: column.text({ references: () => Groups.columns.id }),
+    groupId: column.text(), // soft ref to Groups.id
     name: column.text(),
     email: column.text(),
     message: column.text(),
