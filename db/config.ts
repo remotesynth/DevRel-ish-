@@ -97,7 +97,7 @@ const Session = defineTable({
     updatedAt: column.date(),
     ipAddress: column.text({ optional: true }),
     userAgent: column.text({ optional: true }),
-    userId: column.text({ references: () => User.columns.id }),
+    userId: column.text(), // soft ref to User.id
     // Admin plugin
     impersonatedBy: column.text({ optional: true }),
   },
@@ -108,7 +108,7 @@ const Account = defineTable({
     id: column.text({ primaryKey: true }),
     accountId: column.text(),
     providerId: column.text(),
-    userId: column.text({ references: () => User.columns.id }),
+    userId: column.text(), // soft ref to User.id
     accessToken: column.text({ optional: true }),
     refreshToken: column.text({ optional: true }),
     idToken: column.text({ optional: true }),
