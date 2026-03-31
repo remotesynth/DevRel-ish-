@@ -8,7 +8,7 @@ export const POST: APIRoute = async ({ params, locals }) => {
   if (!locals.user) return redirect("/auth/login");
 
   const { id } = params;
-  if (!id) return redirect("/dashboard/meetups");
+  if (!id) return redirect("/dashboard/gatherings");
 
   // Verify ownership
   const [group] = locals.user.groupId
@@ -23,12 +23,12 @@ export const POST: APIRoute = async ({ params, locals }) => {
       ? await db.select().from(Meetups).where(and(eq(Meetups.id, id), eq(Meetups.groupId, group.id)))
       : [];
 
-  if (!meetup) return redirect("/dashboard/meetups");
+  if (!meetup) return redirect("/dashboard/gatherings");
 
   const newStatus = meetup.status === "canceled" ? "active" : "canceled";
   await db.update(Meetups).set({ status: newStatus }).where(eq(Meetups.id, id));
 
-  return redirect("/dashboard/meetups");
+  return redirect("/dashboard/gatherings");
 };
 
 function redirect(location: string) {

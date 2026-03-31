@@ -61,7 +61,7 @@ const location = group.region
       <p class="group-location">📍 {location}</p>
       {isGroupClosed && (
         <div class="closed-notice">
-          This group is no longer active. Prior meetup pages remain available for reference.
+          This group is no longer active. Prior gathering pages remain available for reference.
         </div>
       )}
       <div class="group-desc prose" set:html={renderMarkdown(group.description)} />
@@ -75,13 +75,13 @@ const location = group.region
 
   <section class="meetups-section">
     <div class="container">
-      <h2>Upcoming meetups</h2>
+      <h2>Upcoming gatherings</h2>
 
       {
         meetups.length === 0 ? (
           <div class="empty-meetups">
             <div class="empty-icon" aria-hidden="true">✦</div>
-            <p>No meetups scheduled yet. Check back soon!</p>
+            <p>No gatherings scheduled yet. Check back soon!</p>
           </div>
         ) : (
           <div class="meetups-list">

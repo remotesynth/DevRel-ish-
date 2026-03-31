@@ -11,11 +11,11 @@ export const POST: APIRoute = async ({ params, locals, request }) => {
   if (!rsvpId) return redirect("/dashboard");
 
   const [rsvp] = await db.select().from(RSVPs).where(eq(RSVPs.id, rsvpId));
-  if (!rsvp) return redirect("/dashboard/meetups");
+  if (!rsvp) return redirect("/dashboard/gatherings");
 
   // Verify the user owns the group that owns this meetup
   const [meetup] = await db.select().from(Meetups).where(eq(Meetups.id, rsvp.meetupId));
-  if (!meetup) return redirect("/dashboard/meetups");
+  if (!meetup) return redirect("/dashboard/gatherings");
 
   const isAdmin = locals.user.role === "admin";
 
@@ -25,13 +25,13 @@ export const POST: APIRoute = async ({ params, locals, request }) => {
       : [];
 
     if (!group || group.id !== meetup.groupId) {
-      return redirect("/dashboard/meetups");
+      return redirect("/dashboard/gatherings");
     }
   }
 
   await db.delete(RSVPs).where(eq(RSVPs.id, rsvpId));
 
-  return redirect(`/dashboard/meetups/${meetup.id}/attendees?removed=1`);
+  return redirect(`/dashboard/gatherings/${meetup.id}/attendees?removed=1`);
 };
 
 function redirect(location: string) {

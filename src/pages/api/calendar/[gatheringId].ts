@@ -5,10 +5,10 @@ import { eq } from "astro:db";
 export const prerender = false;
 
 export const GET: APIRoute = async ({ params, url }) => {
-  const { meetupId } = params;
-  if (!meetupId) return new Response("Not found", { status: 404 });
+  const { gatheringId } = params;
+  if (!gatheringId) return new Response("Not found", { status: 404 });
 
-  const [meetup] = await db.select().from(Meetups).where(eq(Meetups.id, meetupId));
+  const [meetup] = await db.select().from(Meetups).where(eq(Meetups.id, gatheringId));
   if (!meetup) return new Response("Not found", { status: 404 });
 
   const [group] = await db.select().from(Groups).where(eq(Groups.id, meetup.groupId));
@@ -77,7 +77,7 @@ function buildICS(
   const dtend = floatingDT(meetup.date, `${pad(endHH)}:${pad(mm)}`);
 
   const location = [meetup.venue, meetup.address].filter(Boolean).join(", ");
-  const eventUrl = `${origin}/meetups/${meetup.id}/rsvp`;
+  const eventUrl = `${origin}/gatherings/${meetup.id}/rsvp`;
   const description = `${meetup.description}\n\nHosted by ${group.name}\nMore info: ${eventUrl}`;
 
   const lines = [

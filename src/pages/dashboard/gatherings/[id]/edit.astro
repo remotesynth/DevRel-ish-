@@ -1,11 +1,13 @@
 ---
-import DashboardLayout from "../../../layouts/DashboardLayout.astro";
+import DashboardLayout from "../../../../layouts/DashboardLayout.astro";
 import { db, Groups, Meetups } from "astro:db";
-import { eq } from "astro:db";
-import { generateId } from "../../../lib/utils";
+import { eq, and } from "astro:db";
 
 if (!Astro.locals.user) return Astro.redirect("/auth/login");
 const user = Astro.locals.user;
+const { id } = Astro.params;
+
+if (!id) return Astro.redirect("/dashboard/gatherings");
 
 const [group] = user.groupId
   ? await db.select().from(Groups).where(eq(Groups.id, user.groupId))
@@ -13,18 +15,25 @@ const [group] = user.groupId
 
 if (!group) return Astro.redirect("/dashboard");
 
-type FormError = { type: "error"; message: string };
-let error: FormError | null = null;
+const [meetup] = await db
+  .select()
+  .from(Meetups)
+  .where(and(eq(Meetups.id, id), eq(Meetups.groupId, group.id)));
 
-// Preserve form values on validation failure
+if (!meetup) return Astro.redirect("/dashboard/gatherings");
+
+type Result = { type: "success" } | { type: "error"; message: string };
+let result: Result | null = null;
+
+// Initial field values from DB (formatted for HTML inputs)
 let vals = {
-  title: "",
-  description: "",
-  date: "",
-  time: "18:00",
-  venue: "",
-  address: "",
-  capacity: "30",
+  title: meetup.title,
+  description: meetup.description,
+  date: meetup.date.toISOString().split("T")[0],
+  time: meetup.time,
+  venue: meetup.venue,
+  address: meetup.address ?? "",
+  capacity: String(meetup.capacity),
 };
 
 if (Astro.request.method === "POST") {
@@ -34,58 +43,62 @@ if (Astro.request.method === "POST") {
     title: form.get("title")?.toString().trim() ?? "",
     description: form.get("description")?.toString().trim() ?? "",
     date: form.get("date")?.toString() ?? "",
-    time: form.get("time")?.toString() ?? "18:00",
+    time: form.get("time")?.toString() ?? "",
     venue: form.get("venue")?.toString().trim() ?? "",
     address: form.get("address")?.toString().trim() ?? "",
-    capacity: form.get("capacity")?.toString() ?? "30",
+    capacity: form.get("capacity")?.toString() ?? "",
   };
 
   const cap = Number(vals.capacity);
   const meetupDate = new Date(vals.date);
 
   if (!vals.title || !vals.description || !vals.date || !vals.time || !vals.venue || !vals.capacity) {
-    error = { type: "error", message: "All required fields must be filled in." };
+    result = { type: "error", message: "All required fields must be filled in." };
   } else if (vals.description.length < 20) {
-    error = { type: "error", message: "Description must be at least 20 characters." };
+    result = { type: "error", message: "Description must be at least 20 characters." };
   } else if (isNaN(meetupDate.getTime())) {
-    error = { type: "error", message: "Invalid date." };
-  } else if (meetupDate < new Date()) {
-    error = { type: "error", message: "Meetup date must be in the future." };
+    result = { type: "error", message: "Invalid date." };
   } else if (!Number.isInteger(cap) || cap < 1 || cap > 500) {
-    error = { type: "error", message: "Capacity must be between 1 and 500." };
+    result = { type: "error", message: "Capacity must be between 1 and 500." };
   } else {
-    await db.insert(Meetups).values({
-      id: generateId(),
-      groupId: group.id,
-      title: vals.title,
-      description: vals.description,
-      date: meetupDate,
-      time: vals.time,
-      venue: vals.venue,
-      address: vals.address || null,
-      capacity: cap,
-      createdAt: new Date(),
-    });
-    return Astro.redirect("/dashboard/meetups?created=1");
+    await db
+      .update(Meetups)
+      .set({
+        title: vals.title,
+        description: vals.description,
+        date: meetupDate,
+        time: vals.time,
+        venue: vals.venue,
+        address: vals.address || null,
+        capacity: cap,
+      })
+      .where(eq(Meetups.id, id));
+
+    result = { type: "success" };
   }
 }
 ---
 
-<DashboardLayout title="New Meetup">
+<DashboardLayout title="Edit Gathering">
   <div class="page-header">
-    <a href="/dashboard/meetups" class="back-link">← Back to meetups</a>
-    <h1>Schedule a meetup</h1>
-    <p>Fill in the details for your next gathering.</p>
+    <a href="/dashboard/gatherings" class="back-link">← Back to gatherings</a>
+    <h1>Edit gathering</h1>
   </div>
 
   <div class="form-wrap">
+    {result?.type === "success" && (
+      <div class="alert alert-success" role="status">
+        Gathering updated successfully! <a href="/dashboard/gatherings">Back to gatherings</a>
+      </div>
+    )}
+
     <form method="POST" class="meetup-form">
-      {error && (
-        <div class="alert alert-error" role="alert">{error.message}</div>
+      {result?.type === "error" && (
+        <div class="alert alert-error" role="alert">{result.message}</div>
       )}
 
       <div class="form-group">
-        <label for="title">Meetup title *</label>
+        <label for="title">Gathering title *</label>
         <input id="title" name="title" type="text" value={vals.title} placeholder="Spring Social Gathering" required maxlength="100" />
       </div>
 
@@ -98,7 +111,7 @@ if (Astro.request.method === "POST") {
       <div class="form-row">
         <div class="form-group">
           <label for="date">Date *</label>
-          <input id="date" name="date" type="date" value={vals.date} required min={new Date().toISOString().split("T")[0]} />
+          <input id="date" name="date" type="date" value={vals.date} required />
         </div>
         <div class="form-group">
           <label for="time">Time *</label>
@@ -123,8 +136,8 @@ if (Astro.request.method === "POST") {
       </div>
 
       <div class="form-actions">
-        <button type="submit" class="btn btn-primary">Create meetup →</button>
-        <a href="/dashboard/meetups" class="btn btn-ghost">Cancel</a>
+        <button type="submit" class="btn btn-primary">Save changes →</button>
+        <a href="/dashboard/gatherings" class="btn btn-ghost">Cancel</a>
       </div>
     </form>
   </div>
@@ -150,11 +163,12 @@ if (Astro.request.method === "POST") {
 
   .page-header h1 {
     font-size: var(--size-3xl);
-    margin-bottom: 0.25rem;
   }
 
-  .page-header p {
-    color: var(--color-text-muted);
+  .form-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
   }
 
   .form-wrap .meetup-form {

@@ -6,26 +6,26 @@ import { generateId } from "../../../lib/utils";
 export const prerender = false;
 
 export const POST: APIRoute = async ({ params, request }) => {
-  const { meetupId } = params;
+  const { gatheringId } = params;
 
-  if (!meetupId) return json({ error: "Missing meetup ID." }, 400);
+  if (!gatheringId) return json({ error: "Missing gathering ID." }, 400);
 
   // Verify meetup exists and group is approved
-  const [meetup] = await db.select().from(Meetups).where(eq(Meetups.id, meetupId));
-  if (!meetup) return json({ error: "Meetup not found." }, 404);
+  const [meetup] = await db.select().from(Meetups).where(eq(Meetups.id, gatheringId));
+  if (!meetup) return json({ error: "Gathering not found." }, 404);
 
   if (meetup.status === "canceled") {
-    return json({ error: "This meetup has been cancelled." }, 400);
+    return json({ error: "This gathering has been cancelled." }, 400);
   }
 
   const [group] = await db.select().from(Groups).where(eq(Groups.id, meetup.groupId));
   if (!group || group.status !== "approved") {
-    return json({ error: "Meetup not available." }, 404);
+    return json({ error: "Gathering not available." }, 404);
   }
 
   // Meetup must be in the future
   if (meetup.date < new Date()) {
-    return json({ error: "This meetup has already passed." }, 400);
+    return json({ error: "This gathering has already passed." }, 400);
   }
 
   let body: unknown;
@@ -50,7 +50,7 @@ export const POST: APIRoute = async ({ params, request }) => {
   const [duplicate] = await db
     .select()
     .from(RSVPs)
-    .where(and(eq(RSVPs.meetupId, meetupId), eq(RSVPs.email, email.toLowerCase())));
+    .where(and(eq(RSVPs.meetupId, gatheringId), eq(RSVPs.email, email.toLowerCase())));
 
   if (duplicate) {
     return json({ error: "Already registered.", code: "duplicate" }, 409);
@@ -60,16 +60,16 @@ export const POST: APIRoute = async ({ params, request }) => {
   const [countResult] = await db
     .select({ val: count() })
     .from(RSVPs)
-    .where(eq(RSVPs.meetupId, meetupId));
+    .where(eq(RSVPs.meetupId, gatheringId));
 
   const rsvpCount = countResult?.val ?? 0;
   if (rsvpCount >= meetup.capacity) {
-    return json({ error: "This meetup is full.", code: "full" }, 409);
+    return json({ error: "This gathering is full.", code: "full" }, 409);
   }
 
   await db.insert(RSVPs).values({
     id: generateId(),
-    meetupId,
+    meetupId: gatheringId,
     name: name.trim(),
     email: email.trim().toLowerCase(),
     jobTitle: jobTitle.trim(),

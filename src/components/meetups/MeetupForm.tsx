@@ -51,7 +51,7 @@ export default function MeetupForm({ mode, meetupId, initial }: Props) {
     setStatus("loading");
     setErrorMsg("");
 
-    const url = mode === "edit" ? `/api/meetups/${meetupId}` : "/api/meetups";
+    const url = mode === "edit" ? `/api/gatherings/${meetupId}` : "/api/gatherings";
     const method = mode === "edit" ? "PUT" : "POST";
 
     try {
@@ -70,7 +70,7 @@ export default function MeetupForm({ mode, meetupId, initial }: Props) {
 
       setStatus("success");
       if (mode === "create") {
-        window.location.href = "/dashboard/meetups";
+        window.location.href = "/dashboard/gatherings";
       }
     } catch {
       setErrorMsg("Network error. Please try again.");
@@ -81,8 +81,8 @@ export default function MeetupForm({ mode, meetupId, initial }: Props) {
   if (status === "success" && mode === "edit") {
     return (
       <div className="alert alert-success" role="alert">
-        Meetup updated successfully!{" "}
-        <a href="/dashboard/meetups">Back to meetups</a>
+        Gathering updated successfully!{" "}
+        <a href="/dashboard/gatherings">Back to gatherings</a>
       </div>
     );
   }
@@ -96,7 +96,7 @@ export default function MeetupForm({ mode, meetupId, initial }: Props) {
       )}
 
       <div className="form-group">
-        <label htmlFor="title">Meetup title *</label>
+        <label htmlFor="title">Gathering title *</label>
         <input
           id="title"
           type="text"
@@ -192,10 +192,10 @@ export default function MeetupForm({ mode, meetupId, initial }: Props) {
           {status === "loading"
             ? "Saving…"
             : mode === "create"
-              ? "Create meetup →"
+              ? "Create gathering →"
               : "Save changes →"}
         </button>
-        <a href="/dashboard/meetups" className="btn btn-ghost">
+        <a href="/dashboard/gatherings" className="btn btn-ghost">
           Cancel
         </a>
       </div>

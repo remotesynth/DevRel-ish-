@@ -39,7 +39,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   if (meetupDate < new Date()) {
-    return json({ error: "Meetup date must be in the future." }, 400);
+    return json({ error: "Gathering date must be in the future." }, 400);
   }
 
   const cap = Number(capacity);

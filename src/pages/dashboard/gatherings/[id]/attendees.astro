@@ -8,7 +8,7 @@ if (!Astro.locals.user) return Astro.redirect("/auth/login");
 const user = Astro.locals.user;
 const { id } = Astro.params;
 
-if (!id) return Astro.redirect("/dashboard/meetups");
+if (!id) return Astro.redirect("/dashboard/gatherings");
 
 const [group] = user.groupId
   ? await db.select().from(Groups).where(eq(Groups.id, user.groupId))
@@ -21,7 +21,7 @@ const [meetup] = await db
   .from(Meetups)
   .where(and(eq(Meetups.id, id), eq(Meetups.groupId, group.id)));
 
-if (!meetup) return Astro.redirect("/dashboard/meetups");
+if (!meetup) return Astro.redirect("/dashboard/gatherings");
 
 const attendees = await db
   .select()
@@ -34,7 +34,7 @@ const justRemoved = Astro.url.searchParams.get("removed") === "1";
 
 <DashboardLayout title={`Attendees — ${meetup.title}`}>
   <div class="page-header">
-    <a href="/dashboard/meetups" class="back-link">← Back to meetups</a>
+    <a href="/dashboard/gatherings" class="back-link">← Back to gatherings</a>
     <div class="header-row">
       <div>
         <h1>{meetup.title}</h1>
@@ -44,7 +44,7 @@ const justRemoved = Astro.url.searchParams.get("removed") === "1";
       </div>
       {attendees.length > 0 && (
         <a
-          href={`/api/meetups/${id}/attendees.csv`}
+          href={`/api/gatherings/${id}/attendees.csv`}
           download
           class="btn btn-ghost btn-sm"
           title="Download attendee list as CSV"
@@ -82,9 +82,9 @@ const justRemoved = Astro.url.searchParams.get("removed") === "1";
   {
     attendees.length === 0 ? (
       <div class="empty-state">
-        <p>No RSVPs yet. Share the meetup link to start getting sign-ups!</p>
+        <p>No RSVPs yet. Share the gathering link to start getting sign-ups!</p>
         <div class="share-link">
-          <code>{`/meetups/${meetup.id}/rsvp`}</code>
+          <code>{`/gatherings/${meetup.id}/rsvp`}</code>
         </div>
       </div>
     ) : (

@@ -22,7 +22,7 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
   if (!locals.user) return json({ error: "Unauthorized." }, 401);
 
   const meetup = await getOwnedMeetup(params.id!, locals.user.id);
-  if (!meetup) return json({ error: "Meetup not found." }, 404);
+  if (!meetup) return json({ error: "Gathering not found." }, 404);
 
   let body: unknown;
   try {
@@ -51,7 +51,7 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
       return json({ error: "Invalid date." }, 400);
     }
     if (meetupDate < new Date()) {
-      return json({ error: "Meetup date must be in the future." }, 400);
+      return json({ error: "Gathering date must be in the future." }, 400);
     }
     updates.date = meetupDate;
   }
@@ -85,7 +85,7 @@ export const DELETE: APIRoute = async ({ params, locals }) => {
   if (!locals.user) return json({ error: "Unauthorized." }, 401);
 
   const meetup = await getOwnedMeetup(params.id!, locals.user.id);
-  if (!meetup) return json({ error: "Meetup not found." }, 404);
+  if (!meetup) return json({ error: "Gathering not found." }, 404);
 
   // Delete RSVPs first (no cascade in AstroDB)
   await db.delete(RSVPs).where(eq(RSVPs.meetupId, meetup.id));

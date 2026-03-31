@@ -34,10 +34,10 @@ const snippet = plain.length > 140 ? plain.slice(0, 140) + "…" : plain;
     {
       upcomingCount > 0 ? (
         <span class="badge badge-upcoming">
-          {upcomingCount} upcoming {upcomingCount === 1 ? "meetup" : "meetups"}
+          {upcomingCount} upcoming {upcomingCount === 1 ? "gathering" : "gatherings"}
         </span>
       ) : (
-        <span class="no-meetups">No upcoming meetups</span>
+        <span class="no-meetups">No upcoming gatherings</span>
       )
     }
     <a href={`/groups/${slug}`} class="btn btn-ghost btn-sm">View group →</a>

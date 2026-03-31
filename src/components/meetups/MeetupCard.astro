@@ -49,7 +49,7 @@ const descHtml = renderMarkdown(description);
   <div class="meetup-footer">
     <div class="meetup-stats">
       {isCanceled ? (
-        <span class="canceled-note">This meetup has been cancelled.</span>
+        <span class="canceled-note">This gathering has been cancelled.</span>
       ) : isFull ? (
         <span class="badge badge-full">Full</span>
       ) : (
@@ -59,7 +59,7 @@ const descHtml = renderMarkdown(description);
       )}
     </div>
     {!isCanceled && !groupClosed && !isFull && (
-      <a href={`/meetups/${id}/rsvp`} class="btn btn-primary btn-sm">
+      <a href={`/gatherings/${id}/rsvp`} class="btn btn-primary btn-sm">
         RSVP →
       </a>
     )}

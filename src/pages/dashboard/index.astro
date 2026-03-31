@@ -72,19 +72,19 @@ if (group) {
           <div class="stat-cards">
             <div class="stat-card">
               <div class="stat-value">{upcomingMeetups.length}</div>
-              <div class="stat-label">Upcoming meetups</div>
+              <div class="stat-label">Upcoming gatherings</div>
             </div>
-            <a href="/dashboard/meetups/new" class="stat-card stat-card-cta">
+            <a href="/dashboard/gatherings/new" class="stat-card stat-card-cta">
               <div class="stat-cta-icon" aria-hidden="true">+</div>
-              <div class="stat-label">Schedule a meetup</div>
+              <div class="stat-label">Schedule a gathering</div>
             </a>
           </div>
 
           {upcomingMeetups.length > 0 && (
             <div class="upcoming-meetups">
               <div class="section-row">
-                <h3>Upcoming meetups</h3>
-                <a href="/dashboard/meetups" class="link-sm">View all →</a>
+                <h3>Upcoming gatherings</h3>
+                <a href="/dashboard/gatherings" class="link-sm">View all →</a>
               </div>
               <div class="meetup-list">
                 {upcomingMeetups.map((m) => (
@@ -98,10 +98,10 @@ if (group) {
                       <span class="meetup-row-venue">📍 {m.venue}</span>
                     </div>
                     <div class="meetup-row-actions">
-                      <a href={`/dashboard/meetups/${m.id}/attendees`} class="btn btn-ghost btn-sm">
+                      <a href={`/dashboard/gatherings/${m.id}/attendees`} class="btn btn-ghost btn-sm">
                         Attendees
                       </a>
-                      <a href={`/dashboard/meetups/${m.id}/edit`} class="btn btn-ghost btn-sm">
+                      <a href={`/dashboard/gatherings/${m.id}/edit`} class="btn btn-ghost btn-sm">
                         Edit
                       </a>
                     </div>

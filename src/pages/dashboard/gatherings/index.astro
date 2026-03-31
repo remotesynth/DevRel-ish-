@@ -30,24 +30,24 @@ today.setHours(0, 0, 0, 0);
 const justCreated = Astro.url.searchParams.get("created") === "1";
 ---
 
-<DashboardLayout title="Meetups">
+<DashboardLayout title="Gatherings">
   <div class="page-header">
-    <h1>Meetups</h1>
-    <a href="/dashboard/meetups/new" class="btn btn-primary">+ New meetup</a>
+    <h1>Gatherings</h1>
+    <a href="/dashboard/gatherings/new" class="btn btn-primary">+ New gathering</a>
   </div>
 
   {justCreated && (
-    <div class="alert alert-success" role="status">Meetup created successfully!</div>
+    <div class="alert alert-success" role="status">Gathering created successfully!</div>
   )}
 
   {
     meetups.length === 0 ? (
       <div class="empty-state">
         <div class="empty-icon" aria-hidden="true">✦</div>
-        <h2>No meetups yet</h2>
-        <p>Schedule your first meetup and start collecting RSVPs!</p>
-        <a href="/dashboard/meetups/new" class="btn btn-primary">
-          Create your first meetup →
+        <h2>No gatherings yet</h2>
+        <p>Schedule your first gathering and start collecting RSVPs!</p>
+        <a href="/dashboard/gatherings/new" class="btn btn-primary">
+          Create your first gathering →
         </a>
       </div>
     ) : (
@@ -55,7 +55,7 @@ const justCreated = Astro.url.searchParams.get("created") === "1";
         <table class="meetups-table">
           <thead>
             <tr>
-              <th>Meetup</th>
+              <th>Gathering</th>
               <th>Date &amp; Time</th>
               <th>Venue</th>
               <th>RSVPs</th>
@@ -85,11 +85,11 @@ const justCreated = Astro.url.searchParams.get("created") === "1";
                   </td>
                   <td>
                     <div class="action-btns">
-                      <a href={`/dashboard/meetups/${m.id}/attendees`} class="btn btn-ghost btn-sm">
+                      <a href={`/dashboard/gatherings/${m.id}/attendees`} class="btn btn-ghost btn-sm">
                         Attendees
                       </a>
                       {!isCanceled && (
-                        <a href={`/dashboard/meetups/${m.id}/edit`} class="btn btn-ghost btn-sm">
+                        <a href={`/dashboard/gatherings/${m.id}/edit`} class="btn btn-ghost btn-sm">
                           Edit
                         </a>
                       )}
@@ -116,7 +116,7 @@ const justCreated = Astro.url.searchParams.get("created") === "1";
     return (
       <dialog id={`dialog-${m.id}`} class="confirm-dialog">
         <div class="dialog-inner">
-          <h3>{isCanceled ? "Restore this meetup?" : "Cancel this meetup?"}</h3>
+          <h3>{isCanceled ? "Restore this gathering?" : "Cancel this gathering?"}</h3>
           <p>
             {isCanceled
               ? <><strong>{m.title}</strong> will be marked as active again and RSVPs will re-open.</>
@@ -124,7 +124,7 @@ const justCreated = Astro.url.searchParams.get("created") === "1";
             }
           </p>
           <div class="dialog-actions">
-            <form method="POST" action={`/api/meetups/${m.id}/cancel`}>
+            <form method="POST" action={`/api/gatherings/${m.id}/cancel`}>
               <button type="submit" class:list={["btn", isCanceled ? "btn-primary" : "btn-danger"]}>
                 {isCanceled ? "Yes, restore it" : "Yes, cancel it"}
               </button>

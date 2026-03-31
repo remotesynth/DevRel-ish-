@@ -5,7 +5,7 @@
 ### Database (`db/`)
 
 - `config.ts` — all app tables (`Groups`, `Meetups`, `RSVPs`) + better-auth tables (`User`, `Session`, `Account`, `Verification`) in one place
-- `seed.ts` — 2 approved groups (SF + NYC), 1 pending (Austin), 3 meetups
+- `seed.ts` — 2 approved groups (SF + NYC), 1 pending (Austin), 3 gatherings
 
 ### Auth (`src/lib/`)
 
@@ -19,11 +19,11 @@
 | -------------------- | -------------------------------------------------------------- |
 | `/`                  | Hero + why section + featured groups                           |
 | `/groups`            | All approved groups grid                                       |
-| `/groups/[slug]`     | Group page with upcoming meetups                               |
+| `/groups/[slug]`     | Group page with upcoming gatherings                            |
 | `/groups/register`   | Public group application form                                  |
-| `/meetups/[id]/rsvp` | RSVP form (no auth required)                                   |
+| `/gatherings/[id]/rsvp` | RSVP form (no auth required)                                |
 | `/auth/login`        | Email/password sign-in                                         |
-| `/dashboard/*`       | Group manager views (group edit, meetup management, attendees) |
+| `/dashboard/*`       | Group manager views (group edit, gathering management, attendees) |
 | `/admin/*`           | Admin queue to approve/reject applications                     |
 
 ### Design

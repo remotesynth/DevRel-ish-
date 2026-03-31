@@ -50,9 +50,9 @@ if (Astro.request.method === "POST") {
     } else if (isGroupClosed) {
       result = { type: "error", message: "This group is no longer accepting RSVPs." };
     } else if (isMeetupCanceled) {
-      result = { type: "error", message: "This meetup has been cancelled." };
+      result = { type: "error", message: "This gathering has been cancelled." };
     } else if (meetup.date < new Date()) {
-      result = { type: "error", message: "This meetup has already passed." };
+      result = { type: "error", message: "This gathering has already passed." };
     } else {
       // Re-fetch fresh RSVP count inside the POST handler
       const [countResult] = await db
@@ -167,14 +167,14 @@ const isFull = spots === 0;
             <h1>Count me in!</h1>
             <div class="alert alert-info" role="alert">
               <strong>Already registered!</strong> Looks like <strong>{result.email}</strong> is already
-              on the list for this meetup. We'll see you there!
+              on the list for this gathering. We'll see you there!
             </div>
           </div>
         ) : result?.type === "full" ? (
           <div>
             <h1>Count me in!</h1>
             <div class="alert alert-error" role="alert">
-              <strong>This meetup is full.</strong> Check back in case a spot opens up.
+              <strong>This gathering is full.</strong> Check back in case a spot opens up.
             </div>
           </div>
         ) : (
@@ -190,12 +190,12 @@ const isFull = spots === 0;
               </div>
             ) : isMeetupCanceled ? (
               <div class="alert alert-error" role="alert">
-                <strong>This meetup has been cancelled.</strong> Check the <a href={`/groups/${group.slug}`}>{group.name}</a> page for other upcoming events.
+                <strong>This gathering has been cancelled.</strong> Check the <a href={`/groups/${group.slug}`}>{group.name}</a> page for other upcoming events.
               </div>
             ) : isFull ? (
               <div class="alert alert-error" role="alert">
-                <strong>This meetup is full.</strong> Check back in case a spot opens up, or look for
-                other upcoming meetups from <a href={`/groups/${group.slug}`}>{group.name}</a>.
+                <strong>This gathering is full.</strong> Check back in case a spot opens up, or look for
+                other upcoming gatherings from <a href={`/groups/${group.slug}`}>{group.name}</a>.
               </div>
             ) : (
               <form method="POST" class="rsvp-form">
@@ -229,7 +229,7 @@ const isFull = spots === 0;
                     placeholder="taylor@example.com"
                     required
                   />
-                  <span class="form-hint">Used by the event organizer to contact you about this meetup only.</span>
+                  <span class="form-hint">Used by the event organizer to contact you about this gathering only.</span>
                 </div>
 
                 <div class="form-group">
@@ -251,7 +251,7 @@ const isFull = spots === 0;
                 <p class="privacy-notice">
                   Your name, email, job title, and company will be shared with the event organizer
                   (<strong>{group.name}</strong>) for managing attendance and contacting you about
-                  this meetup and future group events. We don't sell or share your data with anyone
+                  this gathering and future group events. We don't sell or share your data with anyone
                   else. <a href="/privacy">Privacy policy →</a>
                 </p>
 

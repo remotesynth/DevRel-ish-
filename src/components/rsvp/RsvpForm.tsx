@@ -80,7 +80,7 @@ export default function RsvpForm({ meetupId, meetupTitle, spotsLeft }: Props) {
       <div className="alert alert-info" role="alert">
         <p>
           <strong>Already registered!</strong> Looks like{" "}
-          <strong>{form.email}</strong> is already on the list for this meetup.
+          <strong>{form.email}</strong> is already on the list for this gathering.
           We'll see you there!
         </p>
       </div>

@@ -119,7 +119,7 @@ export default async function seed() {
       region: "TX",
       country: "USA",
       description:
-        "Keeping Austin weird and developer-friendly. A meetup for the DevRel crowd who want to connect face-to-face in the live music capital of the world.",
+        "Keeping Austin weird and developer-friendly. A gathering for the DevRel crowd who want to connect face-to-face in the live music capital of the world.",
       contactEmail: "pending@example.com",
       status: "pending",
       createdAt: new Date(),
