@@ -1,27 +1,47 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import GroupCard from '../components/groups/GroupCard.astro';
-import { db, Groups, Meetups, count, eq, and, gte, desc } from 'astro:db';
+import GatheringCardCompact from '../components/meetups/GatheringCardCompact.astro';
+import { db, Groups, Meetups, RSVPs, count, eq, and, gte, asc, desc } from 'astro:db';
 
-// Fetch approved groups with upcoming meetup counts
 const today = new Date();
 today.setHours(0, 0, 0, 0);
 
-const groups = await db
+// Approved groups lookup
+const approvedGroups = await db.select().from(Groups).where(eq(Groups.status, 'approved'));
+const groupMap = new Map(approvedGroups.map(g => [g.id, g]));
+const approvedGroupIds = new Set(approvedGroups.map(g => g.id));
+
+// 6 nearest upcoming gatherings (2 rows of 3)
+const allUpcoming = await db
+  .select()
+  .from(Meetups)
+  .where(and(eq(Meetups.status, 'active'), gte(Meetups.date, today)))
+  .orderBy(asc(Meetups.date))
+  .limit(20);
+
+const upcomingGatherings = allUpcoming
+  .filter(m => approvedGroupIds.has(m.groupId))
+  .slice(0, 6);
+
+const rsvpCounts: Record<string, number> = {};
+for (const m of upcomingGatherings) {
+  const [r] = await db.select({ val: count() }).from(RSVPs).where(eq(RSVPs.meetupId, m.id));
+  rsvpCounts[m.id] = r?.val ?? 0;
+}
+
+// Featured groups
+const featuredGroups = await db
   .select()
   .from(Groups)
   .where(eq(Groups.status, 'approved'))
   .orderBy(desc(Groups.createdAt))
-  .limit(6);
+  .limit(3);
 
-// Count upcoming meetups per group
 const upcomingCounts: Record<string, number> = {};
-for (const group of groups) {
-  const result = await db
-    .select({ val: count() })
-    .from(Meetups)
-    .where(and(eq(Meetups.groupId, group.id), gte(Meetups.date, today)));
-  upcomingCounts[group.id] = result[0]?.val ?? 0;
+for (const g of featuredGroups) {
+  const [r] = await db.select({ val: count() }).from(Meetups).where(and(eq(Meetups.groupId, g.id), gte(Meetups.date, today)));
+  upcomingCounts[g.id] = r?.val ?? 0;
 }
 ---
 
@@ -38,16 +58,12 @@ for (const group of groups) {
         <p class="hero-lead">
           Developer relations is a small world spread across a big planet.
           DevRel(ish) connects advocates, community managers, DX engineers, and
-          everyone kind of doing DevRel — for real-life gatherings in locations
-          around the globe.
+          everyone kind of doing DevRel — for real-life gatherings at conferences
+          and cities around the globe.
         </p>
         <div class="hero-actions">
-          <a href="/gatherings" class="btn btn-primary btn-lg"
-            >Find a gathering near you</a
-          >
-          <a href="/groups/register" class="btn btn-ghost btn-lg"
-            >Start a group</a
-          >
+          <a href="/gatherings" class="btn btn-primary btn-lg">Find a gathering →</a>
+          <a href="/groups/register" class="btn btn-ghost btn-lg">Start a group</a>
         </div>
       </div>
       <div class="hero-illustration" aria-hidden="true">
@@ -99,49 +115,84 @@ for (const group of groups) {
     </div>
   </section>
 
-  <!-- Groups listing -->
-  {
-    groups.length > 0 && (
-      <section class="groups-section">
-        <div class="container">
-          <div class="section-header">
-            <h2>Groups around the world</h2>
-            <a href="/groups" class="btn btn-ghost">
-              See all groups →
-            </a>
-          </div>
-          <div class="groups-grid">
-            {groups.map((g) => (
-              <GroupCard
-                id={g.id}
-                name={g.name}
-                slug={g.slug}
-                city={g.city}
-                region={g.region}
-                country={g.country}
-                description={g.description}
-                upcomingCount={upcomingCounts[g.id]}
-              />
-            ))}
-          </div>
+  <!-- Upcoming gatherings -->
+  <section class="gatherings-section">
+    <div class="container">
+      <div class="section-header">
+        <h2>Upcoming gatherings</h2>
+        <a href="/gatherings" class="btn btn-ghost">See all →</a>
+      </div>
+
+      {upcomingGatherings.length === 0 ? (
+        <div class="empty-state">
+          <p>No gatherings scheduled yet — check back soon, or <a href="/groups/register">start a group</a>.</p>
         </div>
-      </section>
-    )
-  }
+      ) : (
+        <div class="gatherings-grid">
+          {upcomingGatherings.map(m => {
+            const group = groupMap.get(m.groupId)!;
+            return (
+              <GatheringCardCompact
+                id={m.id}
+                title={m.title}
+                date={m.date}
+                time={m.time}
+                venue={m.venue}
+                address={m.address}
+                city={m.city}
+                country={m.country}
+                eventContext={m.eventContext}
+                capacity={m.capacity}
+                rsvpCount={rsvpCounts[m.id] ?? 0}
+                groupName={group.name}
+              />
+            );
+          })}
+        </div>
+      )}
+    </div>
+  </section>
+
+  <!-- Groups -->
+  {featuredGroups.length > 0 && (
+    <section class="groups-section">
+      <div class="container">
+        <div class="section-header">
+          <h2>Find a group near you</h2>
+          <a href="/groups" class="btn btn-ghost">See all groups →</a>
+        </div>
+        <div class="groups-grid">
+          {featuredGroups.map(g => (
+            <GroupCard
+              id={g.id}
+              name={g.name}
+              slug={g.slug}
+              city={g.city}
+              region={g.region}
+              country={g.country}
+              tagline={g.tagline}
+              tags={g.tags}
+              description={g.description}
+              upcomingCount={upcomingCounts[g.id]}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
 
   <!-- CTA -->
   <section class="cta-section">
     <div class="container">
       <div class="cta-card">
         <div class="cta-decoration" aria-hidden="true">◈ ✦ ◎</div>
-        <h2>No group in your city yet?</h2>
+        <h2>Want to organize gatherings?</h2>
         <p>
-          Starting one is easy. Fill out a quick form, we'll review it, and
-          you'll be up and running soon. All you need is enthusiasm and a city.
+          Whether you're based in a city or just travel to a lot of conferences,
+          you can start a DevRel(ish) group. Fill out a quick form and we'll get
+          you set up.
         </p>
-        <a href="/groups/register" class="btn btn-secondary btn-lg"
-          >Start a DevRel(ish) group →</a
-        >
+        <a href="/groups/register" class="btn btn-secondary btn-lg">Start a DevRel(ish) group →</a>
       </div>
     </div>
   </section>
@@ -185,9 +236,7 @@ for (const group of groups) {
     margin-bottom: 1rem;
   }
 
-  .headline-accent {
-    color: var(--color-primary);
-  }
+  .headline-accent { color: var(--color-primary); }
 
   .hero-lead {
     font-size: var(--size-lg);
@@ -203,7 +252,6 @@ for (const group of groups) {
     flex-wrap: wrap;
   }
 
-  /* Illustration */
   .hero-illustration {
     position: relative;
     height: 320px;
@@ -220,34 +268,10 @@ for (const group of groups) {
     animation: float 6s ease-in-out infinite;
   }
 
-  .blob-1 {
-    top: 10%;
-    left: 10%;
-    font-size: 3rem;
-    animation-delay: 0s;
-    color: var(--color-primary);
-  }
-  .blob-2 {
-    top: 20%;
-    right: 15%;
-    font-size: 1.5rem;
-    animation-delay: 1s;
-    color: var(--color-secondary);
-  }
-  .blob-3 {
-    bottom: 15%;
-    left: 20%;
-    font-size: 2rem;
-    animation-delay: 2s;
-    color: var(--color-accent);
-  }
-  .blob-4 {
-    bottom: 25%;
-    right: 10%;
-    font-size: 2.5rem;
-    animation-delay: 0.5s;
-    color: var(--color-sky);
-  }
+  .blob-1 { top: 10%; left: 10%; font-size: 3rem; animation-delay: 0s; color: var(--color-primary); }
+  .blob-2 { top: 20%; right: 15%; font-size: 1.5rem; animation-delay: 1s; color: var(--color-secondary); }
+  .blob-3 { bottom: 15%; left: 20%; font-size: 2rem; animation-delay: 2s; color: var(--color-accent); }
+  .blob-4 { bottom: 25%; right: 10%; font-size: 2.5rem; animation-delay: 0.5s; color: var(--color-sky); }
 
   .blob-center {
     position: relative;
@@ -263,26 +287,15 @@ for (const group of groups) {
     box-shadow: var(--shadow-lg);
   }
 
-  .people-blob {
-    display: flex;
-    gap: 0.25rem;
-    font-size: 2.5rem;
-  }
+  .people-blob { display: flex; gap: 0.25rem; font-size: 2.5rem; }
 
   @keyframes float {
-    0%,
-    100% {
-      transform: translateY(0) rotate(0deg);
-    }
-    50% {
-      transform: translateY(-12px) rotate(5deg);
-    }
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-12px) rotate(5deg); }
   }
 
-  /* ── Why section ── */
-  .why-section {
-    padding: clamp(2.5rem, 6vw, 4rem) 0;
-  }
+  /* ── Why ── */
+  .why-section { padding: clamp(2.5rem, 6vw, 4rem) 0; }
 
   .why-grid {
     display: grid;
@@ -295,34 +308,16 @@ for (const group of groups) {
     border: 2px solid var(--color-border);
     border-radius: var(--radius-lg);
     padding: 1.75rem;
-    transition:
-      transform var(--transition),
-      box-shadow var(--transition);
+    transition: transform var(--transition), box-shadow var(--transition);
   }
 
-  .why-card:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-md);
-  }
+  .why-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+  .why-icon { font-size: 2.5rem; margin-bottom: 0.875rem; line-height: 1; }
+  .why-card h3 { font-size: var(--size-xl); margin-bottom: 0.625rem; }
+  .why-card p { color: var(--color-text-muted); font-size: var(--size-sm); }
 
-  .why-icon {
-    font-size: 2.5rem;
-    margin-bottom: 0.875rem;
-    line-height: 1;
-  }
-
-  .why-card h3 {
-    font-size: var(--size-xl);
-    margin-bottom: 0.625rem;
-  }
-
-  .why-card p {
-    color: var(--color-text-muted);
-    font-size: var(--size-sm);
-  }
-
-  /* ── Groups section ── */
-  .groups-section {
+  /* ── Gatherings ── */
+  .gatherings-section {
     padding: clamp(2.5rem, 6vw, 4rem) 0;
     background: var(--color-surface-warm);
   }
@@ -336,20 +331,37 @@ for (const group of groups) {
     flex-wrap: wrap;
   }
 
-  .section-header h2 {
-    font-size: var(--size-3xl);
+  .section-header h2 { font-size: var(--size-3xl); }
+
+  .gatherings-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+  }
+
+  .empty-state {
+    padding: 3rem 2rem;
+    text-align: center;
+    background: var(--color-surface);
+    border: 2px dashed var(--color-border);
+    border-radius: var(--radius-lg);
+  }
+
+  .empty-state p { color: var(--color-text-muted); max-width: none; }
+
+  /* ── Groups ── */
+  .groups-section {
+    padding: clamp(2.5rem, 6vw, 4rem) 0;
   }
 
   .groups-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 1.5rem;
   }
 
   /* ── CTA ── */
-  .cta-section {
-    padding: clamp(2.5rem, 6vw, 4rem) 0;
-  }
+  .cta-section { padding: clamp(2.5rem, 6vw, 4rem) 0; }
 
   .cta-card {
     background: var(--color-primary);
@@ -357,15 +369,10 @@ for (const group of groups) {
     border-radius: var(--radius-xl);
     padding: clamp(2rem, 5vw, 3.5rem);
     text-align: center;
-    position: relative;
     overflow: hidden;
   }
 
-  .cta-card h2 {
-    color: white;
-    font-size: var(--size-3xl);
-    margin-bottom: 0.875rem;
-  }
+  .cta-card h2 { color: white; font-size: var(--size-3xl); margin-bottom: 0.875rem; }
 
   .cta-card p {
     color: rgba(255, 255, 255, 0.85);
@@ -382,13 +389,18 @@ for (const group of groups) {
   }
 
   /* ── Responsive ── */
-  @media (max-width: 768px) {
-    .hero-inner {
-      grid-template-columns: 1fr;
-    }
+  @media (max-width: 960px) {
+    .gatherings-grid { grid-template-columns: repeat(2, 1fr); }
+    .groups-grid { grid-template-columns: repeat(2, 1fr); }
+  }
 
-    .hero-illustration {
-      display: none;
-    }
+  @media (max-width: 768px) {
+    .hero-inner { grid-template-columns: 1fr; }
+    .hero-illustration { display: none; }
+  }
+
+  @media (max-width: 560px) {
+    .gatherings-grid { grid-template-columns: 1fr; }
+    .groups-grid { grid-template-columns: 1fr; }
   }
 </style>
