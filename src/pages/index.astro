@@ -1,7 +1,7 @@
 ---
-import BaseLayout from "../layouts/BaseLayout.astro";
-import GroupCard from "../components/groups/GroupCard.astro";
-import { db, Groups, Meetups, count, eq, and, gte, desc } from "astro:db";
+import BaseLayout from '../layouts/BaseLayout.astro';
+import GroupCard from '../components/groups/GroupCard.astro';
+import { db, Groups, Meetups, count, eq, and, gte, desc } from 'astro:db';
 
 // Fetch approved groups with upcoming meetup counts
 const today = new Date();
@@ -10,7 +10,7 @@ today.setHours(0, 0, 0, 0);
 const groups = await db
   .select()
   .from(Groups)
-  .where(eq(Groups.status, "approved"))
+  .where(eq(Groups.status, 'approved'))
   .orderBy(desc(Groups.createdAt))
   .limit(6);
 
@@ -36,13 +36,18 @@ for (const group of groups) {
           <span class="headline-accent">DevRel tribe.</span>
         </h1>
         <p class="hero-lead">
-          Developer relations is a small world spread across a big planet. DevRel(ish) connects
-          advocates, community managers, DX engineers, and everyone kind of doing DevRel — for
-          real-life gatherings in cities around the globe.
+          Developer relations is a small world spread across a big planet.
+          DevRel(ish) connects advocates, community managers, DX engineers, and
+          everyone kind of doing DevRel — for real-life gatherings in locations
+          around the globe.
         </p>
         <div class="hero-actions">
-          <a href="/groups" class="btn btn-primary btn-lg">Find a group near you</a>
-          <a href="/groups/register" class="btn btn-ghost btn-lg">Start a group</a>
+          <a href="/gatherings" class="btn btn-primary btn-lg"
+            >Find a gathering near you</a
+          >
+          <a href="/groups/register" class="btn btn-ghost btn-lg"
+            >Start a group</a
+          >
         </div>
       </div>
       <div class="hero-illustration" aria-hidden="true">
@@ -69,24 +74,25 @@ for (const group of groups) {
           <div class="why-icon">🌐</div>
           <h3>Remote but not alone</h3>
           <p>
-            DevRel is often remote even when the company isn't. DevRel(ish) groups exist so you can
-            put faces to the names you see in Slack.
+            DevRel is often remote even when the company isn't. DevRel(ish)
+            groups exist so you can put faces to the names you see in Slack.
           </p>
         </div>
         <div class="why-card">
           <div class="why-icon">💬</div>
           <h3>People who get it</h3>
           <p>
-            Try explaining your job at a generic tech gathering. Here, everyone knows what a developer
-            advocate is — because they are one (or close enough).
+            Try explaining your job at a generic tech gathering. Here, everyone
+            knows what a developer advocate is — because they are one (or close
+            enough).
           </p>
         </div>
         <div class="why-card">
           <div class="why-icon">🔋</div>
           <h3>Recharge, not network</h3>
           <p>
-            No pitch decks, no sponsors, no awkward badge scans. Just good people, good
-            conversation, and a reminder of why we do this work.
+            No pitch decks, no sponsors, no awkward badge scans. Just good
+            people, good conversation, and a reminder of why we do this work.
           </p>
         </div>
       </div>
@@ -130,10 +136,12 @@ for (const group of groups) {
         <div class="cta-decoration" aria-hidden="true">◈ ✦ ◎</div>
         <h2>No group in your city yet?</h2>
         <p>
-          Starting one is easy. Fill out a quick form, we'll review it, and you'll be up and running
-          soon. All you need is enthusiasm and a city.
+          Starting one is easy. Fill out a quick form, we'll review it, and
+          you'll be up and running soon. All you need is enthusiasm and a city.
         </p>
-        <a href="/groups/register" class="btn btn-secondary btn-lg">Start a DevRel(ish) group →</a>
+        <a href="/groups/register" class="btn btn-secondary btn-lg"
+          >Start a DevRel(ish) group →</a
+        >
       </div>
     </div>
   </section>
@@ -212,10 +220,34 @@ for (const group of groups) {
     animation: float 6s ease-in-out infinite;
   }
 
-  .blob-1 { top: 10%; left: 10%; font-size: 3rem; animation-delay: 0s; color: var(--color-primary); }
-  .blob-2 { top: 20%; right: 15%; font-size: 1.5rem; animation-delay: 1s; color: var(--color-secondary); }
-  .blob-3 { bottom: 15%; left: 20%; font-size: 2rem; animation-delay: 2s; color: var(--color-accent); }
-  .blob-4 { bottom: 25%; right: 10%; font-size: 2.5rem; animation-delay: 0.5s; color: var(--color-sky); }
+  .blob-1 {
+    top: 10%;
+    left: 10%;
+    font-size: 3rem;
+    animation-delay: 0s;
+    color: var(--color-primary);
+  }
+  .blob-2 {
+    top: 20%;
+    right: 15%;
+    font-size: 1.5rem;
+    animation-delay: 1s;
+    color: var(--color-secondary);
+  }
+  .blob-3 {
+    bottom: 15%;
+    left: 20%;
+    font-size: 2rem;
+    animation-delay: 2s;
+    color: var(--color-accent);
+  }
+  .blob-4 {
+    bottom: 25%;
+    right: 10%;
+    font-size: 2.5rem;
+    animation-delay: 0.5s;
+    color: var(--color-sky);
+  }
 
   .blob-center {
     position: relative;
@@ -238,8 +270,13 @@ for (const group of groups) {
   }
 
   @keyframes float {
-    0%, 100% { transform: translateY(0) rotate(0deg); }
-    50% { transform: translateY(-12px) rotate(5deg); }
+    0%,
+    100% {
+      transform: translateY(0) rotate(0deg);
+    }
+    50% {
+      transform: translateY(-12px) rotate(5deg);
+    }
   }
 
   /* ── Why section ── */
@@ -258,7 +295,9 @@ for (const group of groups) {
     border: 2px solid var(--color-border);
     border-radius: var(--radius-lg);
     padding: 1.75rem;
-    transition: transform var(--transition), box-shadow var(--transition);
+    transition:
+      transform var(--transition),
+      box-shadow var(--transition);
   }
 
   .why-card:hover {

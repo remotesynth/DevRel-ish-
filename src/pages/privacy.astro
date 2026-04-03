@@ -1,6 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-const lastUpdated = 'March 2026';
+const lastUpdated = 'April 2026';
 ---
 
 <BaseLayout
@@ -64,6 +64,20 @@ const lastUpdated = 'March 2026';
             manage your group.
           </p>
 
+          <h3>When you follow a group</h3>
+          <p>
+            You can subscribe to email updates from any group without creating an account.
+            We ask for your email address and an optional name. We use a double opt-in
+            process — you will receive one confirmation email before we add you to any
+            mailing list. We store your email address, your name (if provided), and a
+            unique token used to confirm your subscription and to unsubscribe you at any time.
+          </p>
+          <p>
+            Every notification email includes a one-click unsubscribe link. Clicking it
+            permanently removes your email from that group's mailing list — no login required,
+            no further steps.
+          </p>
+
           <h3>When you create an account (group organizers only)</h3>
           <p>
             Attendees do not need accounts. Group organizers create an account
@@ -83,6 +97,10 @@ const lastUpdated = 'March 2026';
             <li>
               Send you information about the specific event you RSVPed for (if
               the organizer chooses to contact attendees)
+            </li>
+            <li>
+              Send you email notifications about new gatherings for groups you have
+              chosen to follow, after you have confirmed your subscription
             </li>
             <li>Operate the DevRel(ish) platform</li>
           </ul>
@@ -111,10 +129,21 @@ const lastUpdated = 'March 2026';
             operating and moderating the platform.
           </p>
 
+          <h3>Resend (email delivery)</h3>
+          <p>
+            We use <a href="https://resend.com" target="_blank" rel="noopener noreferrer">Resend</a>
+            to deliver transactional emails — specifically, group follow confirmations and
+            new gathering notifications. When we send you an email, your email address
+            is passed to Resend solely for the purpose of delivering that message.
+            Resend acts as a data processor on our behalf and is not permitted to use
+            your data for their own purposes. You can review
+            <a href="https://resend.com/privacy" target="_blank" rel="noopener noreferrer">Resend's privacy policy</a>.
+          </p>
+
           <h3>No one else</h3>
           <p>
-            We don't share your personal information with any third-party
-            services, data brokers, sponsors, or other organizations.
+            We don't share your personal information with any other third-party
+            services, data brokers, sponsors, or organizations.
           </p>
         </section>
 
@@ -186,6 +215,13 @@ const lastUpdated = 'March 2026';
           <p>
             Group organizer accounts are retained until the organizer requests
             deletion or the group is removed from the platform.
+          </p>
+          <p>
+            Group follow subscriptions are deleted immediately and permanently when
+            you click the unsubscribe link in any notification email, or when the
+            associated group is removed from the platform. Unconfirmed subscriptions
+            (where you submitted your email but did not click the confirmation link)
+            are also retained only until you unsubscribe or the group is removed.
           </p>
           <p>
             You can request deletion of your RSVP record at any time by emailing
