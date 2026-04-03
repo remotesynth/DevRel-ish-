@@ -1,8 +1,9 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
-import { db, Groups, ContactMessages, eq, and } from "astro:db";
+import { db, Groups, ContactMessages, User, eq, and } from "astro:db";
 import { generateId } from "../../../lib/utils";
 import { stripMarkdown } from "../../../lib/markdown";
+import { sendContactMessageAlert } from "../../../lib/email";
 
 const { slug } = Astro.params;
 if (!slug) return Astro.redirect("/groups");
@@ -52,6 +53,17 @@ if (!isGroupClosed && Astro.request.method === "POST") {
         read: false,
         createdAt: new Date(),
       });
+
+      // Notify organizers — fire-and-forget, no message body included
+      const organizers = await db.select({ email: User.email, name: User.name }).from(User).where(eq(User.groupId, group.id));
+      if (organizers.length > 0) {
+        sendContactMessageAlert({
+          organizers,
+          groupName: group.name,
+          dashboardUrl: `${Astro.url.origin}/dashboard/messages`,
+        }).catch(e => console.error("[contact alert] email error:", e));
+      }
+
       result = { type: "success" };
     }
   }
@@ -135,7 +147,9 @@ if (!isGroupClosed && Astro.request.method === "POST") {
       <aside class="contact-sidebar">
         <div class="group-card">
           <h3>{group.name}</h3>
-          <p class="group-location">📍 {group.city}{group.region ? `, ${group.region}` : ""}, {group.country}</p>
+          {(group.city || group.country) && (
+            <p class="group-location">📍 {group.city}{group.region ? `, ${group.region}` : ""}{group.country ? `, ${group.country}` : ""}</p>
+          )}
           <p>{descSnippet}</p>
           <a href={`/groups/${group.slug}`} class="btn btn-ghost btn-sm" style="margin-top: 0.75rem;">View group →</a>
         </div>

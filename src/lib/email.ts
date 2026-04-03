@@ -60,11 +60,12 @@ export async function sendGatheringNotification({
     ? `${gathering.eventContext}${locationParts ? ` · ${locationParts}` : ""}`
     : locationParts || gathering.venue;
 
-  // Send individually so each has their own unsubscribe link
+  // Send individually so each has their own unique unsubscribe link
+  const baseUrl = new URL(rsvpUrl).origin;
   await Promise.allSettled(
     followers.map(({ email, name, token }) => {
       const greeting = name ? `Hi ${name},` : "Hi there,";
-      const unsubscribeUrl = `${new URL(rsvpUrl).origin}/follow/unsubscribe/${token}`;
+      const unsubscribeUrl = `${baseUrl}/follow/unsubscribe/${token}`;
       return resend.emails.send({
         from: `${SITE_NAME} <${FROM}>`,
         to: email,
@@ -85,5 +86,71 @@ export async function sendGatheringNotification({
         text: `${greeting}\n\n${group.name} has posted a new gathering:\n\n${gathering.title}\n${dateStr} · ${gathering.time}\n${gathering.venue}${locationLine ? ` · ${locationLine}` : ""}\n\nRSVP: ${rsvpUrl}\n\nUnsubscribe: ${unsubscribeUrl}`,
       });
     })
+  );
+}
+
+export async function sendContactMessageAlert({
+  organizers,
+  groupName,
+  dashboardUrl,
+}: {
+  organizers: Array<{ email: string; name: string }>;
+  groupName: string;
+  dashboardUrl: string;
+}) {
+  await Promise.allSettled(
+    organizers.map(({ email, name }) =>
+      resend.emails.send({
+        from: `${SITE_NAME} <${FROM}>`,
+        to: email,
+        subject: `New message for ${groupName}`,
+        html: `
+          <p>Hi ${name},</p>
+          <p>Someone sent a message to <strong>${groupName}</strong> via the contact form on ${SITE_NAME}.</p>
+          <p style="margin: 1.5rem 0;">
+            <a href="${dashboardUrl}" style="background:#7c3aed;color:#fff;padding:0.6rem 1.25rem;border-radius:6px;text-decoration:none;font-weight:600;">View message →</a>
+          </p>
+          <p style="font-size:0.85em;color:#666;">For security, the message content is only visible in your dashboard — it is not included in this email.</p>
+        `,
+        text: `Hi ${name},\n\nSomeone sent a message to ${groupName} via the contact form on ${SITE_NAME}.\n\nView it in your dashboard: ${dashboardUrl}\n\nThe message content is only visible in your dashboard and is not included in this email.`,
+      })
+    )
+  );
+}
+
+export async function sendCancellationNotice({
+  rsvps,
+  groupName,
+  gathering,
+}: {
+  rsvps: Array<{ email: string; name: string }>;
+  groupName: string;
+  gathering: {
+    title: string;
+    date: Date;
+    venue: string;
+  };
+}) {
+  const dateStr = new Intl.DateTimeFormat("en-US", { dateStyle: "long" }).format(gathering.date);
+
+  await Promise.allSettled(
+    rsvps.map(({ email, name }) =>
+      resend.emails.send({
+        from: `${SITE_NAME} <${FROM}>`,
+        to: email,
+        subject: `Cancelled: ${gathering.title}`,
+        html: `
+          <p>Hi ${name},</p>
+          <p>We're sorry to let you know that the following gathering has been cancelled:</p>
+          <table style="margin:1rem 0;border-left:3px solid #e8704a;padding-left:1rem;border-collapse:collapse;">
+            <tr><td style="font-size:1.1em;font-weight:700;padding-bottom:0.25rem;">${gathering.title}</td></tr>
+            <tr><td style="color:#555;">${dateStr} · ${gathering.venue}</td></tr>
+            <tr><td style="color:#555;">Organised by ${groupName}</td></tr>
+          </table>
+          <p style="color:#555;">If you have questions, you can reach the organiser through the group's page on ${SITE_NAME}.</p>
+        `,
+        text: `Hi ${name},\n\nWe're sorry to let you know that the following gathering has been cancelled:\n\n${gathering.title}\n${dateStr} · ${gathering.venue}\nOrganised by ${groupName}\n\nIf you have questions, you can reach the organiser through the group's page on ${SITE_NAME}.`,
+      })
+    )
   );
 }
