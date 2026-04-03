@@ -1,0 +1,89 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { db, Followers, Groups, eq } from "astro:db";
+
+const { token } = Astro.params;
+if (!token) return Astro.redirect("/groups");
+
+const [follower] = await db.select().from(Followers).where(eq(Followers.token, token));
+
+let groupName = "";
+let groupSlug = "";
+let success = false;
+
+if (follower) {
+  const [group] = await db.select().from(Groups).where(eq(Groups.id, follower.groupId));
+  groupName = group?.name ?? "";
+  groupSlug = group?.slug ?? "";
+  await db.delete(Followers).where(eq(Followers.token, token));
+  success = true;
+}
+---
+
+<BaseLayout title="Unsubscribed">
+  <section class="unsub-page">
+    <div class="container">
+      <div class="unsub-card">
+
+        {success ? (
+          <>
+            <div class="result-icon" aria-hidden="true">◎</div>
+            <h1>Unsubscribed</h1>
+            <p>
+              You've been removed from the <strong>{groupName}</strong> mailing list.
+              You won't receive any more emails from this group.
+            </p>
+            {groupSlug && (
+              <a href={`/groups/${groupSlug}`} class="btn btn-ghost">View {groupName} →</a>
+            )}
+          </>
+        ) : (
+          <>
+            <div class="result-icon" aria-hidden="true">◎</div>
+            <h1>Already unsubscribed</h1>
+            <p>This unsubscribe link has already been used or doesn't exist.</p>
+            <a href="/groups" class="btn btn-ghost">Browse groups →</a>
+          </>
+        )}
+
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .unsub-page {
+    min-height: calc(100vh - 64px - 200px);
+    display: flex;
+    align-items: center;
+    padding: 3rem 0;
+  }
+
+  .unsub-card {
+    max-width: 440px;
+    margin-inline: auto;
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: 2.5rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .result-icon {
+    font-size: 3rem;
+    color: var(--color-text-light);
+    line-height: 1;
+  }
+
+  h1 { font-size: var(--size-2xl); }
+
+  p {
+    color: var(--color-text-muted);
+    font-size: var(--size-sm);
+    max-width: none;
+  }
+</style>

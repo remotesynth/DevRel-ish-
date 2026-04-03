@@ -1,0 +1,105 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { db, Followers, Groups, eq } from "astro:db";
+
+const { token } = Astro.params;
+if (!token) return Astro.redirect("/groups");
+
+const [follower] = await db.select().from(Followers).where(eq(Followers.token, token));
+
+type State = "confirmed" | "already_confirmed" | "invalid";
+let state: State;
+let groupName = "";
+let groupSlug = "";
+
+if (!follower) {
+  state = "invalid";
+} else if (follower.confirmed) {
+  state = "already_confirmed";
+  const [group] = await db.select().from(Groups).where(eq(Groups.id, follower.groupId));
+  groupName = group?.name ?? "";
+  groupSlug = group?.slug ?? "";
+} else {
+  await db.update(Followers).set({ confirmed: true }).where(eq(Followers.token, token));
+  const [group] = await db.select().from(Groups).where(eq(Groups.id, follower.groupId));
+  groupName = group?.name ?? "";
+  groupSlug = group?.slug ?? "";
+  state = "confirmed";
+}
+---
+
+<BaseLayout title="Subscription confirmed">
+  <section class="confirm-page">
+    <div class="container">
+      <div class="confirm-card">
+
+        {state === "confirmed" && (
+          <>
+            <div class="result-icon" aria-hidden="true">✦</div>
+            <h1>You're in!</h1>
+            <p>You're now following <strong>{groupName}</strong>. We'll send you an email whenever new gatherings are posted.</p>
+            <a href={`/groups/${groupSlug}`} class="btn btn-primary">View {groupName} →</a>
+          </>
+        )}
+
+        {state === "already_confirmed" && (
+          <>
+            <div class="result-icon" aria-hidden="true">◎</div>
+            <h1>Already confirmed</h1>
+            <p>Your subscription to <strong>{groupName}</strong> is already active.</p>
+            <a href={`/groups/${groupSlug}`} class="btn btn-ghost">View {groupName} →</a>
+          </>
+        )}
+
+        {state === "invalid" && (
+          <>
+            <div class="result-icon error-icon" aria-hidden="true">✕</div>
+            <h1>Link not found</h1>
+            <p>This confirmation link is invalid or has expired. Try subscribing again from the group page.</p>
+            <a href="/groups" class="btn btn-ghost">Browse groups →</a>
+          </>
+        )}
+
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .confirm-page {
+    min-height: calc(100vh - 64px - 200px);
+    display: flex;
+    align-items: center;
+    padding: 3rem 0;
+  }
+
+  .confirm-card {
+    max-width: 440px;
+    margin-inline: auto;
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: 2.5rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .result-icon {
+    font-size: 3rem;
+    color: var(--color-primary);
+    line-height: 1;
+  }
+
+  .error-icon { color: var(--color-danger, #dc2626); }
+
+  h1 { font-size: var(--size-2xl); }
+
+  p {
+    color: var(--color-text-muted);
+    font-size: var(--size-sm);
+    max-width: none;
+  }
+</style>

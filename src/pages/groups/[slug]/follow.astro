@@ -1,0 +1,170 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { db, Groups, Followers, eq, and } from "astro:db";
+import { generateId } from "../../../lib/utils";
+import { sendFollowConfirmation } from "../../../lib/email";
+
+const { slug } = Astro.params;
+if (!slug) return Astro.redirect("/groups");
+
+// GET: redirect back to the group page
+if (Astro.request.method !== "POST") return Astro.redirect(`/groups/${slug}`);
+
+const [group] = await db.select().from(Groups).where(eq(Groups.slug, slug));
+if (!group || group.status !== "approved") return Astro.redirect("/groups");
+
+const form = await Astro.request.formData();
+const email = form.get("email")?.toString().trim().toLowerCase() ?? "";
+
+type Result =
+  | { state: "success" }
+  | { state: "already_confirmed" }
+  | { state: "resent" }
+  | { state: "error"; message: string };
+
+let result: Result;
+
+const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+if (!email || !emailRe.test(email)) {
+  result = { state: "error", message: "Please enter a valid email address." };
+} else {
+  const [existing] = await db
+    .select()
+    .from(Followers)
+    .where(and(eq(Followers.groupId, group.id), eq(Followers.email, email)));
+
+  if (existing?.confirmed) {
+    result = { state: "already_confirmed" };
+  } else if (existing) {
+    // Resend the confirmation email for the existing unconfirmed row
+    const confirmUrl = `${Astro.url.origin}/follow/confirm/${existing.token}`;
+    const unsubscribeUrl = `${Astro.url.origin}/follow/unsubscribe/${existing.token}`;
+    try {
+      await sendFollowConfirmation({ to: email, groupName: group.name, confirmUrl, unsubscribeUrl });
+    } catch (e) {
+      console.error("[follow] email send error:", e);
+    }
+    result = { state: "resent" };
+  } else {
+    const token = generateId();
+    await db.insert(Followers).values({
+      id: generateId(),
+      groupId: group.id,
+      email,
+      confirmed: false,
+      token,
+      createdAt: new Date(),
+    });
+    const confirmUrl = `${Astro.url.origin}/follow/confirm/${token}`;
+    const unsubscribeUrl = `${Astro.url.origin}/follow/unsubscribe/${token}`;
+    try {
+      await sendFollowConfirmation({ to: email, groupName: group.name, confirmUrl, unsubscribeUrl });
+    } catch (e) {
+      console.error("[follow] email send error:", e);
+    }
+    result = { state: "success" };
+  }
+}
+---
+
+<BaseLayout title={`Follow ${group.name}`}>
+  <section class="follow-page">
+    <div class="container">
+      <div class="follow-card">
+        <a href={`/groups/${slug}`} class="back-link">← Back to {group.name}</a>
+
+        {result.state === "success" && (
+          <>
+            <div class="result-icon" aria-hidden="true">✉</div>
+            <h1>Check your inbox</h1>
+            <p>We sent a confirmation link to <strong>{email}</strong>. Click it to start receiving updates when {group.name} posts new gatherings.</p>
+            <p class="hint">Didn't get it? Check your spam folder. The link expires in 48 hours.</p>
+          </>
+        )}
+
+        {result.state === "resent" && (
+          <>
+            <div class="result-icon" aria-hidden="true">✉</div>
+            <h1>Confirmation resent</h1>
+            <p>We resent the confirmation link to <strong>{email}</strong>. Click it to confirm your subscription.</p>
+          </>
+        )}
+
+        {result.state === "already_confirmed" && (
+          <>
+            <div class="result-icon" aria-hidden="true">◎</div>
+            <h1>You're already following</h1>
+            <p><strong>{email}</strong> is already subscribed to {group.name}. You'll get an email whenever new gatherings are posted.</p>
+          </>
+        )}
+
+        {result.state === "error" && (
+          <>
+            <div class="result-icon error-icon" aria-hidden="true">✕</div>
+            <h1>Something went wrong</h1>
+            <p>{result.message}</p>
+            <a href={`/groups/${slug}`} class="btn btn-primary">Try again →</a>
+          </>
+        )}
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .follow-page {
+    min-height: calc(100vh - 64px - 200px);
+    display: flex;
+    align-items: center;
+    padding: 3rem 0;
+  }
+
+  .follow-card {
+    max-width: 480px;
+    margin-inline: auto;
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: 2.5rem;
+    text-align: center;
+  }
+
+  .back-link {
+    display: block;
+    font-size: var(--size-sm);
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    margin-bottom: 1.5rem;
+    text-align: left;
+  }
+
+  .back-link:hover { color: var(--color-primary); }
+
+  .result-icon {
+    font-size: 3rem;
+    color: var(--color-primary);
+    margin-bottom: 1rem;
+    line-height: 1;
+  }
+
+  .error-icon { color: var(--color-danger, #dc2626); }
+
+  h1 {
+    font-size: var(--size-2xl);
+    margin-bottom: 0.75rem;
+  }
+
+  p {
+    color: var(--color-text-muted);
+    font-size: var(--size-sm);
+    margin-bottom: 0.75rem;
+    max-width: none;
+  }
+
+  .hint {
+    font-size: var(--size-xs);
+    color: var(--color-text-light);
+  }
+</style>

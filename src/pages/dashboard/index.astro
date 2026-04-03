@@ -1,6 +1,6 @@
 ---
 import DashboardLayout from "../../layouts/DashboardLayout.astro";
-import { db, Groups, Meetups, eq, and, gte, asc } from "astro:db";
+import { db, Groups, Meetups, Followers, count, eq, and, gte, asc } from "astro:db";
 
 if (!Astro.locals.user) return Astro.redirect("/auth/login");
 const user = Astro.locals.user;
@@ -15,6 +15,7 @@ const today = new Date();
 today.setHours(0, 0, 0, 0);
 
 let upcomingMeetups: typeof Meetups.$inferSelect[] = [];
+let followerCount = 0;
 
 if (group) {
   upcomingMeetups = await db
@@ -23,6 +24,12 @@ if (group) {
     .where(and(eq(Meetups.groupId, group.id), gte(Meetups.date, today)))
     .orderBy(asc(Meetups.date))
     .limit(3);
+
+  const [fr] = await db
+    .select({ val: count() })
+    .from(Followers)
+    .where(and(eq(Followers.groupId, group.id), eq(Followers.confirmed, true)));
+  followerCount = fr?.val ?? 0;
 }
 ---
 
@@ -73,6 +80,10 @@ if (group) {
             <div class="stat-card">
               <div class="stat-value">{upcomingMeetups.length}</div>
               <div class="stat-label">Upcoming gatherings</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">{followerCount}</div>
+              <div class="stat-label">Followers</div>
             </div>
             <a href="/dashboard/gatherings/new" class="stat-card stat-card-cta">
               <div class="stat-cta-icon" aria-hidden="true">+</div>

@@ -1,8 +1,8 @@
 ---
 import DashboardLayout from "../../../layouts/DashboardLayout.astro";
-import { db, Groups, Meetups } from "astro:db";
-import { eq } from "astro:db";
+import { db, Groups, Meetups, Followers, eq, and } from "astro:db";
 import { generateId } from "../../../lib/utils";
+import { sendGatheringNotification } from "../../../lib/email";
 
 if (!Astro.locals.user) return Astro.redirect("/auth/login");
 const user = Astro.locals.user;
@@ -62,8 +62,9 @@ if (Astro.request.method === "POST") {
   } else if (!Number.isInteger(cap) || cap < 1 || cap > 500) {
     error = { type: "error", message: "Capacity must be between 1 and 500." };
   } else {
+    const newId = generateId();
     await db.insert(Meetups).values({
-      id: generateId(),
+      id: newId,
       groupId: group.id,
       title: vals.title,
       description: vals.description,
@@ -78,6 +79,30 @@ if (Astro.request.method === "POST") {
       capacity: cap,
       createdAt: new Date(),
     });
+
+    // Notify confirmed followers (fire-and-forget — don't block the redirect)
+    const followers = await db
+      .select()
+      .from(Followers)
+      .where(and(eq(Followers.groupId, group.id), eq(Followers.confirmed, true)));
+
+    if (followers.length > 0) {
+      sendGatheringNotification({
+        followers: followers.map(f => ({ email: f.email, name: f.name, token: f.token })),
+        group: { name: group.name, slug: group.slug },
+        gathering: {
+          title: vals.title,
+          date: meetupDate,
+          time: vals.time,
+          venue: vals.venue,
+          city: vals.city || null,
+          country: vals.country || null,
+          eventContext: vals.eventContext || null,
+        },
+        rsvpUrl: `${Astro.url.origin}/gatherings/${newId}/rsvp`,
+      }).catch(e => console.error("[gathering notify] email error:", e));
+    }
+
     return Astro.redirect("/dashboard/gatherings?created=1");
   }
 }
