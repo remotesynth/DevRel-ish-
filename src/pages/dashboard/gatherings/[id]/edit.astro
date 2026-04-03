@@ -33,6 +33,10 @@ let vals = {
   time: meetup.time,
   venue: meetup.venue,
   address: meetup.address ?? "",
+  city: meetup.city ?? "",
+  country: meetup.country ?? "",
+  eventContext: meetup.eventContext ?? "",
+  tags: meetup.tags ?? "",
   capacity: String(meetup.capacity),
 };
 
@@ -46,6 +50,10 @@ if (Astro.request.method === "POST") {
     time: form.get("time")?.toString() ?? "",
     venue: form.get("venue")?.toString().trim() ?? "",
     address: form.get("address")?.toString().trim() ?? "",
+    city: form.get("city")?.toString().trim() ?? "",
+    country: form.get("country")?.toString().trim() ?? "",
+    eventContext: form.get("eventContext")?.toString().trim() ?? "",
+    tags: form.get("tags")?.toString().trim() ?? "",
     capacity: form.get("capacity")?.toString() ?? "",
   };
 
@@ -70,6 +78,10 @@ if (Astro.request.method === "POST") {
         time: vals.time,
         venue: vals.venue,
         address: vals.address || null,
+        city: vals.city || null,
+        country: vals.country || null,
+        eventContext: vals.eventContext || null,
+        tags: vals.tags || null,
         capacity: cap,
       })
       .where(eq(Meetups.id, id));
@@ -127,6 +139,29 @@ if (Astro.request.method === "POST") {
       <div class="form-group">
         <label for="address">Address</label>
         <input id="address" name="address" type="text" value={vals.address} placeholder="2 Marina Blvd, San Francisco, CA 94123" />
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="city">City</label>
+          <input id="city" name="city" type="text" value={vals.city} placeholder="San Francisco" />
+        </div>
+        <div class="form-group">
+          <label for="country">Country</label>
+          <input id="country" name="country" type="text" value={vals.country} placeholder="USA" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="eventContext">Event context</label>
+        <input id="eventContext" name="eventContext" type="text" value={vals.eventContext} placeholder="KubeCon EU 2026" />
+        <span class="form-hint">If this gathering is tied to a conference or larger event, name it here.</span>
+      </div>
+
+      <div class="form-group">
+        <label for="tags">Tags</label>
+        <input id="tags" name="tags" type="text" value={vals.tags} placeholder="community, enterprise" />
+        <span class="form-hint">Comma-separated. Helps people discover this gathering.</span>
       </div>
 
       <div class="form-group">

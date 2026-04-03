@@ -11,7 +11,7 @@ type Result =
 let result: Result | null = null;
 
 let vals = {
-  name: "", city: "", region: "", country: "", description: "", contactEmail: "",
+  name: "", tagline: "", city: "", region: "", country: "", description: "", contactEmail: "",
 };
 
 if (Astro.request.method === "POST") {
@@ -19,6 +19,7 @@ if (Astro.request.method === "POST") {
 
   vals = {
     name:         form.get("name")?.toString().trim() ?? "",
+    tagline:      form.get("tagline")?.toString().trim() ?? "",
     city:         form.get("city")?.toString().trim() ?? "",
     region:       form.get("region")?.toString().trim() ?? "",
     country:      form.get("country")?.toString().trim() ?? "",
@@ -28,8 +29,8 @@ if (Astro.request.method === "POST") {
 
   const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  if (!vals.name || !vals.city || !vals.country || !vals.description || !vals.contactEmail) {
-    result = { type: "error", message: "All required fields must be filled in." };
+  if (!vals.name || !vals.description || !vals.contactEmail) {
+    result = { type: "error", message: "Name, description, and contact email are required." };
   } else if (vals.description.length < 50) {
     result = { type: "error", message: "Description must be at least 50 characters." };
   } else if (!emailRe.test(vals.contactEmail)) {
@@ -47,9 +48,10 @@ if (Astro.request.method === "POST") {
         id: generateId(),
         name: vals.name,
         slug,
-        city: vals.city,
+        tagline: vals.tagline || null,
+        city: vals.city || null,
         region: vals.region || null,
-        country: vals.country,
+        country: vals.country || null,
         description: vals.description,
         contactEmail: vals.contactEmail,
         status: "pending",
@@ -71,8 +73,8 @@ if (Astro.request.method === "POST") {
       <div class="hero-eyebrow">✦ New group application</div>
       <h1>Start a DevRel(ish) group</h1>
       <p>
-        Think your city needs a regular gathering for DevRel folks? We agree. Fill out this form and
-        we'll get your group set up. All you need is enthusiasm and a city.
+        Want to organize gatherings for DevRel folks — in your city, at conferences, or wherever the community meets?
+        Fill out this form and we'll get you set up.
       </p>
     </div>
   </section>
@@ -107,12 +109,23 @@ if (Astro.request.method === "POST") {
                 <input
                   id="name" name="name" type="text"
                   value={vals.name}
-                  placeholder="DevRel(ish) Portland"
+                  placeholder="DevRel(ish) SF, DevRel Connectors..."
                   required minlength="3" maxlength="80"
                 />
                 <span class="form-hint">
-                  Keep it short and location-based. We'll turn it into a URL like <code>/groups/portland</code>.
+                  We'll turn it into a URL slug like <code>/groups/devrel-sf</code>.
                 </span>
+              </div>
+
+              <div class="form-group">
+                <label for="tagline">Tagline</label>
+                <input
+                  id="tagline" name="tagline" type="text"
+                  value={vals.tagline}
+                  placeholder="Connecting DevRel folks at major tech events"
+                  maxlength="120"
+                />
+                <span class="form-hint">One short sentence that describes what your group is about.</span>
               </div>
 
               <div class="form-group">
@@ -128,22 +141,23 @@ if (Astro.request.method === "POST") {
             </div>
 
             <div class="form-section-block">
-              <h3 class="section-title">Location</h3>
+              <h3 class="section-title">Location <span class="optional-label">(optional)</span></h3>
+              <p class="section-desc">If your group is tied to a city, fill this in. If you're event-based or distributed, leave it blank.</p>
 
               <div class="form-row">
                 <div class="form-group">
-                  <label for="city">City *</label>
-                  <input id="city" name="city" type="text" value={vals.city} placeholder="Portland" required />
+                  <label for="city">City</label>
+                  <input id="city" name="city" type="text" value={vals.city} placeholder="San Francisco" />
                 </div>
                 <div class="form-group">
                   <label for="region">State / Province</label>
-                  <input id="region" name="region" type="text" value={vals.region} placeholder="OR" maxlength="50" />
+                  <input id="region" name="region" type="text" value={vals.region} placeholder="CA" maxlength="50" />
                 </div>
               </div>
 
               <div class="form-group">
-                <label for="country">Country *</label>
-                <input id="country" name="country" type="text" value={vals.country} placeholder="USA" required />
+                <label for="country">Country</label>
+                <input id="country" name="country" type="text" value={vals.country} placeholder="USA" />
               </div>
             </div>
 
@@ -288,6 +302,20 @@ if (Astro.request.method === "POST") {
     margin: 0;
     padding-bottom: 0.5rem;
     border-bottom: 1px dashed var(--color-border);
+  }
+
+  .optional-label {
+    font-size: var(--size-sm);
+    font-weight: 400;
+    color: var(--color-text-light);
+    font-family: var(--font-body);
+  }
+
+  .section-desc {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+    margin: 0;
+    max-width: none;
   }
 
   .form-row {

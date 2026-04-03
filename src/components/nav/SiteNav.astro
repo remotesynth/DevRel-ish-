@@ -25,8 +25,13 @@ function isActive(href: string) {
 
     <ul class="nav-links" id="nav-links" role="list">
       <li>
-        <a href="/groups" class:list={["nav-link", { active: isActive("/groups") }]}>
-          Find Groups
+        <a href="/gatherings" class:list={["nav-link", { active: isActive("/gatherings") }]}>
+          Gatherings
+        </a>
+      </li>
+      <li>
+        <a href="/groups" class:list={["nav-link", { active: isActive("/groups") && !isActive("/groups/register") }]}>
+          Groups
         </a>
       </li>
       <li>

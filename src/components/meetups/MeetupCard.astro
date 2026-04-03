@@ -10,6 +10,9 @@ interface Props {
   time: string;
   venue: string;
   address?: string | null;
+  city?: string | null;
+  country?: string | null;
+  eventContext?: string | null;
   capacity: number;
   rsvpCount: number;
   groupSlug?: string;
@@ -17,7 +20,7 @@ interface Props {
   groupClosed?: boolean;
 }
 
-const { id, title, description, date, time, venue, address, capacity, rsvpCount, groupSlug, status = "active", groupClosed = false } = Astro.props;
+const { id, title, description, date, time, venue, address, city, country, eventContext, capacity, rsvpCount, groupSlug, status = "active", groupClosed = false } = Astro.props;
 
 const isCanceled = status === "canceled";
 const spots = spotsLeft(capacity, rsvpCount);
@@ -40,6 +43,8 @@ const descHtml = renderMarkdown(description);
       </h3>
       <p class="meetup-time">
         🕐 {formatTime(time)} &bull; 📍 <a href={osmUrl(venue, address)} class="venue-link" target="_blank" rel="noopener noreferrer">{venue}</a>
+        {eventContext && <span class="event-context"> · {eventContext}</span>}
+        {!eventContext && city && <span class="event-context"> · {country ? `${city}, ${country}` : city}</span>}
       </p>
     </div>
   </div>
@@ -138,6 +143,10 @@ const descHtml = renderMarkdown(description);
   .venue-link:hover {
     color: var(--color-primary);
     text-decoration-style: solid;
+  }
+
+  .event-context {
+    color: var(--color-text-light);
   }
 
   .meetup-desc {

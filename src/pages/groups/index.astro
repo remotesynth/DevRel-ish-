@@ -1,16 +1,31 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import GroupCard from "../../components/groups/GroupCard.astro";
-import { db, Groups, Meetups, count, eq, and, gte, desc } from "astro:db";
+import { db, Groups, Meetups, count, eq, and, gte, asc } from "astro:db";
 
 const today = new Date();
 today.setHours(0, 0, 0, 0);
 
-const groups = await db
+const activeTag = Astro.url.searchParams.get("tag")?.trim() ?? "";
+
+const allGroups = await db
   .select()
   .from(Groups)
   .where(eq(Groups.status, "approved"))
-  .orderBy(Groups.city);
+  .orderBy(asc(Groups.name));
+
+// Collect all unique tags across all groups for the filter bar
+const allTags = Array.from(
+  new Set(
+    allGroups
+      .flatMap(g => (g.tags ? g.tags.split(",").map(t => t.trim()).filter(Boolean) : []))
+  )
+).sort();
+
+// Filter by tag if one is selected
+const groups = activeTag
+  ? allGroups.filter(g => g.tags?.split(",").map(t => t.trim()).includes(activeTag))
+  : allGroups;
 
 const upcomingCounts: Record<string, number> = {};
 for (const group of groups) {
@@ -24,29 +39,64 @@ for (const group of groups) {
 
 <BaseLayout
   title="Find a Group"
-  description="Discover DevRel(ish) groups in cities around the world — in-person social gatherings for DevRel professionals."
+  description="Discover DevRel(ish) groups — in-person social gatherings for DevRel professionals at conferences and cities around the world."
 >
   <section class="page-hero">
     <div class="container">
-      <h1>Find a group near you</h1>
+      <h1>Find a group</h1>
       <p>
-        DevRel(ish) groups meet in person to connect, commiserate, and celebrate the weird wonderful
-        world of developer relations. No agendas, no sponsors — just real people.
+        DevRel(ish) groups connect in person — at conferences, in cities, or wherever the community
+        gathers. No agendas, no sponsors — just real people.
       </p>
     </div>
   </section>
 
+  {allTags.length > 0 && (
+    <div class="tag-filter-bar">
+      <div class="container">
+        <div class="tag-filter-inner">
+          <span class="filter-label">Filter by tag:</span>
+          <div class="tag-filters">
+            <a
+              href="/groups"
+              class:list={["tag-filter-chip", { active: !activeTag }]}
+            >All</a>
+            {allTags.map(tag => (
+              <a
+                href={`/groups?tag=${encodeURIComponent(tag)}`}
+                class:list={["tag-filter-chip", { active: tag === activeTag }]}
+              >{tag}</a>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )}
+
   <section class="groups-section">
     <div class="container">
+      {activeTag && (
+        <p class="filter-notice">
+          Showing groups tagged <strong>{activeTag}</strong> · <a href="/groups">Clear filter</a>
+        </p>
+      )}
+
       {
         groups.length === 0 ? (
           <div class="empty-state">
             <div class="empty-icon" aria-hidden="true">◈</div>
-            <h2>No groups yet!</h2>
-            <p>Be the first to start a DevRel(ish) group in your city.</p>
-            <a href="/groups/register" class="btn btn-primary">
-              Start a group →
-            </a>
+            {activeTag ? (
+              <>
+                <h2>No groups with that tag</h2>
+                <p><a href="/groups">Browse all groups</a> or start one!</p>
+              </>
+            ) : (
+              <>
+                <h2>No groups yet!</h2>
+                <p>Be the first to start a DevRel(ish) group.</p>
+                <a href="/groups/register" class="btn btn-primary">Start a group →</a>
+              </>
+            )}
           </div>
         ) : (
           <div class="groups-grid">
@@ -58,6 +108,8 @@ for (const group of groups) {
                 city={g.city}
                 region={g.region}
                 country={g.country}
+                tagline={g.tagline}
+                tags={g.tags}
                 description={g.description}
                 upcomingCount={upcomingCounts[g.id]}
               />
@@ -71,7 +123,7 @@ for (const group of groups) {
   <section class="start-cta">
     <div class="container">
       <p>
-        Don't see your city?{" "}
+        Want to organize gatherings for your community?{" "}
         <a href="/groups/register">Start a DevRel(ish) group →</a>
       </p>
     </div>
@@ -95,8 +147,62 @@ for (const group of groups) {
     max-width: 56ch;
   }
 
+  .tag-filter-bar {
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    padding: 0.75rem 0;
+  }
+
+  .tag-filter-inner {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    flex-wrap: wrap;
+  }
+
+  .filter-label {
+    font-size: var(--size-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-light);
+    flex-shrink: 0;
+  }
+
+  .tag-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+
+  .tag-filter-chip {
+    font-size: var(--size-xs);
+    font-weight: 600;
+    background: var(--color-surface-warm);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-full);
+    padding: 0.2rem 0.7rem;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    transition: color var(--transition), border-color var(--transition), background var(--transition);
+  }
+
+  .tag-filter-chip:hover,
+  .tag-filter-chip.active {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    background: rgba(232, 112, 74, 0.06);
+  }
+
   .groups-section {
     padding: 2.5rem 0;
+  }
+
+  .filter-notice {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+    margin-bottom: 1.5rem;
+    max-width: none;
   }
 
   .groups-grid {

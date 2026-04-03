@@ -1,0 +1,267 @@
+---
+import { formatTime, osmUrl } from "../../lib/utils";
+import { renderMarkdown } from "../../lib/markdown";
+
+interface Props {
+  id: string;
+  title: string;
+  description: string;
+  date: Date;
+  time: string;
+  venue: string;
+  address?: string | null;
+  city?: string | null;
+  country?: string | null;
+  eventContext?: string | null;
+  tags?: string | null;
+  capacity: number;
+  rsvpCount: number;
+  groupName: string;
+  groupSlug: string;
+  status?: string;
+}
+
+const {
+  id, title, description, date, time, venue, address,
+  city, country, eventContext, tags,
+  capacity, rsvpCount, groupName, groupSlug, status = "active",
+} = Astro.props;
+
+const isCanceled = status === "canceled";
+const spotsLeft = Math.max(0, capacity - rsvpCount);
+const isFull = spotsLeft === 0;
+const descHtml = renderMarkdown(description);
+const tagList = tags ? tags.split(",").map(t => t.trim()).filter(Boolean) : [];
+
+const locationParts = [city, country].filter(Boolean).join(", ");
+const locationLine = eventContext
+  ? locationParts ? `${eventContext} · ${locationParts}` : eventContext
+  : locationParts;
+---
+
+<article class:list={["gathering-card card", { canceled: isCanceled }]}>
+  <div class="card-top">
+    <div class:list={["date-block", { "date-canceled": isCanceled }]}>
+      <span class="date-month">
+        {new Intl.DateTimeFormat("en-US", { month: "short" }).format(date)}
+      </span>
+      <span class="date-day">{date.getDate()}</span>
+    </div>
+
+    <div class="card-main">
+      <p class="group-label">
+        <a href={`/groups/${groupSlug}`} class="group-link">{groupName}</a>
+      </p>
+      <h3 class="gathering-title">
+        {title}
+        {isCanceled && <span class="badge-canceled">Cancelled</span>}
+      </h3>
+      <p class="gathering-where">
+        🕐 {formatTime(time)} &bull; 📍 <a href={osmUrl(venue, address)} class="venue-link" target="_blank" rel="noopener noreferrer">{venue}</a>
+        {locationLine && <span class="location-context"> · {locationLine}</span>}
+      </p>
+    </div>
+  </div>
+
+  <div class="gathering-desc" set:html={descHtml} />
+
+  {tagList.length > 0 && (
+    <div class="tag-list">
+      {tagList.map(tag => (
+        <a href={`/gatherings?tag=${encodeURIComponent(tag)}`} class="tag-chip">{tag}</a>
+      ))}
+    </div>
+  )}
+
+  <div class="card-footer">
+    <div class="card-stats">
+      {isCanceled ? (
+        <span class="canceled-note">This gathering has been cancelled.</span>
+      ) : isFull ? (
+        <span class="badge badge-full">Full</span>
+      ) : (
+        <span class="spots-left">
+          <strong>{spotsLeft}</strong> of {capacity} spots left
+        </span>
+      )}
+    </div>
+    {!isCanceled && !isFull && (
+      <a href={`/gatherings/${id}/rsvp`} class="btn btn-primary btn-sm">RSVP →</a>
+    )}
+  </div>
+</article>
+
+<style>
+  .gathering-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+  }
+
+  .gathering-card.canceled {
+    opacity: 0.75;
+  }
+
+  .card-top {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .date-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: var(--color-primary);
+    color: white;
+    border-radius: var(--radius-sm);
+    padding: 0.375rem 0.75rem;
+    min-width: 52px;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+
+  .date-block.date-canceled {
+    background: var(--color-text-light);
+  }
+
+  .date-month {
+    font-size: var(--size-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+  }
+
+  .date-day {
+    font-family: var(--font-display);
+    font-size: var(--size-2xl);
+  }
+
+  .card-main {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .group-label {
+    font-size: var(--size-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-light);
+    margin-bottom: 0.2rem;
+    max-width: none;
+  }
+
+  .group-link {
+    color: var(--color-primary);
+    text-decoration: none;
+  }
+
+  .group-link:hover {
+    text-decoration: underline;
+  }
+
+  .gathering-title {
+    font-size: var(--size-lg);
+    line-height: 1.3;
+    margin-bottom: 0.25rem;
+  }
+
+  .badge-canceled {
+    display: inline-block;
+    font-size: var(--size-xs);
+    font-weight: 700;
+    font-family: var(--font-body);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: #fee2e2;
+    color: #991b1b;
+    border-radius: var(--radius-full);
+    padding: 0.1rem 0.5rem;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+  }
+
+  .gathering-where {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+    max-width: none;
+  }
+
+  .venue-link {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 2px;
+  }
+
+  .venue-link:hover {
+    color: var(--color-primary);
+    text-decoration-style: solid;
+  }
+
+  .location-context {
+    color: var(--color-text-light);
+  }
+
+  .gathering-desc {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .gathering-desc :global(p) { margin: 0; }
+  .gathering-desc :global(p + p) { margin-top: 0.375rem; }
+  .gathering-desc :global(strong) { color: var(--color-text); }
+
+  .tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+
+  .tag-chip {
+    font-size: var(--size-xs);
+    font-weight: 600;
+    background: var(--color-surface-warm);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    padding: 0.15rem 0.6rem;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    transition: color var(--transition), border-color var(--transition), background var(--transition);
+  }
+
+  .tag-chip:hover {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    background: rgba(232, 112, 74, 0.06);
+  }
+
+  .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--color-border);
+  }
+
+  .spots-left {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+  }
+
+  .spots-left strong {
+    color: var(--color-accent-dark);
+  }
+
+  .canceled-note {
+    font-size: var(--size-sm);
+    color: #991b1b;
+    font-weight: 600;
+  }
+</style>

@@ -3,18 +3,25 @@ interface Props {
   id: string;
   name: string;
   slug: string;
-  city: string;
+  city?: string | null;
   region?: string | null;
-  country: string;
+  country?: string | null;
+  tagline?: string | null;
+  tags?: string | null;
   description: string;
   upcomingCount?: number;
 }
 
 import { stripMarkdown } from "../../lib/markdown";
 
-const { name, slug, city, region, country, description, upcomingCount = 0 } = Astro.props;
+const { name, slug, city, region, country, tagline, tags, description, upcomingCount = 0 } = Astro.props;
 
-const location = region ? `${city}, ${region}` : `${city}, ${country}`;
+const location = city
+  ? region ? `${city}, ${region}` : country ? `${city}, ${country}` : city
+  : null;
+
+const tagList = tags ? tags.split(",").map(t => t.trim()).filter(Boolean) : [];
+
 const plain = stripMarkdown(description);
 const snippet = plain.length > 140 ? plain.slice(0, 140) + "…" : plain;
 ---
@@ -26,10 +33,21 @@ const snippet = plain.length > 140 ? plain.slice(0, 140) + "…" : plain;
       <h3 class="group-name">
         <a href={`/groups/${slug}`}>{name}</a>
       </h3>
-      <p class="group-location">📍 {location}</p>
+      {tagline && <p class="group-tagline">{tagline}</p>}
+      {location && <p class="group-location">📍 {location}</p>}
     </div>
   </div>
+
   <p class="group-desc">{snippet}</p>
+
+  {tagList.length > 0 && (
+    <div class="tag-list">
+      {tagList.map(tag => (
+        <a href={`/groups?tag=${encodeURIComponent(tag)}`} class="tag-chip">{tag}</a>
+      ))}
+    </div>
+  )}
+
   <div class="card-footer">
     {
       upcomingCount > 0 ? (
@@ -79,9 +97,17 @@ const snippet = plain.length > 140 ? plain.slice(0, 140) + "…" : plain;
     color: var(--color-primary);
   }
 
-  .group-location {
+  .group-tagline {
     font-size: var(--size-sm);
     color: var(--color-text-muted);
+    font-style: italic;
+    margin-top: 0.125rem;
+    max-width: none;
+  }
+
+  .group-location {
+    font-size: var(--size-xs);
+    color: var(--color-text-light);
     margin-top: 0.125rem;
     max-width: none;
   }
@@ -90,6 +116,30 @@ const snippet = plain.length > 140 ? plain.slice(0, 140) + "…" : plain;
     font-size: var(--size-sm);
     color: var(--color-text-muted);
     line-height: 1.6;
+  }
+
+  .tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+
+  .tag-chip {
+    font-size: var(--size-xs);
+    font-weight: 600;
+    background: var(--color-surface-warm);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    padding: 0.15rem 0.6rem;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    transition: color var(--transition), border-color var(--transition), background var(--transition);
+  }
+
+  .tag-chip:hover {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    background: rgba(232, 112, 74, 0.06);
   }
 
   .card-footer {

@@ -7,12 +7,21 @@ const Groups = defineTable({
     id: column.text({ primaryKey: true }),
     name: column.text({ unique: true }),
     slug: column.text({ unique: true }),
-    city: column.text(),
+    // Location is optional — groups may be distributed/event-based
+    city: column.text({ optional: true }),
     region: column.text({ optional: true }), // state/province
-    country: column.text(),
+    country: column.text({ optional: true }),
+    // Identity & discovery
+    tagline: column.text({ optional: true }), // short one-liner for cards
+    tags: column.text({ optional: true }), // comma-separated
+    website: column.text({ optional: true }),
+    twitterHandle: column.text({ optional: true }),
+    blueskyHandle: column.text({ optional: true }),
+    linkedinUrl: column.text({ optional: true }),
+    // Core
     description: column.text(),
     contactEmail: column.text(),
-    status: column.text({ default: "pending" }), // pending | approved | rejected
+    status: column.text({ default: "pending" }), // pending | approved | rejected | closed
     managerId: column.text({ optional: true }), // soft ref to User.id
     createdAt: column.date({ default: new Date() }),
   },
@@ -28,6 +37,11 @@ const Meetups = defineTable({
     time: column.text(), // "HH:MM" 24-hour
     venue: column.text(), // venue name or address
     address: column.text({ optional: true }),
+    // Location context for event-based gatherings
+    city: column.text({ optional: true }),
+    country: column.text({ optional: true }),
+    eventContext: column.text({ optional: true }), // e.g. "KubeCon EU 2026"
+    tags: column.text({ optional: true }), // comma-separated
     capacity: column.number(),
     status: column.text({ default: "active" }), // active | canceled
     createdAt: column.date({ default: new Date() }),
@@ -63,6 +77,18 @@ const ContactMessages = defineTable({
     email: column.text(),
     message: column.text(),
     read: column.boolean({ default: false }),
+    createdAt: column.date({ default: new Date() }),
+  },
+});
+
+const Followers = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    groupId: column.text(), // soft ref to Groups.id
+    email: column.text(),
+    name: column.text({ optional: true }),
+    confirmed: column.boolean({ default: false }),
+    token: column.text({ unique: true }), // for confirm + unsubscribe links
     createdAt: column.date({ default: new Date() }),
   },
 });
@@ -133,5 +159,5 @@ const Verification = defineTable({
 });
 
 export default defineDb({
-  tables: { Groups, Meetups, RSVPs, GroupInvites, ContactMessages, User, Session, Account, Verification },
+  tables: { Groups, Meetups, RSVPs, GroupInvites, ContactMessages, Followers, User, Session, Account, Verification },
 });

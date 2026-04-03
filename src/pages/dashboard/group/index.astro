@@ -17,23 +17,40 @@ let errorMsg = "";
 
 if (Astro.request.method === "POST") {
   const form = await Astro.request.formData();
+  const description = form.get("description")?.toString().trim() ?? "";
+  const contactEmail = form.get("contactEmail")?.toString().trim() ?? "";
+  const tagline = form.get("tagline")?.toString().trim() ?? "";
+  const tags = form.get("tags")?.toString().trim() ?? "";
   const city = form.get("city")?.toString().trim() ?? "";
   const region = form.get("region")?.toString().trim() ?? "";
   const country = form.get("country")?.toString().trim() ?? "";
-  const description = form.get("description")?.toString().trim() ?? "";
-  const contactEmail = form.get("contactEmail")?.toString().trim() ?? "";
+  const website = form.get("website")?.toString().trim() ?? "";
+  const twitterHandle = form.get("twitterHandle")?.toString().trim() ?? "";
+  const blueskyHandle = form.get("blueskyHandle")?.toString().trim() ?? "";
+  const linkedinUrl = form.get("linkedinUrl")?.toString().trim() ?? "";
 
-  if (!city || !country || !description || !contactEmail) {
-    errorMsg = "All required fields must be filled in.";
+  if (!description || !contactEmail) {
+    errorMsg = "Description and contact email are required.";
   } else if (description.length < 50) {
     errorMsg = "Description must be at least 50 characters.";
   } else {
     await db
       .update(Groups)
-      .set({ city, region: region || null, country, description, contactEmail })
+      .set({
+        description,
+        contactEmail,
+        tagline: tagline || null,
+        tags: tags || null,
+        city: city || null,
+        region: region || null,
+        country: country || null,
+        website: website || null,
+        twitterHandle: twitterHandle || null,
+        blueskyHandle: blueskyHandle || null,
+        linkedinUrl: linkedinUrl || null,
+      })
       .where(eq(Groups.id, group.id));
     successMsg = "Group details updated!";
-    // Re-fetch updated group
     const [updated] = await db.select().from(Groups).where(eq(Groups.id, group.id));
     if (updated) Object.assign(group, updated);
   }
@@ -52,13 +69,35 @@ if (Astro.request.method === "POST") {
   {errorMsg && <div class="alert alert-error">{errorMsg}</div>}
 
   <form method="POST" class="group-edit-form">
+
     <div class="form-card">
-      <h3>Group details</h3>
+      <h3>Identity</h3>
 
       <div class="form-group">
         <label>Group name</label>
         <input type="text" value={group.name} disabled class="input-disabled" />
         <span class="form-hint">Contact support to change your group name.</span>
+      </div>
+
+      <div class="form-group">
+        <label for="tagline">Tagline</label>
+        <input
+          id="tagline" name="tagline" type="text"
+          value={group.tagline ?? ""}
+          placeholder="Connecting DevRel folks at major tech events"
+          maxlength="120"
+        />
+        <span class="form-hint">One short sentence shown on your group card.</span>
+      </div>
+
+      <div class="form-group">
+        <label for="tags">Tags</label>
+        <input
+          id="tags" name="tags" type="text"
+          value={group.tags ?? ""}
+          placeholder="community, enterprise, technical-writing"
+        />
+        <span class="form-hint">Comma-separated. Helps people find your group by topic.</span>
       </div>
 
       <div class="form-group">
@@ -69,33 +108,53 @@ if (Astro.request.method === "POST") {
 
       <div class="form-group">
         <label for="contactEmail">Contact email *</label>
-        <input
-          id="contactEmail"
-          name="contactEmail"
-          type="email"
-          value={group.contactEmail}
-          required
-        />
+        <input id="contactEmail" name="contactEmail" type="email" value={group.contactEmail} required />
       </div>
     </div>
 
     <div class="form-card">
-      <h3>Location</h3>
+      <h3>Location <span class="optional-label">(optional)</span></h3>
+      <p class="card-desc">Leave blank if your group is event-based or distributed.</p>
 
       <div class="form-row">
         <div class="form-group">
-          <label for="city">City *</label>
-          <input id="city" name="city" type="text" value={group.city} required />
+          <label for="city">City</label>
+          <input id="city" name="city" type="text" value={group.city ?? ""} placeholder="San Francisco" />
         </div>
         <div class="form-group">
           <label for="region">State / Province</label>
-          <input id="region" name="region" type="text" value={group.region ?? ""} />
+          <input id="region" name="region" type="text" value={group.region ?? ""} placeholder="CA" />
         </div>
       </div>
 
       <div class="form-group">
-        <label for="country">Country *</label>
-        <input id="country" name="country" type="text" value={group.country} required />
+        <label for="country">Country</label>
+        <input id="country" name="country" type="text" value={group.country ?? ""} placeholder="USA" />
+      </div>
+    </div>
+
+    <div class="form-card">
+      <h3>Online presence <span class="optional-label">(optional)</span></h3>
+
+      <div class="form-group">
+        <label for="website">Website</label>
+        <input id="website" name="website" type="url" value={group.website ?? ""} placeholder="https://yourgroup.com" />
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="twitterHandle">X / Twitter handle</label>
+          <input id="twitterHandle" name="twitterHandle" type="text" value={group.twitterHandle ?? ""} placeholder="@yourgroup" />
+        </div>
+        <div class="form-group">
+          <label for="blueskyHandle">Bluesky handle</label>
+          <input id="blueskyHandle" name="blueskyHandle" type="text" value={group.blueskyHandle ?? ""} placeholder="yourgroup.bsky.social" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="linkedinUrl">LinkedIn URL</label>
+        <input id="linkedinUrl" name="linkedinUrl" type="url" value={group.linkedinUrl ?? ""} placeholder="https://linkedin.com/company/yourgroup" />
       </div>
     </div>
 
@@ -115,13 +174,9 @@ if (Astro.request.method === "POST") {
     flex-wrap: wrap;
   }
 
-  .page-header h1 {
-    font-size: var(--size-3xl);
-  }
+  .page-header h1 { font-size: var(--size-3xl); }
 
-  .alert {
-    margin-bottom: 1.25rem;
-  }
+  .alert { margin-bottom: 1.25rem; }
 
   .group-edit-form {
     display: flex;
@@ -145,6 +200,20 @@ if (Astro.request.method === "POST") {
     border-bottom: 1px dashed var(--color-border);
   }
 
+  .optional-label {
+    font-size: var(--size-sm);
+    font-weight: 400;
+    color: var(--color-text-light);
+    font-family: var(--font-body);
+  }
+
+  .card-desc {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+    margin: 0;
+    max-width: none;
+  }
+
   .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -157,13 +226,9 @@ if (Astro.request.method === "POST") {
     cursor: not-allowed;
   }
 
-  .form-actions {
-    padding-top: 0.5rem;
-  }
+  .form-actions { padding-top: 0.5rem; }
 
   @media (max-width: 560px) {
-    .form-row {
-      grid-template-columns: 1fr;
-    }
+    .form-row { grid-template-columns: 1fr; }
   }
 </style>

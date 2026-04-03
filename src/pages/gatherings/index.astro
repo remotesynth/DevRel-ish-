@@ -1,0 +1,338 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import GatheringCard from "../../components/meetups/GatheringCard.astro";
+import { db, Groups, Meetups, RSVPs, count, eq, and, gte, asc } from "astro:db";
+
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+
+// Read filter params
+const activeTag = Astro.url.searchParams.get("tag")?.trim() ?? "";
+const activeCity = Astro.url.searchParams.get("city")?.trim() ?? "";
+const activeEvent = Astro.url.searchParams.get("event")?.trim() ?? "";
+
+// Fetch approved groups and build a lookup map
+const approvedGroups = await db.select().from(Groups).where(eq(Groups.status, "approved"));
+const groupMap = new Map(approvedGroups.map(g => [g.id, g]));
+const approvedGroupIds = new Set(approvedGroups.map(g => g.id));
+
+// Fetch all upcoming meetups, then filter to approved groups in JS
+const allUpcoming = await db
+  .select()
+  .from(Meetups)
+  .where(and(eq(Meetups.status, "active"), gte(Meetups.date, today)))
+  .orderBy(asc(Meetups.date));
+
+const upcoming = allUpcoming.filter(m => approvedGroupIds.has(m.groupId));
+
+// Collect unique filter values from ALL upcoming gatherings (before filtering)
+const allTags = Array.from(
+  new Set(
+    upcoming.flatMap(m => (m.tags ? m.tags.split(",").map(t => t.trim()).filter(Boolean) : []))
+  )
+).sort();
+
+const allCities = Array.from(
+  new Set(upcoming.map(m => m.city).filter((c): c is string => !!c))
+).sort();
+
+const allEvents = Array.from(
+  new Set(upcoming.map(m => m.eventContext).filter((e): e is string => !!e))
+).sort();
+
+// Apply filters
+const filtered = upcoming.filter(m => {
+  if (activeTag && !m.tags?.split(",").map(t => t.trim()).includes(activeTag)) return false;
+  if (activeCity && m.city !== activeCity) return false;
+  if (activeEvent && m.eventContext !== activeEvent) return false;
+  return true;
+});
+
+// Fetch RSVP counts for the filtered set
+const rsvpCounts: Record<string, number> = {};
+for (const m of filtered) {
+  const [r] = await db.select({ val: count() }).from(RSVPs).where(eq(RSVPs.meetupId, m.id));
+  rsvpCounts[m.id] = r?.val ?? 0;
+}
+
+const hasFilters = activeTag || activeCity || activeEvent;
+
+function clearUrl() {
+  const params = new URLSearchParams(Astro.url.searchParams);
+  params.delete("tag");
+  params.delete("city");
+  params.delete("event");
+  const qs = params.toString();
+  return `/gatherings${qs ? `?${qs}` : ""}`;
+}
+---
+
+<BaseLayout
+  title="Upcoming Gatherings"
+  description="Find upcoming DevRel(ish) gatherings at conferences and cities around the world — in-person social events for DevRel professionals."
+>
+  <section class="page-hero">
+    <div class="container">
+      <h1>Upcoming gatherings</h1>
+      <p>
+        Find DevRel(ish) gatherings happening near you or at an event you're already attending.
+        No agendas, no sponsors — just real people.
+      </p>
+    </div>
+  </section>
+
+  {(allTags.length > 0 || allCities.length > 0 || allEvents.length > 0) && (
+    <div class="filter-bar">
+      <div class="container">
+
+        {allEvents.length > 0 && (
+          <div class="filter-row">
+            <span class="filter-label">Event:</span>
+            <div class="filter-chips">
+              <a href={clearUrl()} class:list={["filter-chip", { active: !activeEvent }]}>All</a>
+              {allEvents.map(ev => {
+                const params = new URLSearchParams({ ...Object.fromEntries(Astro.url.searchParams), event: ev });
+                params.delete("city");
+                return (
+                  <a
+                    href={`/gatherings?${params}`}
+                    class:list={["filter-chip", { active: ev === activeEvent }]}
+                  >{ev}</a>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {allCities.length > 0 && (
+          <div class="filter-row">
+            <span class="filter-label">City:</span>
+            <div class="filter-chips">
+              <a href={clearUrl()} class:list={["filter-chip", { active: !activeCity }]}>All</a>
+              {allCities.map(c => {
+                const params = new URLSearchParams({ ...Object.fromEntries(Astro.url.searchParams), city: c });
+                params.delete("event");
+                return (
+                  <a
+                    href={`/gatherings?${params}`}
+                    class:list={["filter-chip", { active: c === activeCity }]}
+                  >{c}</a>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {allTags.length > 0 && (
+          <div class="filter-row">
+            <span class="filter-label">Topic:</span>
+            <div class="filter-chips">
+              <a href={clearUrl()} class:list={["filter-chip", { active: !activeTag }]}>All</a>
+              {allTags.map(tag => {
+                const params = new URLSearchParams({ ...Object.fromEntries(Astro.url.searchParams), tag });
+                return (
+                  <a
+                    href={`/gatherings?${params}`}
+                    class:list={["filter-chip", { active: tag === activeTag }]}
+                  >{tag}</a>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  )}
+
+  <section class="gatherings-section">
+    <div class="container">
+
+      {hasFilters && (
+        <p class="filter-notice">
+          Showing:
+          {activeEvent && <> event: <strong>{activeEvent}</strong></>}
+          {activeCity && <>{activeEvent ? " · " : ""} city: <strong>{activeCity}</strong></>}
+          {activeTag && <>{(activeEvent || activeCity) ? " · " : ""} topic: <strong>{activeTag}</strong></>}
+          {" · "}<a href="/gatherings">Clear filters</a>
+        </p>
+      )}
+
+      {filtered.length === 0 ? (
+        <div class="empty-state">
+          <div class="empty-icon" aria-hidden="true">✦</div>
+          {hasFilters ? (
+            <>
+              <h2>No matching gatherings</h2>
+              <p><a href="/gatherings">Clear filters</a> to see all upcoming gatherings.</p>
+            </>
+          ) : (
+            <>
+              <h2>No gatherings scheduled yet</h2>
+              <p>
+                Check back soon, or <a href="/groups">browse the groups</a> to follow ones you care about.
+              </p>
+            </>
+          )}
+        </div>
+      ) : (
+        <div class="gatherings-grid">
+          {filtered.map(m => {
+            const group = groupMap.get(m.groupId)!;
+            return (
+              <GatheringCard
+                id={m.id}
+                title={m.title}
+                description={m.description}
+                date={m.date}
+                time={m.time}
+                venue={m.venue}
+                address={m.address}
+                city={m.city}
+                country={m.country}
+                eventContext={m.eventContext}
+                tags={m.tags}
+                capacity={m.capacity}
+                rsvpCount={rsvpCounts[m.id] ?? 0}
+                groupName={group.name}
+                groupSlug={group.slug}
+                status={m.status}
+              />
+            );
+          })}
+        </div>
+      )}
+
+    </div>
+  </section>
+
+  <section class="organizer-cta">
+    <div class="container">
+      <p>
+        Organizing a gathering?{" "}
+        <a href="/groups/register">Start a DevRel(ish) group →</a>
+      </p>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .page-hero {
+    padding: 3rem 0 2rem;
+    background: var(--color-surface-warm);
+    border-bottom: 2px solid var(--color-border);
+  }
+
+  .page-hero h1 { margin-bottom: 0.75rem; }
+
+  .page-hero p {
+    font-size: var(--size-lg);
+    color: var(--color-text-muted);
+    max-width: 56ch;
+  }
+
+  /* Filter bar */
+  .filter-bar {
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    padding: 0.75rem 0;
+  }
+
+  .filter-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding: 0.25rem 0;
+  }
+
+  .filter-row + .filter-row {
+    border-top: 1px solid var(--color-border);
+    margin-top: 0.5rem;
+    padding-top: 0.625rem;
+  }
+
+  .filter-label {
+    font-size: var(--size-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-light);
+    flex-shrink: 0;
+    min-width: 50px;
+  }
+
+  .filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+
+  .filter-chip {
+    font-size: var(--size-xs);
+    font-weight: 600;
+    background: var(--color-surface-warm);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-full);
+    padding: 0.2rem 0.7rem;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    transition: color var(--transition), border-color var(--transition), background var(--transition);
+  }
+
+  .filter-chip:hover,
+  .filter-chip.active {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    background: rgba(232, 112, 74, 0.06);
+  }
+
+  /* Listings */
+  .gatherings-section {
+    padding: 2.5rem 0;
+  }
+
+  .filter-notice {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+    margin-bottom: 1.5rem;
+    max-width: none;
+  }
+
+  .gatherings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    max-width: 400px;
+    margin-inline: auto;
+  }
+
+  .empty-icon {
+    font-size: 4rem;
+    color: var(--color-primary);
+    opacity: 0.3;
+    margin-bottom: 1rem;
+  }
+
+  .empty-state h2 { margin-bottom: 0.5rem; }
+
+  .empty-state p {
+    color: var(--color-text-muted);
+    max-width: none;
+  }
+
+  .organizer-cta {
+    padding: 1.5rem 0 3rem;
+    text-align: center;
+  }
+
+  .organizer-cta p {
+    color: var(--color-text-muted);
+    max-width: none;
+  }
+</style>
