@@ -89,6 +89,32 @@ export async function sendGatheringNotification({
   );
 }
 
+export async function sendApprovalNotice({
+  to,
+  groupName,
+  inviteUrl,
+}: {
+  to: string;
+  groupName: string;
+  inviteUrl: string;
+}) {
+  await resend.emails.send({
+    from: `${SITE_NAME} <${FROM}>`,
+    to,
+    subject: `Your DevRel(ish) group has been approved: ${groupName}`,
+    html: `
+      <p>Hi there,</p>
+      <p>Great news — <strong>${groupName}</strong> has been approved and is now live on ${SITE_NAME}!</p>
+      <p>Click the link below to set up your organiser account and start scheduling gatherings. This link is valid for 7 days.</p>
+      <p style="margin: 1.5rem 0;">
+        <a href="${inviteUrl}" style="background:#7c3aed;color:#fff;padding:0.6rem 1.25rem;border-radius:6px;text-decoration:none;font-weight:600;">Set up your account →</a>
+      </p>
+      <p style="font-size:0.85em;color:#666;">If you didn't apply to run a ${SITE_NAME} group, please ignore this email.</p>
+    `,
+    text: `Hi there,\n\nGreat news — ${groupName} has been approved and is now live on ${SITE_NAME}!\n\nSet up your organiser account (link valid for 7 days):\n${inviteUrl}\n\nIf you didn't apply to run a ${SITE_NAME} group, please ignore this email.`,
+  });
+}
+
 export async function sendContactMessageAlert({
   organizers,
   groupName,

@@ -4,6 +4,7 @@ import { db, Groups, GroupInvites, User } from "astro:db";
 import { eq } from "astro:db";
 import { generateId } from "../../../lib/utils";
 import { renderMarkdown } from "../../../lib/markdown";
+import { sendApprovalNotice } from "../../../lib/email";
 
 if (!Astro.locals.user) return Astro.redirect("/auth/login");
 if (Astro.locals.user.role !== "admin") return Astro.redirect("/dashboard");
@@ -74,6 +75,12 @@ if (Astro.request.method === "POST") {
               expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
             });
             approvalInviteUrl = `${Astro.url.origin}/invite/${token}`;
+            successMsg = `Group approved. Invite link generated and sent to ${group.contactEmail}.`;
+            sendApprovalNotice({
+              to: group.contactEmail,
+              groupName: group.name,
+              inviteUrl: approvalInviteUrl,
+            }).catch(e => console.error("[approval notice] email error:", e));
           }
         } else {
           errorMsg = "Action failed. Please try again.";
