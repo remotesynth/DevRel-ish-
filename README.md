@@ -15,16 +15,16 @@
 
 ### Pages
 
-| Route                | Purpose                                                        |
-| -------------------- | -------------------------------------------------------------- |
-| `/`                  | Hero + why section + featured groups                           |
-| `/groups`            | All approved groups grid                                       |
-| `/groups/[slug]`     | Group page with upcoming gatherings                            |
-| `/groups/register`   | Public group application form                                  |
-| `/gatherings/[id]/rsvp` | RSVP form (no auth required)                                |
-| `/auth/login`        | Email/password sign-in                                         |
-| `/dashboard/*`       | Group manager views (group edit, gathering management, attendees) |
-| `/admin/*`           | Admin queue to approve/reject applications                     |
+| Route                   | Purpose                                                           |
+| ----------------------- | ----------------------------------------------------------------- |
+| `/`                     | Hero + why section + featured groups                              |
+| `/groups`               | All approved groups grid                                          |
+| `/groups/[slug]`        | Group page with upcoming gatherings                               |
+| `/groups/register`      | Public group application form                                     |
+| `/gatherings/[id]/rsvp` | RSVP form (no auth required)                                      |
+| `/auth/login`           | Email/password sign-in                                            |
+| `/dashboard/*`          | Group manager views (group edit, gathering management, attendees) |
+| `/admin/*`              | Admin queue to approve/reject applications                        |
 
 ### Design
 
@@ -64,7 +64,7 @@ To create your first admin user you'll need to call the better-auth API to sign 
 
 2. **Set Netlify environment variables** (Site settings → Environment variables):
    - `BETTER_AUTH_SECRET` — `openssl rand -base64 32`
-   - `BETTER_AUTH_URL` — your Netlify URL (e.g. `https://devrelish.netlify.app`)
+   - `BETTER_AUTH_URL` — your Netlify URL (e.g. `https://<your-site>.netlify.app`)
    - `ASTRO_DB_REMOTE_URL` — from Turso above
    - `ASTRO_DB_APP_TOKEN` — from Turso above
    - `SETUP_TOKEN` — `openssl rand -base64 24` (temporary, for admin setup)

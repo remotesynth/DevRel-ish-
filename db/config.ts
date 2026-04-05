@@ -15,7 +15,6 @@ const Groups = defineTable({
     tagline: column.text({ optional: true }), // short one-liner for cards
     tags: column.text({ optional: true }), // comma-separated
     website: column.text({ optional: true }),
-    twitterHandle: column.text({ optional: true }),
     blueskyHandle: column.text({ optional: true }),
     linkedinUrl: column.text({ optional: true }),
     // Core

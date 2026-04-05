@@ -25,7 +25,6 @@ if (Astro.request.method === "POST") {
   const region = form.get("region")?.toString().trim() ?? "";
   const country = form.get("country")?.toString().trim() ?? "";
   const website = form.get("website")?.toString().trim() ?? "";
-  const twitterHandle = form.get("twitterHandle")?.toString().trim() ?? "";
   const blueskyHandle = form.get("blueskyHandle")?.toString().trim() ?? "";
   const linkedinUrl = form.get("linkedinUrl")?.toString().trim() ?? "";
 
@@ -45,7 +44,6 @@ if (Astro.request.method === "POST") {
         region: region || null,
         country: country || null,
         website: website || null,
-        twitterHandle: twitterHandle || null,
         blueskyHandle: blueskyHandle || null,
         linkedinUrl: linkedinUrl || null,
       })
@@ -141,15 +139,9 @@ if (Astro.request.method === "POST") {
         <input id="website" name="website" type="url" value={group.website ?? ""} placeholder="https://yourgroup.com" />
       </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label for="twitterHandle">X / Twitter handle</label>
-          <input id="twitterHandle" name="twitterHandle" type="text" value={group.twitterHandle ?? ""} placeholder="@yourgroup" />
-        </div>
-        <div class="form-group">
-          <label for="blueskyHandle">Bluesky handle</label>
-          <input id="blueskyHandle" name="blueskyHandle" type="text" value={group.blueskyHandle ?? ""} placeholder="yourgroup.bsky.social" />
-        </div>
+      <div class="form-group">
+        <label for="blueskyHandle">Bluesky handle</label>
+        <input id="blueskyHandle" name="blueskyHandle" type="text" value={group.blueskyHandle ?? ""} placeholder="yourgroup.bsky.social" />
       </div>
 
       <div class="form-group">

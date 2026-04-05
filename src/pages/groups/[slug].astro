@@ -74,16 +74,11 @@ const location = group.city
         ))}
       </div>
 
-      {group.website || group.twitterHandle || group.blueskyHandle || group.linkedinUrl ? (
+      {group.website || group.blueskyHandle || group.linkedinUrl ? (
         <div class="social-links">
           {group.website && (
             <a href={group.website} class="social-link" target="_blank" rel="noopener noreferrer">
               🌐 Website
-            </a>
-          )}
-          {group.twitterHandle && (
-            <a href={`https://twitter.com/${group.twitterHandle.replace(/^@/, "")}`} class="social-link" target="_blank" rel="noopener noreferrer">
-              𝕏 @{group.twitterHandle.replace(/^@/, "")}
             </a>
           )}
           {group.blueskyHandle && (
