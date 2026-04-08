@@ -50,16 +50,15 @@ for (const g of featuredGroups) {
   <section class="hero">
     <div class="container hero-inner">
       <div class="hero-content">
-        <div class="hero-eyebrow">✦ IRL community for DevRel folks</div>
+        <div class="hero-eyebrow">✦ IRL gatherings for niche communities</div>
         <h1 class="hero-headline">
           Find your<br />
-          <span class="headline-accent">DevRel tribe.</span>
+          <span class="headline-accent">community.</span>
         </h1>
         <p class="hero-lead">
-          Developer relations is a small world spread across a big planet.
-          DevRel(ish) connects advocates, community managers, DX engineers, and
-          everyone kind of doing DevRel — for real-life gatherings at conferences
-          and cities around the globe.
+          Technical communities are spread across a big planet.
+          DevRel(ish) brings them together for real-life gatherings — at conferences,
+          in cities, and wherever your people happen to be.
         </p>
         <div class="hero-actions">
           <a href="/gatherings" class="btn btn-primary btn-lg">Find a gathering →</a>
@@ -88,27 +87,26 @@ for (const g of featuredGroups) {
       <div class="why-grid">
         <div class="why-card">
           <div class="why-icon">🌐</div>
-          <h3>Remote but not alone</h3>
+          <h3>Real people, real gatherings</h3>
           <p>
-            DevRel is often remote even when the company isn't. DevRel(ish)
-            groups exist so you can put faces to the names you see in Slack.
+            Online communities are great. But there's nothing like meeting your
+            people in person. DevRel(ish) exists to make those moments happen.
           </p>
         </div>
         <div class="why-card">
           <div class="why-icon">💬</div>
-          <h3>People who get it</h3>
+          <h3>Find your niche</h3>
           <p>
-            Try explaining your job at a generic tech gathering. Here, everyone
-            knows what a developer advocate is — because they are one (or close
-            enough).
+            Generic tech meetups are fine. We're for something more specific —
+            communities with a shared identity, vocabulary, and set of problems.
           </p>
         </div>
         <div class="why-card">
           <div class="why-icon">🔋</div>
-          <h3>Recharge, not network</h3>
+          <h3>No agendas, no sponsors</h3>
           <p>
-            No pitch decks, no sponsors, no awkward badge scans. Just good
-            people, good conversation, and a reminder of why we do this work.
+            No pitch decks, no badge scans, no hidden sales funnels. Just good
+            people, good conversation, and the kind of energy you can't get on a call.
           </p>
         </div>
       </div>
@@ -171,6 +169,7 @@ for (const g of featuredGroups) {
               region={g.region}
               country={g.country}
               tagline={g.tagline}
+              category={g.category}
               tags={g.tags}
               description={g.description}
               upcomingCount={upcomingCounts[g.id]}
@@ -189,10 +188,10 @@ for (const g of featuredGroups) {
         <h2>Want to organize gatherings?</h2>
         <p>
           Whether you're based in a city or just travel to a lot of conferences,
-          you can start a DevRel(ish) group. Fill out a quick form and we'll get
+          you can start a group for your community. Fill out a quick form and we'll get
           you set up.
         </p>
-        <a href="/groups/register" class="btn btn-secondary btn-lg">Start a DevRel(ish) group →</a>
+        <a href="/groups/register" class="btn btn-secondary btn-lg">Start a group →</a>
       </div>
     </div>
   </section>

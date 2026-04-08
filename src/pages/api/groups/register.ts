@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { db, Groups } from "astro:db";
 import { generateId, slugify } from "../../../lib/utils";
 import { eq } from "astro:db";
+import { CATEGORIES } from "../../../lib/categories";
 
 export const prerender = false;
 
@@ -13,7 +14,7 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: "Invalid request body." }, 400);
   }
 
-  const { name, city, region, country, description, contactEmail, _hp, _t } = body as Record<string, string>;
+  const { name, category, city, region, country, description, contactEmail, _hp, _t } = body as Record<string, string>;
 
   // Bot protection: honeypot must be empty; form must have been open ≥3 seconds
   const submittedAt = parseInt(_t ?? "0", 10);
@@ -22,8 +23,12 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   // Basic validation
-  if (!name?.trim() || !city?.trim() || !country?.trim() || !description?.trim() || !contactEmail?.trim()) {
+  if (!name?.trim() || !description?.trim() || !contactEmail?.trim() || !category?.trim()) {
     return json({ error: "All required fields must be filled in." }, 400);
+  }
+
+  if (!CATEGORIES.find(c => c.slug === category.trim())) {
+    return json({ error: "Please select a valid community category." }, 400);
   }
 
   if (description.trim().length < 50) {
@@ -53,9 +58,10 @@ export const POST: APIRoute = async ({ request }) => {
     id: generateId(),
     name: name.trim(),
     slug,
-    city: city.trim(),
+    category: category.trim(),
+    city: city?.trim() || null,
     region: region?.trim() || null,
-    country: country.trim(),
+    country: country?.trim() || null,
     description: description.trim(),
     contactEmail: contactEmail.trim().toLowerCase(),
     status: "pending",

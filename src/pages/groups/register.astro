@@ -3,6 +3,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import { db, Groups } from "astro:db";
 import { eq } from "astro:db";
 import { generateId, slugify } from "../../lib/utils";
+import { CATEGORIES, getCategoryLabel } from "../../lib/categories";
 
 type Result =
   | { type: "success"; email: string }
@@ -11,7 +12,7 @@ type Result =
 let result: Result | null = null;
 
 let vals = {
-  name: "", tagline: "", city: "", region: "", country: "", description: "", contactEmail: "",
+  name: "", tagline: "", category: "", city: "", region: "", country: "", description: "", contactEmail: "",
 };
 
 if (Astro.request.method === "POST") {
@@ -20,6 +21,7 @@ if (Astro.request.method === "POST") {
   vals = {
     name:         form.get("name")?.toString().trim() ?? "",
     tagline:      form.get("tagline")?.toString().trim() ?? "",
+    category:     form.get("category")?.toString().trim() ?? "",
     city:         form.get("city")?.toString().trim() ?? "",
     region:       form.get("region")?.toString().trim() ?? "",
     country:      form.get("country")?.toString().trim() ?? "",
@@ -29,8 +31,10 @@ if (Astro.request.method === "POST") {
 
   const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  if (!vals.name || !vals.description || !vals.contactEmail) {
-    result = { type: "error", message: "Name, description, and contact email are required." };
+  if (!vals.name || !vals.description || !vals.contactEmail || !vals.category) {
+    result = { type: "error", message: "Name, category, description, and contact email are required." };
+  } else if (!CATEGORIES.find(c => c.slug === vals.category)) {
+    result = { type: "error", message: "Please select a valid community category." };
   } else if (vals.description.length < 50) {
     result = { type: "error", message: "Description must be at least 50 characters." };
   } else if (!emailRe.test(vals.contactEmail)) {
@@ -49,6 +53,7 @@ if (Astro.request.method === "POST") {
         name: vals.name,
         slug,
         tagline: vals.tagline || null,
+        category: vals.category,
         city: vals.city || null,
         region: vals.region || null,
         country: vals.country || null,
@@ -66,15 +71,15 @@ if (Astro.request.method === "POST") {
 
 <BaseLayout
   title="Start a Group"
-  description="Apply to start a DevRel(ish) group in your city. We'll review your application and get back to you soon."
+  description="Apply to start a group on DevRel(ish) for your niche technical community. We'll review your application and get back to you soon."
 >
   <section class="page-hero">
     <div class="container">
       <div class="hero-eyebrow">✦ New group application</div>
-      <h1>Start a DevRel(ish) group</h1>
+      <h1>Start a group</h1>
       <p>
-        Want to organize gatherings for DevRel folks — in your city, at conferences, or wherever the community meets?
-        Fill out this form and we'll get you set up.
+        Want to organize real-life gatherings for your community — in your city, at conferences, or wherever
+        your people meet? Fill out this form and we'll get you set up.
       </p>
     </div>
   </section>
@@ -87,7 +92,7 @@ if (Astro.request.method === "POST") {
             <div class="success-icon" aria-hidden="true">✦</div>
             <h2>Application submitted!</h2>
             <p>
-              Thanks for wanting to start a DevRel(ish) group! We'll review your application
+              Thanks for applying! We'll review your application
               and be in touch at <strong>{result.email}</strong> shortly.
             </p>
             <p>
@@ -122,10 +127,21 @@ if (Astro.request.method === "POST") {
                 <input
                   id="tagline" name="tagline" type="text"
                   value={vals.tagline}
-                  placeholder="Connecting DevRel folks at major tech events"
+                  placeholder="Connecting cloud-native practitioners at major tech events"
                   maxlength="120"
                 />
                 <span class="form-hint">One short sentence that describes what your group is about.</span>
+              </div>
+
+              <div class="form-group">
+                <label for="category">Community category *</label>
+                <select id="category" name="category" required>
+                  <option value="" disabled selected={!vals.category}>Select a category…</option>
+                  {CATEGORIES.map(c => (
+                    <option value={c.slug} selected={vals.category === c.slug}>{c.label}</option>
+                  ))}
+                </select>
+                <span class="form-hint">Choose the category that best describes your community.</span>
               </div>
 
               <div class="form-group">
@@ -219,11 +235,11 @@ if (Astro.request.method === "POST") {
         </div>
 
         <div class="sidebar-card sidebar-card-warm">
-          <h3>What is DevRel(ish)?</h3>
+          <h3>Who is (ish) for?</h3>
           <p>
-            The "(ish)" is intentional — your group should welcome anyone doing the work of DevRel,
-            regardless of their title. Developer advocates, community managers, DX engineers,
-            developer content writers... all welcome.
+            DevRel(ish) is built for niche technical communities — groups with a shared professional
+            identity who want to meet in person. If your community fits one of our categories
+            and gathers for genuine connection (not sales), you're a great fit.
           </p>
         </div>
 
@@ -231,7 +247,7 @@ if (Astro.request.method === "POST") {
           <h3>Organizer data rules</h3>
           <p>
             By starting a group you agree to use attendee contact information only for organizing
-            your DevRel(ish) events. Sharing, selling, or marketing to attendees outside of
+            your group's events. Sharing, selling, or marketing to attendees outside of
             event-related communications is not permitted.
           </p>
           <a href="/privacy#organizer-rules" class="sidebar-link">Read the full organizer rules →</a>

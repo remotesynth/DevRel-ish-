@@ -109,9 +109,9 @@ export async function sendApprovalNotice({
       <p style="margin: 1.5rem 0;">
         <a href="${inviteUrl}" style="background:#7c3aed;color:#fff;padding:0.6rem 1.25rem;border-radius:6px;text-decoration:none;font-weight:600;">Set up your account →</a>
       </p>
-      <p style="font-size:0.85em;color:#666;">If you didn't apply to run a ${SITE_NAME} group, please ignore this email.</p>
+      <p style="font-size:0.85em;color:#666;">If you didn't apply to start a group on ${SITE_NAME}, please ignore this email.</p>
     `,
-    text: `Hi there,\n\nGreat news — ${groupName} has been approved and is now live on ${SITE_NAME}!\n\nSet up your organiser account (link valid for 7 days):\n${inviteUrl}\n\nIf you didn't apply to run a ${SITE_NAME} group, please ignore this email.`,
+    text: `Hi there,\n\nGreat news — ${groupName} has been approved and is now live on ${SITE_NAME}!\n\nSet up your organiser account (link valid for 7 days):\n${inviteUrl}\n\nIf you didn't apply to start a group on ${SITE_NAME}, please ignore this email.`,
   });
 }
 

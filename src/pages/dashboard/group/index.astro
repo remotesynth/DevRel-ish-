@@ -2,6 +2,7 @@
 import DashboardLayout from "../../../layouts/DashboardLayout.astro";
 import { db, Groups } from "astro:db";
 import { eq } from "astro:db";
+import { CATEGORIES } from "../../../lib/categories";
 
 if (!Astro.locals.user) return Astro.redirect("/auth/login");
 const user = Astro.locals.user;
@@ -20,6 +21,7 @@ if (Astro.request.method === "POST") {
   const description = form.get("description")?.toString().trim() ?? "";
   const contactEmail = form.get("contactEmail")?.toString().trim() ?? "";
   const tagline = form.get("tagline")?.toString().trim() ?? "";
+  const category = form.get("category")?.toString().trim() ?? "";
   const tags = form.get("tags")?.toString().trim() ?? "";
   const city = form.get("city")?.toString().trim() ?? "";
   const region = form.get("region")?.toString().trim() ?? "";
@@ -30,6 +32,8 @@ if (Astro.request.method === "POST") {
 
   if (!description || !contactEmail) {
     errorMsg = "Description and contact email are required.";
+  } else if (category && !CATEGORIES.find(c => c.slug === category)) {
+    errorMsg = "Please select a valid community category.";
   } else if (description.length < 50) {
     errorMsg = "Description must be at least 50 characters.";
   } else {
@@ -39,6 +43,7 @@ if (Astro.request.method === "POST") {
         description,
         contactEmail,
         tagline: tagline || null,
+        category: category || null,
         tags: tags || null,
         city: city || null,
         region: region || null,
@@ -89,13 +94,24 @@ if (Astro.request.method === "POST") {
       </div>
 
       <div class="form-group">
+        <label for="category">Community category</label>
+        <select id="category" name="category">
+          <option value="" disabled selected={!group.category}>Select a category…</option>
+          {CATEGORIES.map(c => (
+            <option value={c.slug} selected={group.category === c.slug}>{c.label}</option>
+          ))}
+        </select>
+        <span class="form-hint">The primary category for your community.</span>
+      </div>
+
+      <div class="form-group">
         <label for="tags">Tags</label>
         <input
           id="tags" name="tags" type="text"
           value={group.tags ?? ""}
-          placeholder="community, enterprise, technical-writing"
+          placeholder="enterprise, open-source, api-first"
         />
-        <span class="form-hint">Comma-separated. Helps people find your group by topic.</span>
+        <span class="form-hint">Optional subtopics, comma-separated. Helps people find your group.</span>
       </div>
 
       <div class="form-group">

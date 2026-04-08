@@ -5,6 +5,7 @@ import { eq } from "astro:db";
 import { generateId } from "../../../lib/utils";
 import { renderMarkdown } from "../../../lib/markdown";
 import { sendApprovalNotice } from "../../../lib/email";
+import { getCategoryLabel } from "../../../lib/categories";
 
 if (!Astro.locals.user) return Astro.redirect("/auth/login");
 if (Astro.locals.user.role !== "admin") return Astro.redirect("/dashboard");
@@ -161,12 +162,19 @@ Welcome to the community!`}</pre>
           <dt>Name</dt>
           <dd>{group.name}</dd>
 
-          <dt>Location</dt>
-          <dd>
-            {group.region
-              ? `${group.city}, ${group.region}, ${group.country}`
-              : `${group.city}, ${group.country}`}
-          </dd>
+          <dt>Category</dt>
+          <dd>{getCategoryLabel(group.category) ?? <em>Not set</em>}</dd>
+
+          {(group.city || group.country) && (
+            <>
+              <dt>Location</dt>
+              <dd>
+                {group.region
+                  ? `${group.city}, ${group.region}, ${group.country}`
+                  : `${group.city}, ${group.country}`}
+              </dd>
+            </>
+          )}
 
           <dt>Contact email</dt>
           <dd><a href={`mailto:${group.contactEmail}`}>{group.contactEmail}</a></dd>

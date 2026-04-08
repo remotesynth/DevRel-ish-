@@ -2,11 +2,13 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import GatheringCard from "../../components/meetups/GatheringCard.astro";
 import { db, Groups, Meetups, RSVPs, count, eq, and, gte, asc } from "astro:db";
+import { CATEGORIES, getCategoryLabel } from "../../lib/categories";
 
 const today = new Date();
 today.setHours(0, 0, 0, 0);
 
 // Read filter params
+const activeCategory = Astro.url.searchParams.get("category")?.trim() ?? "";
 const activeTag = Astro.url.searchParams.get("tag")?.trim() ?? "";
 const activeCity = Astro.url.searchParams.get("city")?.trim() ?? "";
 const activeEvent = Astro.url.searchParams.get("event")?.trim() ?? "";
@@ -25,6 +27,10 @@ const allUpcoming = await db
 
 const upcoming = allUpcoming.filter(m => approvedGroupIds.has(m.groupId));
 
+// Categories that have at least one upcoming gathering
+const presentCategorySlugs = new Set(upcoming.map(m => groupMap.get(m.groupId)?.category).filter(Boolean));
+const presentCategories = CATEGORIES.filter(c => presentCategorySlugs.has(c.slug));
+
 // Collect unique filter values from ALL upcoming gatherings (before filtering)
 const allTags = Array.from(
   new Set(
@@ -42,6 +48,7 @@ const allEvents = Array.from(
 
 // Apply filters
 const filtered = upcoming.filter(m => {
+  if (activeCategory && groupMap.get(m.groupId)?.category !== activeCategory) return false;
   if (activeTag && !m.tags?.split(",").map(t => t.trim()).includes(activeTag)) return false;
   if (activeCity && m.city !== activeCity) return false;
   if (activeEvent && m.eventContext !== activeEvent) return false;
@@ -55,10 +62,11 @@ for (const m of filtered) {
   rsvpCounts[m.id] = r?.val ?? 0;
 }
 
-const hasFilters = activeTag || activeCity || activeEvent;
+const hasFilters = activeCategory || activeTag || activeCity || activeEvent;
 
 function clearUrl() {
   const params = new URLSearchParams(Astro.url.searchParams);
+  params.delete("category");
   params.delete("tag");
   params.delete("city");
   params.delete("event");
@@ -69,21 +77,42 @@ function clearUrl() {
 
 <BaseLayout
   title="Upcoming Gatherings"
-  description="Find upcoming DevRel(ish) gatherings at conferences and cities around the world — in-person social events for DevRel professionals."
+  description="Find upcoming gatherings at conferences and cities around the world — in-person social events for technical communities."
 >
   <section class="page-hero">
     <div class="container">
       <h1>Upcoming gatherings</h1>
       <p>
-        Find DevRel(ish) gatherings happening near you or at an event you're already attending.
+        Find gatherings happening near you or at an event you're already attending.
         No agendas, no sponsors — just real people.
       </p>
     </div>
   </section>
 
-  {(allTags.length > 0 || allCities.length > 0 || allEvents.length > 0) && (
+  {(presentCategories.length > 0 || allTags.length > 0 || allCities.length > 0 || allEvents.length > 0) && (
     <div class="filter-bar">
       <div class="container">
+
+        {presentCategories.length > 0 && (
+          <div class="filter-row">
+            <span class="filter-label">Community:</span>
+            <div class="filter-chips">
+              <a href={clearUrl()} class:list={["filter-chip", { active: !activeCategory }]}>All</a>
+              {presentCategories.map(c => {
+                const params = new URLSearchParams({ ...Object.fromEntries(Astro.url.searchParams), category: c.slug });
+                params.delete("city");
+                params.delete("event");
+                params.delete("tag");
+                return (
+                  <a
+                    href={`/gatherings?${params}`}
+                    class:list={["filter-chip", { active: c.slug === activeCategory }]}
+                  >{c.label}</a>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {allEvents.length > 0 && (
           <div class="filter-row">
@@ -151,9 +180,10 @@ function clearUrl() {
       {hasFilters && (
         <p class="filter-notice">
           Showing:
-          {activeEvent && <> event: <strong>{activeEvent}</strong></>}
-          {activeCity && <>{activeEvent ? " · " : ""} city: <strong>{activeCity}</strong></>}
-          {activeTag && <>{(activeEvent || activeCity) ? " · " : ""} topic: <strong>{activeTag}</strong></>}
+          {activeCategory && <> community: <strong>{getCategoryLabel(activeCategory) ?? activeCategory}</strong></>}
+          {activeEvent && <>{activeCategory ? " · " : ""} event: <strong>{activeEvent}</strong></>}
+          {activeCity && <>{(activeCategory || activeEvent) ? " · " : ""} city: <strong>{activeCity}</strong></>}
+          {activeTag && <>{(activeCategory || activeEvent || activeCity) ? " · " : ""} topic: <strong>{activeTag}</strong></>}
           {" · "}<a href="/gatherings">Clear filters</a>
         </p>
       )}
@@ -210,7 +240,7 @@ function clearUrl() {
     <div class="container">
       <p>
         Organizing a gathering?{" "}
-        <a href="/groups/register">Start a DevRel(ish) group →</a>
+        <a href="/groups/register">Start a group →</a>
       </p>
     </div>
   </section>

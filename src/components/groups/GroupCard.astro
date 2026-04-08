@@ -7,14 +7,16 @@ interface Props {
   region?: string | null;
   country?: string | null;
   tagline?: string | null;
+  category?: string | null;
   tags?: string | null;
   description: string;
   upcomingCount?: number;
 }
 
 import { stripMarkdown } from "../../lib/markdown";
+import { getCategoryLabel } from "../../lib/categories";
 
-const { name, slug, city, region, country, tagline, tags, description, upcomingCount = 0 } = Astro.props;
+const { name, slug, city, region, country, tagline, category, tags, description, upcomingCount = 0 } = Astro.props;
 
 const location = city
   ? region ? `${city}, ${region}` : country ? `${city}, ${country}` : city
@@ -30,6 +32,9 @@ const snippet = plain.length > 140 ? plain.slice(0, 140) + "…" : plain;
   <div class="card-header">
     <div class="group-icon" aria-hidden="true">◈</div>
     <div>
+      {category && (
+        <a href={`/groups?category=${encodeURIComponent(category)}`} class="category-badge">{getCategoryLabel(category) ?? category}</a>
+      )}
       <h3 class="group-name">
         <a href={`/groups/${slug}`}>{name}</a>
       </h3>
@@ -95,6 +100,25 @@ const snippet = plain.length > 140 ? plain.slice(0, 140) + "…" : plain;
 
   .group-name a:hover {
     color: var(--color-primary);
+  }
+
+  .category-badge {
+    display: inline-block;
+    font-size: var(--size-xs);
+    font-weight: 700;
+    background: rgba(124, 58, 237, 0.08);
+    color: #7c3aed;
+    border: 1px solid rgba(124, 58, 237, 0.2);
+    border-radius: var(--radius-full);
+    padding: 0.1rem 0.55rem;
+    margin-bottom: 0.3rem;
+    text-decoration: none;
+    transition: background var(--transition), border-color var(--transition);
+  }
+
+  .category-badge:hover {
+    background: rgba(124, 58, 237, 0.15);
+    border-color: rgba(124, 58, 237, 0.4);
   }
 
   .group-tagline {

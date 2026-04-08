@@ -3,6 +3,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import MeetupCard from "../../components/meetups/MeetupCard.astro";
 import { db, Groups, Meetups, RSVPs, Followers, count, eq, and, gte, asc } from "astro:db";
 import { renderMarkdown, stripMarkdown } from "../../lib/markdown";
+import { getCategoryLabel } from "../../lib/categories";
 
 const { slug } = Astro.params;
 if (!slug) return Astro.redirect("/groups");
@@ -68,6 +69,11 @@ const location = group.city
       {group.tagline && <p class="group-tagline">{group.tagline}</p>}
 
       <div class="group-details-row">
+        {group.category && (
+          <a href={`/groups?category=${encodeURIComponent(group.category)}`} class="category-chip">
+            {getCategoryLabel(group.category) ?? group.category}
+          </a>
+        )}
         {location && <span class="group-location">📍 {location}</span>}
         {tagList.map(tag => (
           <a href={`/groups?tag=${encodeURIComponent(tag)}`} class="tag-chip">{tag}</a>
@@ -215,6 +221,23 @@ const location = group.city
   .group-location {
     font-size: var(--size-sm);
     color: var(--color-text-muted);
+  }
+
+  .category-chip {
+    font-size: var(--size-xs);
+    font-weight: 700;
+    background: rgba(124, 58, 237, 0.08);
+    color: #7c3aed;
+    border: 1px solid rgba(124, 58, 237, 0.2);
+    border-radius: var(--radius-full);
+    padding: 0.15rem 0.6rem;
+    text-decoration: none;
+    transition: background var(--transition), border-color var(--transition);
+  }
+
+  .category-chip:hover {
+    background: rgba(124, 58, 237, 0.15);
+    border-color: rgba(124, 58, 237, 0.4);
   }
 
   .tag-chip {

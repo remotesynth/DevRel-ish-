@@ -3,6 +3,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
 import { db, Groups } from "astro:db";
 import { eq, desc } from "astro:db";
 import { stripMarkdown } from "../../lib/markdown";
+import { getCategoryLabel } from "../../lib/categories";
 
 if (!Astro.locals.user) return Astro.redirect("/auth/login");
 if (Astro.locals.user.role !== "admin") return Astro.redirect("/dashboard");
@@ -34,10 +35,15 @@ const pendingGroups = await db
       {pendingGroups.map((g) => (
         <div class="group-row">
           <div class="group-info">
-            <h3 class="group-name">{g.name}</h3>
-            <p class="group-location">
-              📍 {g.region ? `${g.city}, ${g.region}, ${g.country}` : `${g.city}, ${g.country}`}
-            </p>
+            <div class="group-name-row">
+              <h3 class="group-name">{g.name}</h3>
+              {g.category && <span class="category-badge">{getCategoryLabel(g.category) ?? g.category}</span>}
+            </div>
+            {(g.city || g.country) && (
+              <p class="group-location">
+                📍 {g.region ? `${g.city}, ${g.region}, ${g.country}` : `${g.city}, ${g.country}`}
+              </p>
+            )}
             <p class="group-contact">✉️ {g.contactEmail}</p>
             <p class="group-desc">{(({ t }) => t.length > 200 ? t.slice(0, 200) + "…" : t)({ t: stripMarkdown(g.description) })}</p>
           </div>
@@ -118,9 +124,28 @@ const pendingGroups = await db
     flex: 1;
   }
 
+  .group-name-row {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.25rem;
+  }
+
   .group-name {
     font-size: var(--size-lg);
-    margin-bottom: 0.25rem;
+    margin: 0;
+  }
+
+  .category-badge {
+    font-size: var(--size-xs);
+    font-weight: 700;
+    background: rgba(124, 58, 237, 0.1);
+    color: #7c3aed;
+    border: 1px solid rgba(124, 58, 237, 0.25);
+    border-radius: var(--radius-full);
+    padding: 0.15rem 0.6rem;
+    white-space: nowrap;
   }
 
   .group-location,

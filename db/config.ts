@@ -14,6 +14,7 @@ const Groups = defineTable({
     // Identity & discovery
     tagline: column.text({ optional: true }), // short one-liner for cards
     tags: column.text({ optional: true }), // comma-separated
+    category: column.text({ optional: true }), // slug from src/lib/categories.ts
     website: column.text({ optional: true }),
     blueskyHandle: column.text({ optional: true }),
     linkedinUrl: column.text({ optional: true }),
