@@ -17,6 +17,7 @@ if (!group || (group.status !== "approved" && group.status !== "closed")) {
 
 const isGroupClosed = group.status === "closed";
 const isMeetupCanceled = meetup.status === "canceled";
+const isPast = meetup.date < new Date();
 
 type FormResult =
   | { type: "success"; name: string; email: string; cancelToken: string }
@@ -324,6 +325,11 @@ const isFull = spots === 0;
         <p class="rsvp-note">
           No account needed. Your info is only used to manage attendance.
         </p>
+        {!isMeetupCanceled && !isPast && (
+          <p class="cancel-note">
+            Already registered? <a href={`/gatherings/${id}/cancel`}>Cancel your RSVP</a>
+          </p>
+        )}
       </aside>
     </div>
   </section>
@@ -596,6 +602,24 @@ const isFull = spots === 0;
     color: var(--color-text-light);
     text-align: center;
     max-width: none;
+  }
+
+  .cancel-note {
+    font-size: var(--size-xs);
+    color: var(--color-text-light);
+    text-align: center;
+    max-width: none;
+  }
+
+  .cancel-note a {
+    color: var(--color-text-light);
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 2px;
+  }
+
+  .cancel-note a:hover {
+    color: var(--color-text-muted);
   }
 
   @media (max-width: 768px) {

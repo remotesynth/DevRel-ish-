@@ -14,6 +14,11 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         DevRel(ish) is a platform for developer relations professionals and adjacent roles to find and run in-person gatherings around the world.
         Here's everything you need to know — whether you're looking to join a community or launch one.
       </p>
+      <div class="beta-notice">
+        <span class="beta-tag">Beta</span>
+        DevRel(ish) is currently in public beta. Core features are stable and live, but you may encounter rough edges.
+        Found something broken or have a suggestion? Reach out via any group's contact form — we'd love to hear from you.
+      </div>
     </div>
   </div>
 
@@ -62,6 +67,20 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 
         <div class="step">
           <div class="step-num">4</div>
+          <div class="step-content">
+            <h3>Cancel your RSVP if plans change</h3>
+            <p>
+              No account required to cancel. When you RSVP, the confirmation page shows a personal
+              cancellation link — bookmark it or save it somewhere handy.
+              If you lose it, go back to the event's RSVP page and click
+              <strong>Cancel your RSVP</strong> in the sidebar.
+              Enter the email you registered with and we'll send the cancellation link to your inbox.
+            </p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">5</div>
           <div class="step-content">
             <h3>Stay in the loop with RSS</h3>
             <p>
@@ -277,6 +296,33 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     line-height: 1.65;
     margin: 0;
     max-width: 600px;
+  }
+
+  .beta-notice {
+    margin-top: 1.25rem;
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+    background: var(--color-surface);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    max-width: 600px;
+    line-height: 1.6;
+  }
+
+  .beta-tag {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-light);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-full);
+    padding: 0.1em 0.5em;
+    flex-shrink: 0;
   }
 
   /* ── Body ─────────────────────────────────────────────────────────── */
