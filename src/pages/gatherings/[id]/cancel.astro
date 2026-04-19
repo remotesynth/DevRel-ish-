@@ -1,0 +1,166 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { db, Meetups, RSVPs, Groups, eq, and } from "astro:db";
+import { sendRsvpCancelLink } from "../../../lib/email";
+
+const { id } = Astro.params;
+if (!id) return Astro.redirect("/groups");
+
+const [meetup] = await db.select().from(Meetups).where(eq(Meetups.id, id));
+if (!meetup) return Astro.redirect("/groups");
+
+const [group] = await db.select().from(Groups).where(eq(Groups.id, meetup.groupId));
+if (!group || (group.status !== "approved" && group.status !== "closed")) {
+  return Astro.redirect("/groups");
+}
+
+// Past or cancelled gatherings can't have RSVPs cancelled
+if (meetup.status === "canceled" || meetup.date < new Date()) {
+  return Astro.redirect(`/gatherings/${id}/rsvp`);
+}
+
+type State = "idle" | "sent";
+let state: State = "idle";
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const email = form.get("email")?.toString().trim().toLowerCase() ?? "";
+
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    const [rsvp] = await db
+      .select()
+      .from(RSVPs)
+      .where(and(eq(RSVPs.meetupId, id), eq(RSVPs.email, email)));
+
+    if (rsvp?.cancelToken) {
+      const cancelUrl = `${Astro.url.origin}/gatherings/${id}/cancel/${rsvp.cancelToken}`;
+      try {
+        await sendRsvpCancelLink({
+          to: email,
+          name: rsvp.name,
+          eventTitle: meetup.title,
+          groupName: group.name,
+          cancelUrl,
+        });
+      } catch (e) {
+        console.error("[cancel recovery] email send error:", e);
+      }
+    }
+    // Always show "sent" — don't reveal whether an RSVP exists for that email
+  }
+  state = "sent";
+}
+---
+
+<BaseLayout title={`Cancel RSVP — ${meetup.title}`}>
+  <section class="cancel-page">
+    <div class="container">
+      <div class="cancel-card">
+
+        {state === "sent" ? (
+          <>
+            <div class="card-icon" aria-hidden="true">✉</div>
+            <h1>Check your inbox</h1>
+            <p>
+              If we found an RSVP for that email address, we've sent a cancellation link.
+              Click it to remove your spot.
+            </p>
+            <p class="hint">Didn't get it? Check your spam folder, or double-check you used the same email when you registered.</p>
+            <a href={`/gatherings/${id}/rsvp`} class="btn btn-ghost">← Back to event</a>
+          </>
+        ) : (
+          <>
+            <div class="card-icon" aria-hidden="true">◎</div>
+            <h1>Cancel your RSVP</h1>
+            <p>
+              Enter the email address you used when you registered for
+              <strong> {meetup.title}</strong>. We'll send you a link to cancel your spot.
+            </p>
+
+            <form method="POST" class="recover-form">
+              <div class="form-group">
+                <label for="email">Email address</label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="taylor@example.com"
+                  required
+                  autofocus
+                />
+              </div>
+              <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">
+                Send cancellation link →
+              </button>
+            </form>
+
+            <a href={`/gatherings/${id}/rsvp`} class="back-link">← Back to event</a>
+          </>
+        )}
+
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .cancel-page {
+    min-height: calc(100vh - 64px - 200px);
+    display: flex;
+    align-items: center;
+    padding: 3rem 0;
+  }
+
+  .cancel-card {
+    max-width: 440px;
+    margin-inline: auto;
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: 2.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.875rem;
+    text-align: center;
+  }
+
+  .card-icon {
+    font-size: 2.5rem;
+    color: var(--color-primary);
+    line-height: 1;
+  }
+
+  h1 { font-size: var(--size-2xl); }
+
+  p {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+    max-width: none;
+    line-height: 1.6;
+  }
+
+  .hint {
+    font-size: var(--size-xs);
+    color: var(--color-text-light);
+  }
+
+  .recover-form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    text-align: left;
+    margin-top: 0.5rem;
+  }
+
+  .back-link {
+    font-size: var(--size-sm);
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    margin-top: 0.25rem;
+  }
+
+  .back-link:hover { color: var(--color-primary); }
+</style>

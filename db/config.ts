@@ -57,6 +57,7 @@ const RSVPs = defineTable({
     email: column.text(),
     jobTitle: column.text(),
     company: column.text(),
+    cancelToken: column.text({ optional: true, unique: true }), // for self-serve RSVP cancellation
     createdAt: column.date({ default: new Date() }),
   },
 });

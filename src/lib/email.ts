@@ -144,6 +144,35 @@ export async function sendContactMessageAlert({
   );
 }
 
+export async function sendRsvpCancelLink({
+  to,
+  name,
+  eventTitle,
+  groupName,
+  cancelUrl,
+}: {
+  to: string;
+  name: string;
+  eventTitle: string;
+  groupName: string;
+  cancelUrl: string;
+}) {
+  await resend.emails.send({
+    from: `${SITE_NAME} <${FROM}>`,
+    to,
+    subject: `Your cancellation link for ${eventTitle}`,
+    html: `
+      <p>Hi ${name},</p>
+      <p>You requested a link to cancel your RSVP for <strong>${eventTitle}</strong>, hosted by <strong>${groupName}</strong>.</p>
+      <p style="margin: 1.5rem 0;">
+        <a href="${cancelUrl}" style="background:#e8704a;color:#fff;padding:0.6rem 1.25rem;border-radius:6px;text-decoration:none;font-weight:600;">Cancel my RSVP →</a>
+      </p>
+      <p style="font-size:0.85em;color:#666;">This link will cancel your RSVP immediately when clicked. If you didn't request this, you can safely ignore this email — your spot is still reserved.</p>
+    `,
+    text: `Hi ${name},\n\nYou requested a link to cancel your RSVP for ${eventTitle}, hosted by ${groupName}.\n\nCancel your RSVP: ${cancelUrl}\n\nIf you didn't request this, ignore this email — your spot is still reserved.`,
+  });
+}
+
 export async function sendCancellationNotice({
   rsvps,
   groupName,

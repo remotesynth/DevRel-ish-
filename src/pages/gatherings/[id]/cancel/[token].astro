@@ -1,0 +1,211 @@
+---
+import BaseLayout from "../../../../layouts/BaseLayout.astro";
+import { db, Meetups, RSVPs, Groups, eq, and } from "astro:db";
+import { formatDate, formatTime, groupUrl } from "../../../../lib/utils";
+
+const { id, token } = Astro.params;
+if (!id || !token) return Astro.redirect("/groups");
+
+const [meetup] = await db.select().from(Meetups).where(eq(Meetups.id, id));
+if (!meetup) return Astro.redirect("/groups");
+
+const [group] = await db.select().from(Groups).where(eq(Groups.id, meetup.groupId));
+if (!group) return Astro.redirect("/groups");
+
+// Verify token matches an RSVP for this event
+const [rsvp] = await db
+  .select()
+  .from(RSVPs)
+  .where(and(eq(RSVPs.meetupId, id), eq(RSVPs.cancelToken, token)));
+
+type State = "valid" | "cancelled" | "invalid";
+let state: State = rsvp ? "valid" : "invalid";
+
+if (rsvp && Astro.request.method === "POST") {
+  await db.delete(RSVPs).where(and(eq(RSVPs.meetupId, id), eq(RSVPs.cancelToken, token)));
+  state = "cancelled";
+}
+
+const isPast = meetup.date < new Date();
+const isMeetupCanceled = meetup.status === "canceled";
+---
+
+<BaseLayout title={`Cancel RSVP — ${meetup.title}`}>
+  <section class="cancel-page">
+    <div class="container">
+      <div class="cancel-card">
+
+        {state === "invalid" && (
+          <>
+            <div class="card-icon error-icon" aria-hidden="true">✕</div>
+            <h1>Link not found</h1>
+            <p>
+              This cancellation link is invalid or has already been used.
+              If you still need to cancel, contact the event organizers.
+            </p>
+            <a href={groupUrl(group)} class="btn btn-ghost">← Back to {group.name}</a>
+          </>
+        )}
+
+        {state === "cancelled" && (
+          <>
+            <div class="card-icon" aria-hidden="true">◎</div>
+            <h1>RSVP cancelled</h1>
+            <p>
+              Your spot at <strong>{meetup.title}</strong> has been released.
+              Hope to see you at a future gathering!
+            </p>
+            <a href={groupUrl(group)} class="btn btn-ghost">Browse upcoming gatherings →</a>
+          </>
+        )}
+
+        {state === "valid" && (
+          <>
+            {isPast || isMeetupCanceled ? (
+              <>
+                <div class="card-icon" aria-hidden="true">◎</div>
+                <h1>{isMeetupCanceled ? "Gathering cancelled" : "Gathering has passed"}</h1>
+                <p>
+                  {isMeetupCanceled
+                    ? "This gathering was already cancelled by the organizer."
+                    : "This gathering has already taken place — there's nothing to cancel."}
+                </p>
+                <a href={groupUrl(group)} class="btn btn-ghost">← Back to {group.name}</a>
+              </>
+            ) : (
+              <>
+                <div class="card-icon warning-icon" aria-hidden="true">◈</div>
+                <h1>Cancel your spot?</h1>
+
+                <div class="event-summary">
+                  <p class="event-title">{meetup.title}</p>
+                  <p class="event-meta">{formatDate(meetup.date)} · {formatTime(meetup.time)}</p>
+                  <p class="event-meta">{meetup.venue}</p>
+                  <p class="event-host">Hosted by {group.name}</p>
+                </div>
+
+                <p class="confirm-note">
+                  This will release your spot and cannot be undone. Someone else may take it.
+                </p>
+
+                <form method="POST" class="confirm-form">
+                  <button type="submit" class="btn btn-danger">
+                    Yes, cancel my RSVP
+                  </button>
+                </form>
+
+                <a href={groupUrl(group)} class="back-link">← Keep my spot</a>
+              </>
+            )}
+          </>
+        )}
+
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .cancel-page {
+    min-height: calc(100vh - 64px - 200px);
+    display: flex;
+    align-items: center;
+    padding: 3rem 0;
+  }
+
+  .cancel-card {
+    max-width: 440px;
+    margin-inline: auto;
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: 2.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    text-align: center;
+  }
+
+  .card-icon {
+    font-size: 2.5rem;
+    color: var(--color-primary);
+    line-height: 1;
+  }
+
+  .warning-icon { color: var(--color-secondary-dark); }
+  .error-icon   { color: var(--color-danger, #dc2626); }
+
+  h1 { font-size: var(--size-2xl); }
+
+  p {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+    max-width: none;
+    line-height: 1.6;
+  }
+
+  .event-summary {
+    background: var(--color-surface-warm);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 1rem 1.25rem;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .event-title {
+    font-weight: 700;
+    font-size: var(--size-base);
+    color: var(--color-text);
+    margin: 0;
+  }
+
+  .event-meta {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+
+  .event-host {
+    font-size: var(--size-xs);
+    color: var(--color-text-light);
+    margin: 0;
+    margin-top: 0.25rem;
+  }
+
+  .confirm-note {
+    font-size: var(--size-xs);
+    color: var(--color-text-light);
+    font-style: italic;
+  }
+
+  .confirm-form { width: 100%; }
+
+  .btn-danger {
+    width: 100%;
+    justify-content: center;
+    background: #dc2626;
+    color: white;
+    border: none;
+    padding: 0.6rem 1.25rem;
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+    font-size: var(--size-base);
+    cursor: pointer;
+    transition: background var(--transition);
+  }
+
+  .btn-danger:hover { background: #b91c1c; }
+
+  .back-link {
+    font-size: var(--size-sm);
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-decoration: none;
+  }
+
+  .back-link:hover { color: var(--color-primary); }
+</style>
