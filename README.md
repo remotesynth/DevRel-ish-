@@ -1,5 +1,7 @@
 ## What's been built
 
+This is the source code that runs the [DevRel(ish)](https://devrelish.tech) community site.
+
 **`devrelish/`** — complete Astro 6 SSR project
 
 ### Database (`db/`)
