@@ -1,0 +1,456 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="How It Works"
+  description="Learn how DevRel(ish) works — from registering a group to hosting gatherings and growing your community."
+>
+  <div class="hiw-hero">
+    <div class="hiw-hero-inner">
+      <p class="hiw-eyebrow">Documentation</p>
+      <h1>How DevRel(ish) Works</h1>
+      <p class="hiw-lead">
+        DevRel(ish) is a platform for developer relations professionals and adjacent roles to find and run in-person gatherings around the world.
+        Here's everything you need to know — whether you're looking to join a community or launch one.
+      </p>
+    </div>
+  </div>
+
+  <div class="hiw-body">
+
+    <!-- ── For Community Members ───────────────────────────────────────── -->
+    <section class="hiw-section">
+      <div class="section-label">For members</div>
+      <h2>Finding &amp; following a group</h2>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h3>Browse groups</h3>
+            <p>
+              Head to <a href="/groups">devrelish.tech/groups</a> to see all approved communities.
+              Filter by category or tag to find groups relevant to your role or interests.
+            </p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h3>Follow for updates</h3>
+            <p>
+              On any group's page you can enter your email to follow the group.
+              You'll receive a confirmation email, and from then on you'll be notified when new gatherings are announced.
+              You can unsubscribe at any time from any notification email.
+            </p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h3>RSVP to a gathering</h3>
+            <p>
+              When a gathering is announced, you can RSVP directly on the event page.
+              Capacity is limited — RSVPs are first come, first served.
+              Your spot is confirmed as soon as you submit the form.
+            </p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <h3>Stay in the loop with RSS</h3>
+            <p>
+              Every group has an RSS feed at <code>/groups/[group-slug]/rss.xml</code>.
+              Add it to your feed reader to get gathering announcements without email.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── For Organizers ─────────────────────────────────────────────── -->
+    <section class="hiw-section">
+      <div class="section-label">For organizers</div>
+      <h2>Launching &amp; managing a group</h2>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h3>Register your group</h3>
+            <p>
+              Fill out the <a href="/groups/register">group registration form</a>.
+              Provide your group's name, a description (50 characters minimum, Markdown supported),
+              a contact email, and optionally a category, tags, and location.
+              Submitted groups start with a <strong>pending</strong> status.
+            </p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h3>Wait for approval</h3>
+            <p>
+              The DevRel(ish) team reviews submissions manually.
+              When your group is approved you'll receive an email with an invite link.
+              Use that link to claim your group and set up your organizer account.
+              Invite links expire after 7 days — contact us if yours has lapsed.
+            </p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h3>Set up your group page</h3>
+            <p>
+              Once you've claimed your group, log into the <a href="/dashboard/group">organizer dashboard</a>.
+              You can edit your description, tagline, category, tags, location, and social links at any time.
+              Your group name is permanent — contact support if you need it changed.
+            </p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <h3>Add a custom short URL</h3>
+            <p>
+              In the <a href="/dashboard/group">My Group</a> settings you can choose a custom short URL for your group,
+              such as <code>devrelish.tech/sf-user-group</code>.
+              This makes it easier to share at events, on slides, or in email signatures.
+              Short URLs redirect to your group's canonical page and can be changed at any time.
+            </p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-content">
+            <h3>Announce a gathering</h3>
+            <p>
+              Go to <a href="/dashboard/gatherings">Gatherings</a> in the dashboard and click <strong>New gathering</strong>.
+              Add a title, description, date, time, venue, and capacity.
+              Gatherings are automatically listed on your public group page once created.
+            </p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">6</div>
+          <div class="step-content">
+            <h3>Manage attendees</h3>
+            <p>
+              In the dashboard you can view the RSVP list for each gathering and export it as a CSV.
+              The attendee list shows name, email, job title, and company.
+            </p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">7</div>
+          <div class="step-content">
+            <h3>Add co-organizers</h3>
+            <p>
+              Share the load by inviting co-organizers via the <a href="/dashboard/team">Team</a> page.
+              Co-organizers have the same dashboard access as the primary organizer.
+            </p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">8</div>
+          <div class="step-content">
+            <h3>Respond to messages</h3>
+            <p>
+              Community members can send your group a message through the contact form on your public page.
+              Messages land in your <a href="/dashboard/messages">Messages</a> inbox in the dashboard.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── FAQ ───────────────────────────────────────────────────────── -->
+    <section class="hiw-section hiw-faq">
+      <div class="section-label">FAQ</div>
+      <h2>Common questions</h2>
+
+      <div class="faq-list">
+        <details class="faq-item">
+          <summary>Is DevRel(ish) free for organizers?</summary>
+          <p>Yes, the platform is free for all organizers and community members.</p>
+        </details>
+
+        <details class="faq-item">
+          <summary>What kinds of groups are accepted?</summary>
+          <p>
+            Groups focused on developer relations and adjacent roles — including developer advocacy,
+            developer experience, technical writing, community management, and related fields.
+            Groups must be dedicated to in-person gatherings; online-only communities are not a current focus.
+          </p>
+        </details>
+
+        <details class="faq-item">
+          <summary>How long does approval take?</summary>
+          <p>
+            We review applications as quickly as possible, usually within a few business days.
+            You'll receive an email when your group is approved or if we need more information.
+          </p>
+        </details>
+
+        <details class="faq-item">
+          <summary>Can I change my group's name?</summary>
+          <p>
+            Group names are permanent after approval to preserve recognition and existing links.
+            If you have a compelling reason to rename your group, contact us and we'll discuss options.
+          </p>
+        </details>
+
+        <details class="faq-item">
+          <summary>What happens to follower emails?</summary>
+          <p>
+            Follower emails are only used to notify followers when your group announces a new gathering.
+            Emails are never shared, sold, or used for any other purpose. Every email includes an unsubscribe link.
+          </p>
+        </details>
+
+        <details class="faq-item">
+          <summary>Can I close or pause my group?</summary>
+          <p>
+            Yes. If your group is no longer active, contact the DevRel(ish) team and we can mark it as closed.
+            Closed groups remain visible but display a notice that the group is no longer active.
+          </p>
+        </details>
+      </div>
+    </section>
+
+    <!-- ── CTA ───────────────────────────────────────────────────────── -->
+    <section class="hiw-cta">
+      <h2>Ready to get started?</h2>
+      <p>Browse existing communities or register your own group today.</p>
+      <div class="cta-actions">
+        <a href="/groups" class="btn btn-primary">Browse groups</a>
+        <a href="/groups/register" class="btn btn-ghost">Register a group</a>
+      </div>
+    </section>
+
+  </div>
+</BaseLayout>
+
+<style>
+  /* ── Hero ─────────────────────────────────────────────────────────── */
+  .hiw-hero {
+    background: var(--color-surface-warm);
+    border-bottom: 2px solid var(--color-border);
+    padding: 4rem 1.5rem 3rem;
+  }
+
+  .hiw-hero-inner {
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  .hiw-eyebrow {
+    font-size: var(--size-xs);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-primary);
+    margin: 0 0 0.75rem;
+  }
+
+  .hiw-hero h1 {
+    font-size: clamp(var(--size-2xl), 5vw, var(--size-4xl));
+    margin: 0 0 1rem;
+  }
+
+  .hiw-lead {
+    font-size: var(--size-lg);
+    color: var(--color-text-light);
+    line-height: 1.65;
+    margin: 0;
+    max-width: 600px;
+  }
+
+  /* ── Body ─────────────────────────────────────────────────────────── */
+  .hiw-body {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3.5rem;
+  }
+
+  /* ── Section ──────────────────────────────────────────────────────── */
+  .hiw-section {}
+
+  .section-label {
+    font-size: var(--size-xs);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-primary);
+    margin-bottom: 0.5rem;
+  }
+
+  .hiw-section h2 {
+    font-size: var(--size-2xl);
+    margin: 0 0 2rem;
+  }
+
+  /* ── Steps ────────────────────────────────────────────────────────── */
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .step {
+    display: grid;
+    grid-template-columns: 2.5rem 1fr;
+    gap: 1rem;
+    padding: 1.25rem 0;
+    border-bottom: 1px dashed var(--color-border);
+  }
+
+  .step:last-child {
+    border-bottom: none;
+  }
+
+  .step-num {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: white;
+    font-weight: 700;
+    font-size: var(--size-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+  }
+
+  .step-content h3 {
+    font-size: var(--size-base);
+    margin: 0 0 0.375rem;
+  }
+
+  .step-content p {
+    font-size: var(--size-sm);
+    color: var(--color-text-light);
+    line-height: 1.65;
+    margin: 0;
+    max-width: none;
+  }
+
+  .step-content code {
+    font-size: 0.85em;
+    background: var(--color-surface-warm);
+    border: 1px solid var(--color-border);
+    border-radius: 3px;
+    padding: 0.1em 0.35em;
+  }
+
+  /* ── FAQ ──────────────────────────────────────────────────────────── */
+  .faq-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .faq-item {
+    border-bottom: 1px dashed var(--color-border);
+    padding: 0;
+  }
+
+  .faq-item:first-child {
+    border-top: 1px dashed var(--color-border);
+  }
+
+  .faq-item summary {
+    font-weight: 600;
+    font-size: var(--size-base);
+    padding: 1rem 0;
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .faq-item summary::after {
+    content: "+";
+    font-size: var(--size-lg);
+    font-weight: 400;
+    color: var(--color-primary);
+    flex-shrink: 0;
+    line-height: 1;
+    transition: transform var(--transition);
+  }
+
+  .faq-item[open] summary::after {
+    transform: rotate(45deg);
+  }
+
+  .faq-item p {
+    font-size: var(--size-sm);
+    color: var(--color-text-light);
+    line-height: 1.65;
+    margin: 0 0 1rem;
+    max-width: none;
+  }
+
+  /* ── CTA ──────────────────────────────────────────────────────────── */
+  .hiw-cta {
+    background: var(--color-surface-warm);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 2.5rem 2rem;
+    text-align: center;
+  }
+
+  .hiw-cta h2 {
+    font-size: var(--size-2xl);
+    margin: 0 0 0.5rem;
+  }
+
+  .hiw-cta p {
+    color: var(--color-text-light);
+    margin: 0 0 1.5rem;
+  }
+
+  .cta-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 560px) {
+    .step {
+      grid-template-columns: 2rem 1fr;
+      gap: 0.75rem;
+    }
+
+    .step-num {
+      width: 2rem;
+      height: 2rem;
+      font-size: var(--size-xs);
+    }
+
+    .hiw-cta {
+      padding: 2rem 1.25rem;
+    }
+  }
+</style>

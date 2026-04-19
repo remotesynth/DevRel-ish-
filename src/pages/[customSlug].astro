@@ -1,14 +1,21 @@
 ---
-import GroupPage from "../../components/groups/GroupPage.astro";
+/**
+ * Handles organizer-chosen short URLs like /sf-user-group.
+ * Renders the group page directly so the short URL stays in the address bar.
+ */
+import GroupPage from "../components/groups/GroupPage.astro";
 import { db, Groups, Meetups, RSVPs, Followers, count, eq, and, gte, asc } from "astro:db";
 
-const { slug } = Astro.params;
-if (!slug) return Astro.redirect("/groups");
+const { customSlug } = Astro.params;
+if (!customSlug) return Astro.redirect("/groups");
 
-const [group] = await db.select().from(Groups).where(eq(Groups.slug, slug));
+const [group] = await db
+  .select()
+  .from(Groups)
+  .where(eq(Groups.customSlug, customSlug));
 
 if (!group || (group.status !== "approved" && group.status !== "closed")) {
-  return Astro.redirect("/groups");
+  return new Response(null, { status: 404 });
 }
 
 const today = new Date();

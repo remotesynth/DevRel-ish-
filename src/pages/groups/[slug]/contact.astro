@@ -1,7 +1,7 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import { db, Groups, ContactMessages, User, eq, and } from "astro:db";
-import { generateId } from "../../../lib/utils";
+import { generateId, groupUrl } from "../../../lib/utils";
 import { stripMarkdown } from "../../../lib/markdown";
 import { sendContactMessageAlert } from "../../../lib/email";
 
@@ -80,7 +80,7 @@ if (!isGroupClosed && Astro.request.method === "POST") {
         <div class="breadcrumb">
           <a href="/groups">Groups</a>
           <span aria-hidden="true">→</span>
-          <a href={`/groups/${group.slug}`}>{group.name}</a>
+          <a href={groupUrl(group)}>{group.name}</a>
           <span aria-hidden="true">→</span>
           <span>Contact</span>
         </div>
@@ -89,14 +89,14 @@ if (!isGroupClosed && Astro.request.method === "POST") {
           <div class="closed-state">
             <h1>Group closed</h1>
             <p><strong>{group.name}</strong> is no longer active and is not accepting messages.</p>
-            <a href={`/groups/${group.slug}`} class="btn btn-ghost">← Back to {group.name}</a>
+            <a href={groupUrl(group)} class="btn btn-ghost">← Back to {group.name}</a>
           </div>
         ) : result?.type === "success" ? (
           <div class="success-state">
             <div class="success-icon" aria-hidden="true">✉️</div>
             <h1>Message sent!</h1>
             <p>The organizers of <strong>{group.name}</strong> will be in touch via the email you provided.</p>
-            <a href={`/groups/${group.slug}`} class="btn btn-ghost">← Back to {group.name}</a>
+            <a href={groupUrl(group)} class="btn btn-ghost">← Back to {group.name}</a>
           </div>
         ) : (
           <>
@@ -151,7 +151,7 @@ if (!isGroupClosed && Astro.request.method === "POST") {
             <p class="group-location">📍 {group.city}{group.region ? `, ${group.region}` : ""}{group.country ? `, ${group.country}` : ""}</p>
           )}
           <p>{descSnippet}</p>
-          <a href={`/groups/${group.slug}`} class="btn btn-ghost btn-sm" style="margin-top: 0.75rem;">View group →</a>
+          <a href={groupUrl(group)} class="btn btn-ghost btn-sm" style="margin-top: 0.75rem;">View group →</a>
         </div>
         <p class="contact-note">
           Your email is only shared with the group organizer. We don't use it for marketing. <a href="/privacy">Privacy policy →</a>

@@ -1,5 +1,5 @@
 ---
-import { formatTime, osmUrl } from "../../lib/utils";
+import { formatTime, osmUrl, groupUrl } from "../../lib/utils";
 import { renderMarkdown } from "../../lib/markdown";
 
 interface Props {
@@ -18,14 +18,16 @@ interface Props {
   rsvpCount: number;
   groupName: string;
   groupSlug: string;
+  groupCustomSlug?: string | null;
   status?: string;
 }
 
 const {
   id, title, description, date, time, venue, address,
   city, country, eventContext, tags,
-  capacity, rsvpCount, groupName, groupSlug, status = "active",
+  capacity, rsvpCount, groupName, groupSlug, groupCustomSlug, status = "active",
 } = Astro.props;
+const groupHref = groupUrl({ slug: groupSlug, customSlug: groupCustomSlug });
 
 const isCanceled = status === "canceled";
 const spotsLeft = Math.max(0, capacity - rsvpCount);
@@ -50,7 +52,7 @@ const locationLine = eventContext
 
     <div class="card-main">
       <p class="group-label">
-        <a href={`/groups/${groupSlug}`} class="group-link">{groupName}</a>
+        <a href={groupHref} class="group-link">{groupName}</a>
       </p>
       <h3 class="gathering-title">
         {title}

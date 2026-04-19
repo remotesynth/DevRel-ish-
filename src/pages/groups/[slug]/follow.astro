@@ -1,17 +1,17 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import { db, Groups, Followers, eq, and } from "astro:db";
-import { generateId } from "../../../lib/utils";
+import { generateId, groupUrl } from "../../../lib/utils";
 import { sendFollowConfirmation } from "../../../lib/email";
 
 const { slug } = Astro.params;
 if (!slug) return Astro.redirect("/groups");
 
-// GET: redirect back to the group page
-if (Astro.request.method !== "POST") return Astro.redirect(`/groups/${slug}`);
-
 const [group] = await db.select().from(Groups).where(eq(Groups.slug, slug));
 if (!group || group.status !== "approved") return Astro.redirect("/groups");
+
+// GET: redirect back to the group page
+if (Astro.request.method !== "POST") return Astro.redirect(groupUrl(group));
 
 const form = await Astro.request.formData();
 const email = form.get("email")?.toString().trim().toLowerCase() ?? "";
@@ -72,7 +72,7 @@ if (!email || !emailRe.test(email)) {
   <section class="follow-page">
     <div class="container">
       <div class="follow-card">
-        <a href={`/groups/${slug}`} class="back-link">← Back to {group.name}</a>
+        <a href={groupUrl(group)} class="back-link">← Back to {group.name}</a>
 
         {result.state === "success" && (
           <>
@@ -104,7 +104,7 @@ if (!email || !emailRe.test(email)) {
             <div class="result-icon error-icon" aria-hidden="true">✕</div>
             <h1>Something went wrong</h1>
             <p>{result.message}</p>
-            <a href={`/groups/${slug}`} class="btn btn-primary">Try again →</a>
+            <a href={groupUrl(group)} class="btn btn-primary">Try again →</a>
           </>
         )}
       </div>

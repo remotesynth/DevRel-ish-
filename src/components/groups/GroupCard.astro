@@ -3,6 +3,7 @@ interface Props {
   id: string;
   name: string;
   slug: string;
+  customSlug?: string | null;
   city?: string | null;
   region?: string | null;
   country?: string | null;
@@ -15,8 +16,10 @@ interface Props {
 
 import { stripMarkdown } from "../../lib/markdown";
 import { getCategoryLabel } from "../../lib/categories";
+import { groupUrl } from "../../lib/utils";
 
-const { name, slug, city, region, country, tagline, category, tags, description, upcomingCount = 0 } = Astro.props;
+const { name, slug, customSlug, city, region, country, tagline, category, tags, description, upcomingCount = 0 } = Astro.props;
+const href = groupUrl({ slug, customSlug });
 
 const location = city
   ? region ? `${city}, ${region}` : country ? `${city}, ${country}` : city
@@ -36,7 +39,7 @@ const snippet = plain.length > 140 ? plain.slice(0, 140) + "…" : plain;
         <a href={`/groups?category=${encodeURIComponent(category)}`} class="category-badge">{getCategoryLabel(category) ?? category}</a>
       )}
       <h3 class="group-name">
-        <a href={`/groups/${slug}`}>{name}</a>
+        <a href={href}>{name}</a>
       </h3>
       {tagline && <p class="group-tagline">{tagline}</p>}
       {location && <p class="group-location">📍 {location}</p>}
@@ -63,7 +66,7 @@ const snippet = plain.length > 140 ? plain.slice(0, 140) + "…" : plain;
         <span class="no-meetups">No upcoming gatherings</span>
       )
     }
-    <a href={`/groups/${slug}`} class="btn btn-ghost btn-sm">View group →</a>
+    <a href={href} class="btn btn-ghost btn-sm">View group →</a>
   </div>
 </article>
 

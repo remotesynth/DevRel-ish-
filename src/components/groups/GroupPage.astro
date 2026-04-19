@@ -1,0 +1,437 @@
+---
+/**
+ * Shared group page renderer used by both /groups/[slug] and /[customSlug].
+ * Keeps the two routes in sync without duplicating markup.
+ */
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import MeetupCard from "../meetups/MeetupCard.astro";
+import { renderMarkdown, stripMarkdown } from "../../lib/markdown";
+import { getCategoryLabel } from "../../lib/categories";
+
+import type { Groups, Meetups } from "astro:db";
+
+interface Props {
+  group: typeof Groups.$inferSelect;
+  meetups: (typeof Meetups.$inferSelect)[];
+  rsvpCounts: Record<string, number>;
+  followerCount: number;
+}
+
+const { group, meetups, rsvpCounts, followerCount } = Astro.props;
+
+const isGroupClosed = group.status === "closed";
+
+const tagList = group.tags ? group.tags.split(",").map(t => t.trim()).filter(Boolean) : [];
+
+const location = group.city
+  ? group.region
+    ? `${group.city}, ${group.region}, ${group.country ?? ""}`
+    : group.country
+      ? `${group.city}, ${group.country}`
+      : group.city
+  : null;
+---
+
+<BaseLayout
+  title={group.name}
+  description={group.tagline ?? stripMarkdown(group.description).slice(0, 160)}
+>
+  <section class="group-hero">
+    <div class="container">
+      <div class="group-meta-row">
+        <a href="/groups" class="back-link">← All groups</a>
+        {isGroupClosed
+          ? <span class="badge badge-closed">Closed</span>
+          : <span class="badge badge-approved">Active group</span>
+        }
+      </div>
+
+      <h1>
+        {group.name}
+      </h1>
+
+      {group.tagline && <p class="group-tagline">{group.tagline}</p>}
+
+      <div class="group-details-row">
+        {group.category && (
+          <a href={`/groups?category=${encodeURIComponent(group.category)}`} class="category-chip">
+            {getCategoryLabel(group.category) ?? group.category}
+          </a>
+        )}
+        {location && <span class="group-location">📍 {location}</span>}
+        {tagList.map(tag => (
+          <a href={`/groups?tag=${encodeURIComponent(tag)}`} class="tag-chip">{tag}</a>
+        ))}
+      </div>
+
+      {group.website || group.blueskyHandle || group.linkedinUrl ? (
+        <div class="social-links">
+          {group.website && (
+            <a href={group.website} class="social-link" target="_blank" rel="noopener noreferrer">
+              🌐 Website
+            </a>
+          )}
+          {group.blueskyHandle && (
+            <a href={`https://bsky.app/profile/${group.blueskyHandle.replace(/^@/, "")}`} class="social-link" target="_blank" rel="noopener noreferrer">
+              🦋 {group.blueskyHandle.replace(/^@/, "")}
+            </a>
+          )}
+          {group.linkedinUrl && (
+            <a href={group.linkedinUrl} class="social-link" target="_blank" rel="noopener noreferrer">
+              in LinkedIn
+            </a>
+          )}
+        </div>
+      ) : null}
+
+      {isGroupClosed && (
+        <div class="closed-notice">
+          This group is no longer active. Prior gathering pages remain available for reference.
+        </div>
+      )}
+
+      <div class="group-desc prose" set:html={renderMarkdown(group.description)} />
+
+      {!isGroupClosed && (
+        <a href={`/groups/${group.slug}/contact`} class="contact-link">
+          Have a question? Contact the organizers →
+        </a>
+      )}
+    </div>
+  </section>
+
+  {!isGroupClosed && (
+    <section class="follow-section">
+      <div class="container">
+        <div class="follow-card">
+          <div class="follow-text">
+            <strong>Follow this group</strong>
+            <span>Get notified by email when new gatherings are posted.{followerCount > 0 ? ` ${followerCount} ${followerCount === 1 ? "person follows" : "people follow"} this group.` : ""}</span>
+          </div>
+          <div class="follow-actions">
+            <form method="POST" action={`/groups/${group.slug}/follow`} class="follow-form">
+              <input type="email" name="email" placeholder="your@email.com" required class="follow-input" />
+              <button type="submit" class="btn btn-primary btn-sm">Follow →</button>
+            </form>
+            <a href={`/groups/${group.slug}/rss.xml`} class="rss-link" title="RSS feed">
+              RSS feed
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  )}
+
+  <section class="meetups-section">
+    <div class="container">
+      <h2>Upcoming gatherings</h2>
+
+      {
+        meetups.length === 0 ? (
+          <div class="empty-meetups">
+            <div class="empty-icon" aria-hidden="true">✦</div>
+            <p>No gatherings scheduled yet. Check back soon!</p>
+          </div>
+        ) : (
+          <div class="meetups-list">
+            {meetups.map((m) => (
+              <MeetupCard
+                id={m.id}
+                title={m.title}
+                description={m.description}
+                date={m.date}
+                time={m.time}
+                venue={m.venue}
+                address={m.address}
+                city={m.city}
+                country={m.country}
+                eventContext={m.eventContext}
+                capacity={m.capacity}
+                rsvpCount={rsvpCounts[m.id] ?? 0}
+                groupSlug={group.slug}
+                status={m.status}
+                groupClosed={isGroupClosed}
+              />
+            ))}
+          </div>
+        )
+      }
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .group-hero {
+    padding: 3rem 0 2rem;
+    background: var(--color-surface-warm);
+    border-bottom: 2px solid var(--color-border);
+  }
+
+  .group-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .back-link {
+    font-size: var(--size-sm);
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--color-text-muted);
+  }
+
+  .back-link:hover { color: var(--color-primary); }
+
+  h1 { margin-bottom: 0.375rem; }
+
+  .group-tagline {
+    font-size: var(--size-lg);
+    color: var(--color-text-muted);
+    font-style: italic;
+    margin-bottom: 0.75rem;
+    max-width: none;
+  }
+
+  .group-details-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.875rem;
+  }
+
+  .group-location {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+  }
+
+  .category-chip {
+    font-size: var(--size-xs);
+    font-weight: 700;
+    background: rgba(124, 58, 237, 0.08);
+    color: #7c3aed;
+    border: 1px solid rgba(124, 58, 237, 0.2);
+    border-radius: var(--radius-full);
+    padding: 0.15rem 0.6rem;
+    text-decoration: none;
+    transition: background var(--transition), border-color var(--transition);
+  }
+
+  .category-chip:hover {
+    background: rgba(124, 58, 237, 0.15);
+    border-color: rgba(124, 58, 237, 0.4);
+  }
+
+  .tag-chip {
+    font-size: var(--size-xs);
+    font-weight: 600;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    padding: 0.15rem 0.6rem;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    transition: color var(--transition), border-color var(--transition), background var(--transition);
+  }
+
+  .tag-chip:hover {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    background: rgba(232, 112, 74, 0.06);
+  }
+
+  .social-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+    margin-bottom: 1rem;
+  }
+
+  .social-link {
+    font-size: var(--size-xs);
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    padding: 0.2rem 0.7rem;
+    transition: color var(--transition), border-color var(--transition);
+  }
+
+  .social-link:hover {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+  }
+
+  .closed-notice {
+    display: inline-block;
+    font-size: var(--size-sm);
+    font-weight: 600;
+    color: #374151;
+    background: #f3f4f6;
+    border: 1.5px solid #d1d5db;
+    border-radius: var(--radius-md);
+    padding: 0.5rem 0.875rem;
+    margin-bottom: 1rem;
+    max-width: none;
+  }
+
+  .group-desc {
+    font-size: var(--size-lg);
+    color: var(--color-text-muted);
+    line-height: 1.7;
+    max-width: 64ch;
+    margin-bottom: 1rem;
+  }
+
+  .group-desc :global(p) { margin-bottom: 0.75rem; }
+  .group-desc :global(p:last-child) { margin-bottom: 0; }
+  .group-desc :global(h1), .group-desc :global(h2), .group-desc :global(h3) {
+    color: var(--color-text);
+    margin: 1rem 0 0.375rem;
+  }
+  .group-desc :global(ul), .group-desc :global(ol) {
+    padding-left: 1.5rem;
+    margin-bottom: 0.75rem;
+  }
+  .group-desc :global(li) { margin-bottom: 0.25rem; }
+  .group-desc :global(strong) { color: var(--color-text); }
+  .group-desc :global(a) { color: var(--color-primary); }
+  .group-desc :global(code) {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.875em;
+    background: var(--color-surface);
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+  }
+  .group-desc :global(blockquote) {
+    border-left: 3px solid var(--color-border-strong);
+    padding-left: 1rem;
+    color: var(--color-text-light);
+    font-style: italic;
+    margin: 0.75rem 0;
+  }
+
+  .contact-link {
+    display: inline-block;
+    font-size: var(--size-sm);
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-full);
+    padding: 0.375rem 0.875rem;
+    transition: color var(--transition), border-color var(--transition), background var(--transition);
+  }
+
+  .contact-link:hover {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    background: rgba(232, 112, 74, 0.06);
+  }
+
+  /* Follow section */
+  .follow-section {
+    padding: 1.25rem 0;
+    border-bottom: 2px solid var(--color-border);
+    background: var(--color-surface);
+  }
+
+  .follow-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .follow-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .follow-text strong {
+    font-size: var(--size-base);
+  }
+
+  .follow-text span {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+  }
+
+  .follow-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .follow-form {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .follow-input {
+    font-size: var(--size-sm);
+    padding: 0.45rem 0.75rem;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-warm);
+    color: var(--color-text);
+    min-width: 220px;
+  }
+
+  .follow-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+  }
+
+  .rss-link {
+    font-size: var(--size-xs);
+    font-weight: 600;
+    color: var(--color-text-light);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .rss-link:hover { color: var(--color-primary); }
+
+  /* Gatherings section */
+  .meetups-section {
+    padding: 2.5rem 0 4rem;
+  }
+
+  .meetups-section h2 { margin-bottom: 1.5rem; }
+
+  .meetups-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    max-width: 720px;
+  }
+
+  .empty-meetups {
+    text-align: center;
+    padding: 3rem 2rem;
+    background: var(--color-surface);
+    border: 2px dashed var(--color-border);
+    border-radius: var(--radius-lg);
+    max-width: 400px;
+  }
+
+  .empty-icon {
+    font-size: 3rem;
+    color: var(--color-primary);
+    opacity: 0.3;
+    margin-bottom: 0.75rem;
+  }
+
+  .empty-meetups p {
+    color: var(--color-text-muted);
+    max-width: none;
+  }
+</style>

@@ -2,7 +2,7 @@
 import DashboardLayout from "../../../layouts/DashboardLayout.astro";
 import { db, Groups, GroupInvites, User } from "astro:db";
 import { eq } from "astro:db";
-import { generateId } from "../../../lib/utils";
+import { generateId, groupUrl } from "../../../lib/utils";
 import { renderMarkdown } from "../../../lib/markdown";
 import { sendApprovalNotice } from "../../../lib/email";
 import { getCategoryLabel } from "../../../lib/categories";
@@ -282,7 +282,7 @@ Welcome to the community!`}</pre>
                     </form>
                   </div>
                 )}
-                <a href={`/groups/${group.slug}`} class="btn btn-ghost" target="_blank" rel="noopener">
+                <a href={groupUrl(group)} class="btn btn-ghost" target="_blank" rel="noopener">
                   View public page ↗
                 </a>
                 <form method="POST">
@@ -295,7 +295,7 @@ Welcome to the community!`}</pre>
             )}
             {group.status === "closed" && (
               <>
-                <a href={`/groups/${group.slug}`} class="btn btn-ghost" target="_blank" rel="noopener">
+                <a href={groupUrl(group)} class="btn btn-ghost" target="_blank" rel="noopener">
                   View group page ↗
                 </a>
                 <form method="POST">

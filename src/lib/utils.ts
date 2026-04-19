@@ -1,3 +1,8 @@
+/** Return the best public URL for a group — custom short URL if set, canonical otherwise */
+export function groupUrl(group: { slug: string; customSlug?: string | null }): string {
+  return group.customSlug ? `/${group.customSlug}` : `/groups/${group.slug}`;
+}
+
 /** Convert a group name to a URL-safe slug */
 export function slugify(name: string): string {
   return name

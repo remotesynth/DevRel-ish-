@@ -7,6 +7,7 @@ const Groups = defineTable({
     id: column.text({ primaryKey: true }),
     name: column.text({ unique: true }),
     slug: column.text({ unique: true }),
+    customSlug: column.text({ optional: true, unique: true }), // organizer-chosen short URL e.g. "sf-user-group"
     // Location is optional — groups may be distributed/event-based
     city: column.text({ optional: true }),
     region: column.text({ optional: true }), // state/province

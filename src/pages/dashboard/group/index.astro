@@ -3,6 +3,7 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
 import { db, Groups } from "astro:db";
 import { eq } from "astro:db";
 import { CATEGORIES } from "../../../lib/categories";
+import { groupUrl } from "../../../lib/utils";
 
 if (!Astro.locals.user) return Astro.redirect("/auth/login");
 const user = Astro.locals.user;
@@ -12,6 +13,12 @@ const [group] = user.groupId
   : [];
 
 if (!group) return Astro.redirect("/dashboard");
+
+// Slugs that cannot be used as custom short URLs (reserved by the app's routing)
+const RESERVED_SLUGS = new Set([
+  "admin", "api", "auth", "dashboard", "follow", "gatherings",
+  "groups", "invite", "privacy", "setup", "how-it-works",
+]);
 
 let successMsg = "";
 let errorMsg = "";
@@ -29,6 +36,31 @@ if (Astro.request.method === "POST") {
   const website = form.get("website")?.toString().trim() ?? "";
   const blueskyHandle = form.get("blueskyHandle")?.toString().trim() ?? "";
   const linkedinUrl = form.get("linkedinUrl")?.toString().trim() ?? "";
+  const customSlugRaw = form.get("customSlug")?.toString().trim().toLowerCase() ?? "";
+
+  let customSlugValue: string | null = null;
+  let customSlugError = "";
+
+  if (customSlugRaw) {
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(customSlugRaw)) {
+      customSlugError = "Short URL may only contain lowercase letters, numbers, and hyphens (no leading/trailing hyphens).";
+    } else if (customSlugRaw.length < 3 || customSlugRaw.length > 60) {
+      customSlugError = "Short URL must be between 3 and 60 characters.";
+    } else if (RESERVED_SLUGS.has(customSlugRaw)) {
+      customSlugError = `"${customSlugRaw}" is reserved and cannot be used as a short URL.`;
+    } else {
+      // Check uniqueness (ignore current group's own value)
+      const [conflict] = await db
+        .select({ id: Groups.id })
+        .from(Groups)
+        .where(eq(Groups.customSlug, customSlugRaw));
+      if (conflict && conflict.id !== group.id) {
+        customSlugError = "That short URL is already taken by another group.";
+      } else {
+        customSlugValue = customSlugRaw;
+      }
+    }
+  }
 
   if (!description || !contactEmail) {
     errorMsg = "Description and contact email are required.";
@@ -36,6 +68,8 @@ if (Astro.request.method === "POST") {
     errorMsg = "Please select a valid community category.";
   } else if (description.length < 50) {
     errorMsg = "Description must be at least 50 characters.";
+  } else if (customSlugError) {
+    errorMsg = customSlugError;
   } else {
     await db
       .update(Groups)
@@ -51,6 +85,7 @@ if (Astro.request.method === "POST") {
         website: website || null,
         blueskyHandle: blueskyHandle || null,
         linkedinUrl: linkedinUrl || null,
+        customSlug: customSlugValue,
       })
       .where(eq(Groups.id, group.id));
     successMsg = "Group details updated!";
@@ -63,7 +98,7 @@ if (Astro.request.method === "POST") {
 <DashboardLayout title="My Group">
   <div class="page-header">
     <h1>My Group</h1>
-    <a href={`/groups/${group.slug}`} class="btn btn-ghost btn-sm" target="_blank" rel="noopener">
+    <a href={groupUrl(group)} class="btn btn-ghost btn-sm" target="_blank" rel="noopener">
       View public page ↗
     </a>
   </div>
@@ -123,6 +158,35 @@ if (Astro.request.method === "POST") {
       <div class="form-group">
         <label for="contactEmail">Contact email *</label>
         <input id="contactEmail" name="contactEmail" type="email" value={group.contactEmail} required />
+      </div>
+    </div>
+
+    <div class="form-card">
+      <h3>Short URL <span class="optional-label">(optional)</span></h3>
+      <p class="card-desc">
+        Give your group a memorable link at <strong>devrelish.tech/your-slug</strong> — shorter and easier to share than the full URL.
+      </p>
+
+      <div class="form-group">
+        <label for="customSlug">Custom short URL</label>
+        <div class="slug-input-wrap">
+          <span class="slug-prefix">devrelish.tech/</span>
+          <input
+            id="customSlug" name="customSlug" type="text"
+            value={group.customSlug ?? ""}
+            placeholder="sf-user-group"
+            pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+            minlength="3"
+            maxlength="60"
+          />
+        </div>
+        <span class="form-hint">
+          Lowercase letters, numbers, and hyphens only. Leave blank to use the default URL
+          (<code>/groups/{group.slug}</code>).
+          {group.customSlug && (
+            <> Your current short URL: <a href={`/${group.customSlug}`} target="_blank" rel="noopener"><strong>devrelish.tech/{group.customSlug}</strong></a></>
+          )}
+        </span>
       </div>
     </div>
 
@@ -232,6 +296,39 @@ if (Astro.request.method === "POST") {
     background: var(--color-surface-warm) !important;
     color: var(--color-text-muted) !important;
     cursor: not-allowed;
+  }
+
+  .slug-input-wrap {
+    display: flex;
+    align-items: center;
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: var(--color-surface);
+    transition: border-color var(--transition);
+  }
+
+  .slug-input-wrap:focus-within {
+    border-color: var(--color-primary);
+  }
+
+  .slug-prefix {
+    padding: 0.5rem 0.75rem;
+    background: var(--color-surface-warm);
+    border-right: 2px solid var(--color-border);
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .slug-input-wrap input {
+    border: none !important;
+    border-radius: 0 !important;
+    flex: 1;
+    min-width: 0;
+    outline: none !important;
+    box-shadow: none !important;
   }
 
   .form-actions { padding-top: 0.5rem; }

@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import { db, Followers, Groups, eq } from "astro:db";
+import { groupUrl } from "../../../lib/utils";
 
 const { token } = Astro.params;
 if (!token) return Astro.redirect("/groups");
@@ -10,7 +11,7 @@ const [follower] = await db.select().from(Followers).where(eq(Followers.token, t
 type State = "confirmed" | "already_confirmed" | "invalid";
 let state: State;
 let groupName = "";
-let groupSlug = "";
+let groupHref = "/groups";
 
 if (!follower) {
   state = "invalid";
@@ -18,12 +19,12 @@ if (!follower) {
   state = "already_confirmed";
   const [group] = await db.select().from(Groups).where(eq(Groups.id, follower.groupId));
   groupName = group?.name ?? "";
-  groupSlug = group?.slug ?? "";
+  groupHref = group ? groupUrl(group) : "/groups";
 } else {
   await db.update(Followers).set({ confirmed: true }).where(eq(Followers.token, token));
   const [group] = await db.select().from(Groups).where(eq(Groups.id, follower.groupId));
   groupName = group?.name ?? "";
-  groupSlug = group?.slug ?? "";
+  groupHref = group ? groupUrl(group) : "/groups";
   state = "confirmed";
 }
 ---
@@ -38,7 +39,7 @@ if (!follower) {
             <div class="result-icon" aria-hidden="true">✦</div>
             <h1>You're in!</h1>
             <p>You're now following <strong>{groupName}</strong>. We'll send you an email whenever new gatherings are posted.</p>
-            <a href={`/groups/${groupSlug}`} class="btn btn-primary">View {groupName} →</a>
+            <a href={groupHref} class="btn btn-primary">View {groupName} →</a>
           </>
         )}
 
@@ -47,7 +48,7 @@ if (!follower) {
             <div class="result-icon" aria-hidden="true">◎</div>
             <h1>Already confirmed</h1>
             <p>Your subscription to <strong>{groupName}</strong> is already active.</p>
-            <a href={`/groups/${groupSlug}`} class="btn btn-ghost">View {groupName} →</a>
+            <a href={groupHref} class="btn btn-ghost">View {groupName} →</a>
           </>
         )}
 
