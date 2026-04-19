@@ -1,0 +1,175 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="404 — Lost in the Hallway Track"
+  description="This page doesn't exist. Maybe it went to a competing conference."
+>
+  <section class="not-found">
+    <div class="container">
+
+      <div class="glyphs" aria-hidden="true">
+        <span class="glyph g1">✦</span>
+        <span class="glyph g2">◈</span>
+        <span class="glyph g3">◎</span>
+        <span class="glyph g4">✦</span>
+        <span class="glyph g5">◈</span>
+      </div>
+
+      <p class="error-code">404</p>
+      <h1>Lost in the hallway track</h1>
+
+      <p class="subtitle">
+        This page wandered off to a side session and hasn't come back.
+        It probably grabbed a snack and started a deeply unplanned conversation
+        about developer experience metrics.
+      </p>
+
+      <div class="suggestions">
+        <p class="suggestions-label">While you're here, maybe you were looking for:</p>
+        <ul>
+          <li><a href="/groups">Browse all groups</a> — find your people</li>
+          <li><a href="/gatherings">Upcoming gatherings</a> — see what's on</li>
+          <li><a href="/groups/register">Start a group</a> — be the one who did</li>
+          <li><a href="/how-it-works">How it works</a> — the orientation session</li>
+        </ul>
+      </div>
+
+      <a href="/" class="btn btn-primary home-btn">Take me home →</a>
+
+      <p class="fine-print">
+        If you followed a link to get here, it may have moved.
+        The conference schedule changed again. It always does.
+      </p>
+
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .not-found {
+    min-height: calc(100vh - 64px - 200px);
+    display: flex;
+    align-items: center;
+    padding: 4rem 0;
+    text-align: center;
+  }
+
+  .container {
+    max-width: 600px;
+    margin-inline: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  /* Floating decorative glyphs */
+  .glyphs {
+    position: relative;
+    width: 180px;
+    height: 80px;
+    margin-bottom: 0.5rem;
+  }
+
+  .glyph {
+    position: absolute;
+    font-family: var(--font-display);
+    color: var(--color-primary);
+    animation: drift 4s ease-in-out infinite;
+    opacity: 0.6;
+  }
+
+  .g1 { font-size: 2rem;   left: 0%;   top: 10%; animation-delay: 0s;    animation-duration: 3.8s; }
+  .g2 { font-size: 2.5rem; left: 20%;  top: 40%; animation-delay: 0.6s;  animation-duration: 4.2s; opacity: 0.4; color: var(--color-lavender); }
+  .g3 { font-size: 3.5rem; left: 42%;  top: 0%;  animation-delay: 0.2s;  animation-duration: 5s;   opacity: 0.8; }
+  .g4 { font-size: 1.75rem;left: 68%;  top: 50%; animation-delay: 1s;    animation-duration: 3.5s; opacity: 0.35; color: var(--color-secondary-dark); }
+  .g5 { font-size: 2.25rem;left: 85%;  top: 5%;  animation-delay: 0.4s;  animation-duration: 4.5s; opacity: 0.5; color: var(--color-accent); }
+
+  @keyframes drift {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    33%       { transform: translateY(-8px) rotate(5deg); }
+    66%       { transform: translateY(4px) rotate(-3deg); }
+  }
+
+  /* Error code */
+  .error-code {
+    font-family: var(--font-display);
+    font-size: clamp(5rem, 18vw, 9rem);
+    line-height: 1;
+    color: var(--color-primary);
+    letter-spacing: -0.02em;
+    max-width: none;
+    /* Subtle texture */
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 50%, var(--color-secondary-dark) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  h1 {
+    font-size: clamp(var(--size-2xl), 5vw, var(--size-4xl));
+    margin: 0;
+  }
+
+  .subtitle {
+    font-size: var(--size-lg);
+    color: var(--color-text-muted);
+    line-height: 1.65;
+    max-width: 52ch;
+  }
+
+  /* Suggestion list */
+  .suggestions {
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem 1.5rem;
+    text-align: left;
+    width: 100%;
+  }
+
+  .suggestions-label {
+    font-size: var(--size-sm);
+    font-weight: 700;
+    color: var(--color-text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.75rem;
+    max-width: none;
+  }
+
+  .suggestions ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .suggestions li {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+  }
+
+  .suggestions a {
+    font-weight: 700;
+    color: var(--color-primary);
+    text-decoration: none;
+  }
+
+  .suggestions a:hover {
+    text-decoration: underline;
+  }
+
+  .home-btn {
+    margin-top: 0.25rem;
+  }
+
+  .fine-print {
+    font-size: var(--size-xs);
+    color: var(--color-text-light);
+    font-style: italic;
+    max-width: 42ch;
+  }
+</style>
