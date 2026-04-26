@@ -22,6 +22,7 @@ const RESERVED_SLUGS = new Set([
 
 let successMsg = "";
 let errorMsg = "";
+let handleWarning = "";
 
 if (Astro.request.method === "POST") {
   const form = await Astro.request.formData();
@@ -34,7 +35,8 @@ if (Astro.request.method === "POST") {
   const region = form.get("region")?.toString().trim() ?? "";
   const country = form.get("country")?.toString().trim() ?? "";
   const website = form.get("website")?.toString().trim() ?? "";
-  const blueskyHandle = form.get("blueskyHandle")?.toString().trim() ?? "";
+  // Strip leading @ — ATProto handles are bare hostnames
+  const blueskyHandle = (form.get("blueskyHandle")?.toString().trim() ?? "").replace(/^@+/, "");
   const linkedinUrl = form.get("linkedinUrl")?.toString().trim() ?? "";
   const customSlugRaw = form.get("customSlug")?.toString().trim().toLowerCase() ?? "";
 
@@ -62,8 +64,37 @@ if (Astro.request.method === "POST") {
     }
   }
 
+  // ATProto handle validation
+  // Valid handle: 2+ dot-separated segments, each: letters/numbers/hyphens, no leading/trailing hyphen
+  const atHandleRe = /^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,63}$/;
+  let normalizedHandle = blueskyHandle || null;
+  const handleChanged = blueskyHandle !== (group.blueskyHandle ?? "");
+  if (blueskyHandle && handleChanged) {
+    if (!atHandleRe.test(blueskyHandle)) {
+      errorMsg = "Bluesky handle must be a valid domain-style handle (e.g. yourgroup.bsky.social).";
+    } else {
+      // Attempt live resolution via public ATProto API
+      try {
+        const res = await fetch(
+          `https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(blueskyHandle)}`,
+          { signal: AbortSignal.timeout(4000) }
+        );
+        if (res.ok) {
+          const { did } = await res.json() as { did: string };
+          successMsg = `Group details updated! Handle @${blueskyHandle} verified ✓ (${did})`;
+        } else {
+          handleWarning = `Handle "@${blueskyHandle}" could not be verified — double-check it's correct. It has been saved as entered.`;
+        }
+      } catch {
+        handleWarning = `Handle verification timed out. "@${blueskyHandle}" has been saved but could not be confirmed.`;
+      }
+    }
+  }
+
   if (!description || !contactEmail) {
     errorMsg = "Description and contact email are required.";
+  } else if (errorMsg) {
+    // already set by handle validation — fall through
   } else if (category && !CATEGORIES.find(c => c.slug === category)) {
     errorMsg = "Please select a valid community category.";
   } else if (description.length < 50) {
@@ -83,12 +114,12 @@ if (Astro.request.method === "POST") {
         region: region || null,
         country: country || null,
         website: website || null,
-        blueskyHandle: blueskyHandle || null,
+        blueskyHandle: normalizedHandle,
         linkedinUrl: linkedinUrl || null,
         customSlug: customSlugValue,
       })
       .where(eq(Groups.id, group.id));
-    successMsg = "Group details updated!";
+    if (!successMsg) successMsg = "Group details updated!";
     const [updated] = await db.select().from(Groups).where(eq(Groups.id, group.id));
     if (updated) Object.assign(group, updated);
   }
@@ -104,6 +135,7 @@ if (Astro.request.method === "POST") {
   </div>
 
   {successMsg && <div class="alert alert-success">{successMsg}</div>}
+  {handleWarning && <div class="alert alert-warning">{handleWarning}</div>}
   {errorMsg && <div class="alert alert-error">{errorMsg}</div>}
 
   <form method="POST" class="group-edit-form">
@@ -222,6 +254,7 @@ if (Astro.request.method === "POST") {
       <div class="form-group">
         <label for="blueskyHandle">Bluesky handle</label>
         <input id="blueskyHandle" name="blueskyHandle" type="text" value={group.blueskyHandle ?? ""} placeholder="yourgroup.bsky.social" />
+        <span class="form-hint">Enter without the @ — e.g. <code>yourgroup.bsky.social</code> or a custom domain handle.</span>
       </div>
 
       <div class="form-group">

@@ -92,6 +92,25 @@ if (Astro.request.method === "POST") {
   }
 }
 
+// Bluesky share intent
+const bskyShareUrl = (() => {
+  const eventUrl = `${Astro.url.origin}/gatherings/${id}/rsvp`;
+  const withHandle = group.blueskyHandle
+    ? ` with @${group.blueskyHandle.replace(/^@/, "")}`
+    : "";
+  const hashtags = group.tags
+    ? group.tags
+        .split(",")
+        .map((t) => `#${t.trim().replace(/\s+/g, "")}`)
+        .filter(Boolean)
+        .slice(0, 2)
+        .join(" ")
+    : "";
+  const tagPart = hashtags ? ` ${hashtags}` : "";
+  const text = `I'm heading to ${meetup.title}${withHandle} — come join us!${tagPart}\n${eventUrl}`;
+  return `https://bsky.app/intent/compose?text=${encodeURIComponent(text)}`;
+})();
+
 // Calendar links (built once; used in success state)
 const gcalUrl = googleCalendarUrl({
   title: meetup.title,
@@ -157,6 +176,20 @@ const isFull = spots === 0;
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
                   </svg>
                   Download .ics
+                </a>
+              </div>
+              <div class="bsky-share">
+                <a
+                  href={bskyShareUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="btn btn-bsky"
+                >
+                  <svg width="16" height="16" viewBox="0 0 360 320" fill="currentColor" aria-hidden="true">
+                    <path d="M180 142c-16.3-31.7-60.7-90.8-102-120C38 2 15.3 1 7.5 1 1 1 0 8.3 0 14.8v11.3c0 27.3 14.7 96.2 62.3 119.4C99.3 163.8 148.7 164 180 164c31.3 0 80.7-.2 117.7-18.5C345.3 122.3 360 53.4 360 26.1V14.8C360 8.3 359 1 352.5 1c-7.8 0-30.5 1-70.5 21C240.7 51.2 196.3 110.3 180 142z"/>
+                    <path d="M180 178c-16.3 31.7-60.7 90.8-102 120-40 20-62.7 21-70.5 21C1 319 0 311.7 0 305.2v-11.3c0-27.3 14.7-96.2 62.3-119.4C99.3 156.2 148.7 156 180 156c31.3 0 80.7.2 117.7 18.5C345.3 197.7 360 266.6 360 293.9v11.3c0 6.5-1 13.8-7.5 13.8-7.8 0-30.5-1-70.5-21-41.3-29.2-85.7-88.3-102-120z"/>
+                  </svg>
+                  Share on Bluesky
                 </a>
               </div>
             </div>
@@ -452,6 +485,31 @@ const isFull = spots === 0;
     gap: 0.75rem;
     justify-content: center;
     flex-wrap: wrap;
+  }
+
+  .bsky-share {
+    margin-top: 0.75rem;
+    display: flex;
+    justify-content: center;
+  }
+
+  .btn-bsky {
+    background: #0085ff;
+    color: white !important;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 1rem;
+    border-radius: var(--radius-full);
+    font-size: var(--size-sm);
+    font-weight: 600;
+    text-decoration: none;
+    transition: background var(--transition);
+  }
+
+  .btn-bsky:hover {
+    background: #0066cc;
   }
 
   .cancel-link-section {
