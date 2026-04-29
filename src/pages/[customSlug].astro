@@ -4,7 +4,7 @@
  * Renders the group page directly so the short URL stays in the address bar.
  */
 import GroupPage from "../components/groups/GroupPage.astro";
-import { db, Groups, Meetups, RSVPs, Followers, count, eq, and, gte, asc } from "astro:db";
+import { db, Groups, Meetups, RSVPs, Followers, count, eq, and, gte, asc, inArray } from "astro:db";
 
 const { customSlug } = Astro.params;
 if (!customSlug) return Astro.redirect("/groups");
@@ -27,11 +27,14 @@ const meetups = await db
   .where(and(eq(Meetups.groupId, group.id), gte(Meetups.date, today)))
   .orderBy(asc(Meetups.date));
 
-const rsvpCounts: Record<string, number> = {};
-for (const meetup of meetups) {
-  const [r] = await db.select({ val: count() }).from(RSVPs).where(eq(RSVPs.meetupId, meetup.id));
-  rsvpCounts[meetup.id] = r?.val ?? 0;
-}
+const meetupIds = meetups.map((m) => m.id);
+const rsvpRows = meetupIds.length
+  ? await db.select({ meetupId: RSVPs.meetupId, val: count() })
+      .from(RSVPs)
+      .where(inArray(RSVPs.meetupId, meetupIds))
+      .groupBy(RSVPs.meetupId)
+  : [];
+const rsvpCounts: Record<string, number> = Object.fromEntries(rsvpRows.map((r) => [r.meetupId, r.val]));
 
 const [followerResult] = await db
   .select({ val: count() })

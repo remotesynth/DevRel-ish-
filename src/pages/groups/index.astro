@@ -1,7 +1,7 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import GroupCard from "../../components/groups/GroupCard.astro";
-import { db, Groups, Meetups, count, eq, and, gte, asc } from "astro:db";
+import { db, Groups, Meetups, count, eq, and, gte, asc, inArray } from "astro:db";
 import { CATEGORIES, getCategoryLabel } from "../../lib/categories";
 
 const today = new Date();
@@ -36,14 +36,14 @@ if (activeTag) {
   groups = groups.filter(g => g.tags?.split(",").map(t => t.trim()).includes(activeTag));
 }
 
-const upcomingCounts: Record<string, number> = {};
-for (const group of groups) {
-  const result = await db
-    .select({ val: count() })
-    .from(Meetups)
-    .where(and(eq(Meetups.groupId, group.id), gte(Meetups.date, today)));
-  upcomingCounts[group.id] = result[0]?.val ?? 0;
-}
+const groupIds = groups.map((g) => g.id);
+const upcomingRows = groupIds.length
+  ? await db.select({ groupId: Meetups.groupId, val: count() })
+      .from(Meetups)
+      .where(and(inArray(Meetups.groupId, groupIds), gte(Meetups.date, today)))
+      .groupBy(Meetups.groupId)
+  : [];
+const upcomingCounts: Record<string, number> = Object.fromEntries(upcomingRows.map((r) => [r.groupId, r.val]));
 ---
 
 <BaseLayout
