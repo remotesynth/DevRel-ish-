@@ -6,3 +6,15 @@ publish = "dist"
 
 [build.environment]
 NODE_VERSION = "24"
+
+# Astro hashes all filenames in /_astro/ — safe to cache indefinitely.
+[[headers]]
+  for = "/_astro/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Fonts and other public static assets.
+[[headers]]
+  for = "/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

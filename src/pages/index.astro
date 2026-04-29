@@ -13,6 +13,7 @@ import {
   gte,
   asc,
   desc,
+  inArray,
 } from 'astro:db';
 
 const today = new Date();
@@ -38,14 +39,14 @@ const upcomingGatherings = allUpcoming
   .filter((m) => approvedGroupIds.has(m.groupId))
   .slice(0, 6);
 
-const rsvpCounts: Record<string, number> = {};
-for (const m of upcomingGatherings) {
-  const [r] = await db
-    .select({ val: count() })
-    .from(RSVPs)
-    .where(eq(RSVPs.meetupId, m.id));
-  rsvpCounts[m.id] = r?.val ?? 0;
-}
+const meetupIds = upcomingGatherings.map((m) => m.id);
+const rsvpRows = meetupIds.length
+  ? await db.select({ meetupId: RSVPs.meetupId, val: count() })
+      .from(RSVPs)
+      .where(inArray(RSVPs.meetupId, meetupIds))
+      .groupBy(RSVPs.meetupId)
+  : [];
+const rsvpCounts: Record<string, number> = Object.fromEntries(rsvpRows.map((r) => [r.meetupId, r.val]));
 
 // Featured groups
 const featuredGroups = await db
@@ -55,14 +56,14 @@ const featuredGroups = await db
   .orderBy(desc(Groups.createdAt))
   .limit(3);
 
-const upcomingCounts: Record<string, number> = {};
-for (const g of featuredGroups) {
-  const [r] = await db
-    .select({ val: count() })
-    .from(Meetups)
-    .where(and(eq(Meetups.groupId, g.id), gte(Meetups.date, today)));
-  upcomingCounts[g.id] = r?.val ?? 0;
-}
+const featuredGroupIds = featuredGroups.map((g) => g.id);
+const upcomingRows = featuredGroupIds.length
+  ? await db.select({ groupId: Meetups.groupId, val: count() })
+      .from(Meetups)
+      .where(and(inArray(Meetups.groupId, featuredGroupIds), gte(Meetups.date, today)))
+      .groupBy(Meetups.groupId)
+  : [];
+const upcomingCounts: Record<string, number> = Object.fromEntries(upcomingRows.map((r) => [r.groupId, r.val]));
 ---
 
 <BaseLayout
