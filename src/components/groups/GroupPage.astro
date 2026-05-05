@@ -30,11 +30,18 @@ const location = group.city
       ? `${group.city}, ${group.country}`
       : group.city
   : null;
+
+const ogDescription = (() => {
+  const base = group.tagline ?? stripMarkdown(group.description).slice(0, 120);
+  const locationPart = location ? ` Based in ${location}.` : "";
+  const countPart = meetups.length > 0 ? ` ${meetups.length} upcoming gathering${meetups.length === 1 ? "" : "s"}.` : "";
+  return `${base}${locationPart}${countPart}`.slice(0, 200);
+})();
 ---
 
 <BaseLayout
   title={group.name}
-  description={group.tagline ?? stripMarkdown(group.description).slice(0, 160)}
+  description={ogDescription}
 >
   <section class="group-hero">
     <div class="container">

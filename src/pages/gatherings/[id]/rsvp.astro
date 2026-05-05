@@ -134,8 +134,8 @@ const isFull = spots === 0;
 ---
 
 <BaseLayout
-  title={`RSVP — ${meetup.title}`}
-  description={`RSVP for ${meetup.title} hosted by ${group.name}`}
+  title={meetup.title}
+  description={`Join ${meetup.title} hosted by ${group.name} on ${formatDate(meetup.date)}${meetup.venue ? ` at ${meetup.venue}` : ""}${meetup.city ? `, ${meetup.city}` : ""}. RSVP to secure your spot.`}
 >
   <section class="rsvp-page">
     <div class="container rsvp-layout">
