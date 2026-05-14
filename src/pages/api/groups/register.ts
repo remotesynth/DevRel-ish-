@@ -35,6 +35,23 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: "Description must be at least 50 characters." }, 400);
   }
 
+  // Real descriptions always have spaces; single-block random strings do not
+  if (!description.trim().includes(" ")) {
+    return json({ error: "Please write a proper description for your group." }, 400);
+  }
+
+  // Real place names contain only letters, spaces, hyphens, apostrophes — never digits
+  const placeNameRe = /^[a-zA-ZÀ-ÿ\s\-'.,()]+$/;
+  if (city?.trim() && !placeNameRe.test(city.trim())) {
+    return json({ error: "Please enter a valid city name." }, 400);
+  }
+  if (region?.trim() && !placeNameRe.test(region.trim())) {
+    return json({ error: "Please enter a valid state or region name." }, 400);
+  }
+  if (country?.trim() && !placeNameRe.test(country.trim())) {
+    return json({ error: "Please enter a valid country name." }, 400);
+  }
+
   // Validate email format
   const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRe.test(contactEmail)) {
