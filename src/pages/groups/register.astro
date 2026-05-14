@@ -18,6 +18,9 @@ let vals = {
 if (Astro.request.method === "POST") {
   const form = await Astro.request.formData();
 
+  const hp = form.get("_hp")?.toString() ?? "";
+  const submittedAt = parseInt(form.get("_t")?.toString() ?? "0", 10);
+
   vals = {
     name:         form.get("name")?.toString().trim() ?? "",
     tagline:      form.get("tagline")?.toString().trim() ?? "",
@@ -30,13 +33,24 @@ if (Astro.request.method === "POST") {
   };
 
   const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const placeNameRe = /^[a-zA-ZÀ-ÿ\s\-'.,()]+$/;
 
-  if (!vals.name || !vals.description || !vals.contactEmail || !vals.category) {
+  if (hp || !submittedAt || Date.now() - submittedAt < 3000) {
+    result = { type: "success", email: vals.contactEmail };
+  } else if (!vals.name || !vals.description || !vals.contactEmail || !vals.category) {
     result = { type: "error", message: "Name, category, description, and contact email are required." };
   } else if (!CATEGORIES.find(c => c.slug === vals.category)) {
     result = { type: "error", message: "Please select a valid community category." };
   } else if (vals.description.length < 50) {
     result = { type: "error", message: "Description must be at least 50 characters." };
+  } else if (!vals.description.includes(" ")) {
+    result = { type: "error", message: "Please write a proper description for your group." };
+  } else if (vals.city && !placeNameRe.test(vals.city)) {
+    result = { type: "error", message: "Please enter a valid city name." };
+  } else if (vals.region && !placeNameRe.test(vals.region)) {
+    result = { type: "error", message: "Please enter a valid state or region name." };
+  } else if (vals.country && !placeNameRe.test(vals.country)) {
+    result = { type: "error", message: "Please enter a valid country name." };
   } else if (!emailRe.test(vals.contactEmail)) {
     result = { type: "error", message: "Please enter a valid email address." };
   } else {
@@ -102,6 +116,8 @@ if (Astro.request.method === "POST") {
           </div>
         ) : (
           <form method="POST" class="group-form">
+            <input name="_hp" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" class="hp-field" />
+            <input name="_t" type="hidden" value={String(Date.now())} />
             {result?.type === "error" && (
               <div class="alert alert-error" role="alert">{result.message}</div>
             )}
@@ -258,6 +274,14 @@ if (Astro.request.method === "POST") {
 </BaseLayout>
 
 <style>
+  .hp-field {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+  }
+
   .page-hero {
     padding: 3rem 0 2rem;
     background: var(--color-surface-warm);
