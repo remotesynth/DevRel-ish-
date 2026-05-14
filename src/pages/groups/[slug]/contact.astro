@@ -43,6 +43,8 @@ if (!isGroupClosed && Astro.request.method === "POST") {
       result = { type: "error", message: "Please enter a valid email address." };
     } else if (message.length > 2000) {
       result = { type: "error", message: "Message must be 2000 characters or fewer." };
+    } else if (message.length > 30 && !message.includes(" ")) {
+      result = { type: "error", message: "Please enter a valid message." };
     } else {
       await db.insert(ContactMessages).values({
         id: generateId(),
