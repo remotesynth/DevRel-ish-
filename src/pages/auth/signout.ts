@@ -1,24 +1,28 @@
 import type { APIRoute } from "astro";
-import { auth } from "../../lib/auth";
+import { getOAuthClient } from "../../lib/atproto-oauth";
+import { deleteSession, getSessionUser, SESSION_COOKIE } from "../../lib/session";
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ request }) => {
-  const response = await auth.api.signOut({
-    headers: request.headers,
-    asResponse: true,
-  });
+export const GET: APIRoute = async ({ cookies }) => {
+  const sessionId = cookies.get(SESSION_COOKIE)?.value ?? null;
 
-  // Build redirect response, forwarding every Set-Cookie header so the
-  // session cookie is properly cleared in the browser.
-  const headers = new Headers({ location: "/" });
-
-  // getSetCookie() returns all Set-Cookie values as an array (avoids the
-  // single-header join problem with Headers.get("set-cookie")).
-  const cookies = response.headers.getSetCookie?.() ?? [];
-  for (const cookie of cookies) {
-    headers.append("set-cookie", cookie);
+  if (sessionId) {
+    try {
+      const user = await getSessionUser(sessionId);
+      if (user) {
+        const client = await getOAuthClient();
+        await client.revoke(user.did).catch(() => {});
+      }
+      await deleteSession(sessionId);
+    } catch (err) {
+      console.error("[signout]", err);
+    }
   }
 
-  return new Response(null, { status: 302, headers });
+  const clearCookie = `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+  return new Response(null, {
+    status: 302,
+    headers: { location: "/", "set-cookie": clearCookie },
+  });
 };

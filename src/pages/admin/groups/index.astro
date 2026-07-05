@@ -1,6 +1,6 @@
 ---
 import DashboardLayout from "../../../layouts/DashboardLayout.astro";
-import { db, Groups, User } from "astro:db";
+import { db, Groups, AppUser } from "astro:db";
 import { desc, isNotNull } from "astro:db";
 
 if (!Astro.locals.user) return Astro.redirect("/auth/login");
@@ -13,12 +13,12 @@ const allGroups = await db
 
 // Build set of group IDs that have at least one organizer
 const usersWithGroup = await db
-  .select({ groupId: User.groupId })
-  .from(User)
-  .where(isNotNull(User.groupId));
+  .select({ groupId: AppUser.groupId })
+  .from(AppUser)
+  .where(isNotNull(AppUser.groupId));
 const claimedGroupIds = new Set(usersWithGroup.map((u) => u.groupId));
 
-const statusOrder: Record<string, number> = { pending: 0, approved: 1, closed: 2, rejected: 3 };
+const statusOrder: Record<string, number> = { active: 0, closed: 1 };
 const grouped = allGroups.slice().sort((a, b) => {
   const sa = statusOrder[a.status] ?? 9;
   const sb = statusOrder[b.status] ?? 9;
@@ -58,7 +58,7 @@ const grouped = allGroups.slice().sort((a, b) => {
           </div>
           <div class="cell-status">
             <span class={`badge badge-${g.status}`}>{g.status}</span>
-            {g.status === "approved" && !claimedGroupIds.has(g.id) && (
+            {g.status === "active" && !claimedGroupIds.has(g.id) && (
               <span class="badge-unclaimed">unclaimed</span>
             )}
           </div>

@@ -1,6 +1,6 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
-import { db, Groups, ContactMessages, User, eq, and } from "astro:db";
+import { db, Groups, ContactMessages, eq, and } from "astro:db";
 import { generateId, groupUrl } from "../../../lib/utils";
 import { stripMarkdown } from "../../../lib/markdown";
 import { sendContactMessageAlert } from "../../../lib/email";
@@ -13,7 +13,7 @@ const [group] = await db
   .from(Groups)
   .where(eq(Groups.slug, slug));
 
-if (!group || (group.status !== "approved" && group.status !== "closed")) {
+if (!group || (group.status !== "active" && group.status !== "closed")) {
   return Astro.redirect("/groups");
 }
 
@@ -56,15 +56,12 @@ if (!isGroupClosed && Astro.request.method === "POST") {
         createdAt: new Date(),
       });
 
-      // Notify organizers — fire-and-forget, no message body included
-      const organizers = await db.select({ email: User.email, name: User.name }).from(User).where(eq(User.groupId, group.id));
-      if (organizers.length > 0) {
-        sendContactMessageAlert({
-          organizers,
-          groupName: group.name,
-          dashboardUrl: `${Astro.url.origin}/dashboard/messages`,
-        }).catch(e => console.error("[contact alert] email error:", e));
-      }
+      // Notify the group's contact email — fire-and-forget
+      sendContactMessageAlert({
+        organizers: [{ email: group.contactEmail, name: group.name }],
+        groupName: group.name,
+        dashboardUrl: `${Astro.url.origin}/dashboard/messages`,
+      }).catch(e => console.error("[contact alert] email error:", e));
 
       result = { type: "success" };
     }

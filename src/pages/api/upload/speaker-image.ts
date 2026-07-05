@@ -21,7 +21,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const groupId = locals.user.groupId;
   if (!groupId) return json({ error: "No group associated with your account." }, 403);
   const [group] = await db.select().from(Groups).where(eq(Groups.id, groupId));
-  if (!group || group.status !== "approved") return json({ error: "Group not approved." }, 403);
+  if (!group || group.status !== "active") return json({ error: "Group not approved." }, 403);
 
   if (!import.meta.env.CLOUDINARY_CLOUD_NAME || !import.meta.env.CLOUDINARY_API_KEY || !import.meta.env.CLOUDINARY_API_SECRET) {
     return json({ error: "Image upload is not configured on this server." }, 500);

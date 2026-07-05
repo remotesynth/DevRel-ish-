@@ -1,75 +1,13 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { auth } from "../../lib/auth";
-import { db, Groups, eq } from "astro:db";
 
-// Only allow local redirects (must start with /)
-const redirectParam = Astro.url.searchParams.get("redirect") ?? "";
-const redirectTo = redirectParam.startsWith("/") ? redirectParam : "";
+const redirectTo = Astro.url.searchParams.get("redirect") ?? "";
+const errorParam = Astro.url.searchParams.get("error") ?? "";
 
-// Redirect if already logged in
 if (Astro.locals.user) {
-  const dest = redirectTo || (Astro.locals.user.role === "admin" ? "/admin" : "/dashboard");
+  const dest = redirectTo.startsWith("/") ? redirectTo :
+    (Astro.locals.user.role === "admin" ? "/admin" : "/dashboard");
   return Astro.redirect(dest);
-}
-
-let error = "";
-
-if (Astro.request.method === "POST") {
-  const form = await Astro.request.formData();
-  const email = form.get("email")?.toString() ?? "";
-  const password = form.get("password")?.toString() ?? "";
-
-  try {
-    // Build a proper JSON request to the better-auth sign-in endpoint
-    // and pass it through auth.handler so cookies are set correctly.
-    const signInRequest = new Request(
-      new URL("/api/auth/sign-in/email", Astro.url.origin),
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      }
-    );
-
-    const result = await auth.handler(signInRequest);
-
-    if (result.ok) {
-      // Determine where to send the user by checking role
-      const setCookie = result.headers.get("set-cookie") ?? "";
-      const tempHeaders = new Headers({ cookie: setCookie.split(";")[0] });
-      const session = await auth.api.getSession({ headers: tempHeaders });
-
-      // Block organizers of closed groups
-      if (session?.user?.groupId) {
-        const [userGroup] = await db
-          .select({ status: Groups.status, name: Groups.name })
-          .from(Groups)
-          .where(eq(Groups.id, session.user.groupId));
-        if (userGroup?.status === "closed") {
-          error = `<strong>${userGroup.name}</strong> has been deactivated. If you believe this is in error, please contact <a href="mailto:admin@devrelish.tech">admin@devrelish.tech</a>.`;
-          // Do not issue cookie or redirect
-        } else {
-          const destination = redirectTo || (session?.user?.role === "admin" ? "/admin" : "/dashboard");
-          return new Response(null, {
-            status: 302,
-            headers: { "set-cookie": setCookie, location: destination },
-          });
-        }
-      } else {
-        const destination = redirectTo || (session?.user?.role === "admin" ? "/admin" : "/dashboard");
-        return new Response(null, {
-          status: 302,
-          headers: { "set-cookie": setCookie, location: destination },
-        });
-      }
-    } else {
-      error = "Invalid email or password.";
-    }
-  } catch (e) {
-    console.error("[login] sign-in error:", e);
-    error = "Something went wrong. Please try again.";
-  }
 }
 ---
 
@@ -80,51 +18,79 @@ if (Astro.request.method === "POST") {
         <div class="auth-header">
           <div class="auth-logo" aria-hidden="true">◎</div>
           <h1>Welcome back</h1>
-          <p>Sign in to manage your DevRel(ish) group.</p>
+          <p>Sign in with your AT Protocol account to manage your DevRel(ish) group.</p>
         </div>
 
-        {error && (
-          <div class="alert alert-error" role="alert" set:html={error} />
+        {errorParam && (
+          <div class="alert alert-error" role="alert">{errorParam}</div>
         )}
 
-        <form method="POST" class="auth-form">
+        <div id="login-error" class="alert alert-error" role="alert" hidden></div>
+
+        <form id="login-form" class="auth-form" novalidate>
           <div class="form-group">
-            <label for="email">Email address</label>
+            <label for="handle">AT Protocol handle</label>
             <input
-              id="email"
-              name="email"
-              type="email"
+              id="handle"
+              name="handle"
+              type="text"
               required
-              autocomplete="email"
-              placeholder="you@example.com"
+              autocomplete="username"
+              autocapitalize="none"
+              placeholder="you.bsky.social or you.example.com"
             />
           </div>
 
-          <div class="form-group">
-            <label for="password">Password</label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              autocomplete="current-password"
-              placeholder="••••••••"
-            />
-          </div>
-
-          <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
-            Sign in →
+          <button type="submit" id="submit-btn" class="btn btn-primary" style="width: 100%; justify-content: center;">
+            Continue →
           </button>
         </form>
 
         <p class="auth-footer">
-          Not a group manager yet?{" "}
-          <a href="/groups/register">Apply to start a group</a>
+          Works with Bluesky, self-hosted PDSes, and any ATProto account.
+        </p>
+        <p class="auth-footer">
+          New to DevRel(ish)?{" "}
+          <a href="/groups/register">Start a group</a>
         </p>
       </div>
     </div>
   </section>
 </BaseLayout>
+
+<script>
+  const form = document.getElementById("login-form") as HTMLFormElement;
+  const errorEl = document.getElementById("login-error") as HTMLDivElement;
+  const submitBtn = document.getElementById("submit-btn") as HTMLButtonElement;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const handle = (form.elements.namedItem("handle") as HTMLInputElement).value.trim();
+    if (!handle) return;
+
+    errorEl.hidden = true;
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Redirecting…";
+
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ handle }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        throw new Error(data.error ?? "Sign-in failed.");
+      }
+      window.location.href = data.url;
+    } catch (err) {
+      errorEl.textContent = err instanceof Error ? err.message : "Sign-in failed. Please try again.";
+      errorEl.hidden = false;
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Continue →";
+    }
+  });
+</script>
 
 <style>
   .auth-page {

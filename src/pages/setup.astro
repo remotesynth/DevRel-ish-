@@ -1,77 +1,47 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { db, User, Account } from "astro:db";
+import { db, AppUser } from "astro:db";
 import { eq } from "astro:db";
-import { generateId } from "../lib/utils";
-import { hashPassword } from "better-auth/crypto";
 
-// Setup is gated on SETUP_TOKEN being configured in the environment.
-// Once any admin user exists the page permanently shows "already configured"
-// regardless of whether SETUP_TOKEN is still set.
-
+// Gate on SETUP_TOKEN. Once any admin exists the page is permanently disabled.
 const setupToken = process.env.SETUP_TOKEN ?? "";
 
 const [existingAdmin] = await db
-  .select({ id: User.id })
-  .from(User)
-  .where(eq(User.role, "admin"));
+  .select({ did: AppUser.did })
+  .from(AppUser)
+  .where(eq(AppUser.role, "admin"));
 
 const alreadyConfigured = !!existingAdmin;
 
 type Result =
-  | { type: "success"; email: string }
+  | { type: "success"; handle: string }
   | { type: "error"; message: string };
 
 let result: Result | null = null;
 
 if (!alreadyConfigured && setupToken && Astro.request.method === "POST") {
   const form = await Astro.request.formData();
-
-  const token    = form.get("token")?.toString() ?? "";
-  const name     = form.get("name")?.toString().trim() ?? "";
-  const email    = form.get("email")?.toString().trim().toLowerCase() ?? "";
-  const password = form.get("password")?.toString() ?? "";
-  const confirm  = form.get("confirm")?.toString() ?? "";
+  const token = form.get("token")?.toString() ?? "";
+  const did = form.get("did")?.toString().trim() ?? "";
 
   if (token !== setupToken) {
     result = { type: "error", message: "Invalid setup token." };
-  } else if (!name || !email || !password) {
-    result = { type: "error", message: "All fields are required." };
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    result = { type: "error", message: "Please enter a valid email address." };
-  } else if (password.length < 10) {
-    result = { type: "error", message: "Password must be at least 10 characters." };
-  } else if (password !== confirm) {
-    result = { type: "error", message: "Passwords do not match." };
+  } else if (!did.startsWith("did:")) {
+    result = { type: "error", message: "Please enter a valid ATProto DID (starts with did:)." };
   } else {
-    const [emailInUse] = await db.select({ id: User.id }).from(User).where(eq(User.email, email));
-    if (emailInUse) {
-      result = { type: "error", message: "That email address is already in use." };
+    const [existing] = await db.select().from(AppUser).where(eq(AppUser.did, did));
+    if (existing) {
+      await db.update(AppUser).set({ role: "admin" }).where(eq(AppUser.did, did));
+      result = { type: "success", handle: existing.handle };
     } else {
-      const userId = generateId();
-      const passwordHash = await hashPassword(password);
-
-      await db.insert(User).values({
-        id: userId,
-        name,
-        email,
-        emailVerified: true,
+      // User hasn't logged in yet — pre-create the row with admin role
+      await db.insert(AppUser).values({
+        did,
+        handle: did,
         role: "admin",
         createdAt: new Date(),
-        updatedAt: new Date(),
       });
-
-      await db.insert(Account).values({
-        id: generateId(),
-        accountId: userId,
-        providerId: "credential",
-        userId,
-        password: passwordHash,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-
-      result = { type: "success", email };
+      result = { type: "success", handle: did };
     }
   }
 }
@@ -87,7 +57,7 @@ if (!alreadyConfigured && setupToken && Astro.request.method === "POST") {
           <div class="state-block">
             <div class="state-icon">✓</div>
             <h1>Already configured</h1>
-            <p>An admin account exists. Use the normal login to access the dashboard.</p>
+            <p>An admin account exists. Sign in with your Bluesky account to access the dashboard.</p>
             <a href="/auth/login" class="btn btn-primary">Go to login →</a>
           </div>
 
@@ -95,19 +65,17 @@ if (!alreadyConfigured && setupToken && Astro.request.method === "POST") {
           <div class="state-block">
             <div class="state-icon muted">◎</div>
             <h1>Setup not available</h1>
-            <p>
-              Set a <code>SETUP_TOKEN</code> environment variable to enable first-run
-              admin setup.
-            </p>
+            <p>Set a <code>SETUP_TOKEN</code> environment variable to enable first-run admin setup.</p>
           </div>
 
         ) : result?.type === "success" ? (
           <div class="state-block">
             <div class="state-icon">✓</div>
-            <h1>Admin created!</h1>
+            <h1>Admin configured!</h1>
             <p>
-              You can now sign in as <strong>{result.email}</strong>. For security,
-              remove <code>SETUP_TOKEN</code> from your environment to disable this page.
+              <strong>{result.handle}</strong> now has admin access.
+              Sign in with that Bluesky account to access the admin dashboard.
+              Remove <code>SETUP_TOKEN</code> from your environment for security.
             </p>
             <a href="/auth/login" class="btn btn-primary">Sign in →</a>
           </div>
@@ -115,7 +83,7 @@ if (!alreadyConfigured && setupToken && Astro.request.method === "POST") {
         ) : (
           <>
             <h1>First-run setup</h1>
-            <p class="setup-subtitle">Create the initial admin account for this site.</p>
+            <p class="setup-subtitle">Grant admin access to an ATProto DID.</p>
 
             <form method="POST" class="setup-form">
               {result?.type === "error" && (
@@ -134,43 +102,23 @@ if (!alreadyConfigured && setupToken && Astro.request.method === "POST") {
                 />
               </div>
 
-              <hr class="form-divider" />
-
               <div class="form-group">
-                <label for="name">Your name *</label>
-                <input id="name" name="name" type="text" placeholder="Site Admin" required />
-              </div>
-
-              <div class="form-group">
-                <label for="email">Email address *</label>
-                <input id="email" name="email" type="email" placeholder="admin@example.com" required />
-              </div>
-
-              <div class="form-group">
-                <label for="password">Password *</label>
+                <label for="did">ATProto DID *</label>
                 <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="At least 10 characters"
+                  id="did"
+                  name="did"
+                  type="text"
+                  placeholder="did:plc:abc123..."
                   required
-                  minlength="10"
+                  autocomplete="off"
                 />
-              </div>
-
-              <div class="form-group">
-                <label for="confirm">Confirm password *</label>
-                <input
-                  id="confirm"
-                  name="confirm"
-                  type="password"
-                  placeholder="Repeat your password"
-                  required
-                />
+                <span class="form-hint">
+                  Find your DID at <a href="https://bsky.app/profile/your-handle.bsky.social" target="_blank">bsky.app</a> or via <code>https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=yourdomain.bsky.social</code>
+                </span>
               </div>
 
               <button type="submit" class="btn btn-primary btn-lg" style="width:100%;justify-content:center;">
-                Create admin account →
+                Grant admin access →
               </button>
             </form>
           </>
@@ -189,7 +137,7 @@ if (!alreadyConfigured && setupToken && Astro.request.method === "POST") {
   }
 
   .setup-card {
-    max-width: 440px;
+    max-width: 480px;
     margin-inline: auto;
     background: var(--color-surface);
     border: 2px solid var(--color-border);
@@ -229,13 +177,6 @@ if (!alreadyConfigured && setupToken && Astro.request.method === "POST") {
     gap: 1.125rem;
   }
 
-  .form-divider {
-    border: none;
-    border-top: 1px dashed var(--color-border);
-    margin: 0.25rem 0;
-  }
-
-  /* State screens (already configured, no token, success) */
   .state-block {
     text-align: center;
     display: flex;
@@ -247,7 +188,7 @@ if (!alreadyConfigured && setupToken && Astro.request.method === "POST") {
   .state-block p {
     color: var(--color-text-muted);
     font-size: var(--size-sm);
-    max-width: 30ch;
+    max-width: 36ch;
   }
 
   .state-block code {

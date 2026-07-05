@@ -19,7 +19,7 @@ export const POST: APIRoute = async ({ params, request }) => {
   }
 
   const [group] = await db.select().from(Groups).where(eq(Groups.id, meetup.groupId));
-  if (!group || group.status !== "approved") {
+  if (!group || group.status !== "active") {
     return json({ error: "Gathering not available." }, 404);
   }
 

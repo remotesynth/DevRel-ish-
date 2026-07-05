@@ -14,7 +14,7 @@ const [group] = await db
   .from(Groups)
   .where(eq(Groups.customSlug, customSlug));
 
-if (!group || (group.status !== "approved" && group.status !== "closed")) {
+if (!group || (group.status !== "active" && group.status !== "closed")) {
   return new Response(null, { status: 404 });
 }
 

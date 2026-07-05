@@ -12,7 +12,7 @@ export const GET: APIRoute = async ({ params, url }) => {
   if (!meetup) return new Response("Not found", { status: 404 });
 
   const [group] = await db.select().from(Groups).where(eq(Groups.id, meetup.groupId));
-  if (!group || group.status !== "approved") return new Response("Not found", { status: 404 });
+  if (!group || group.status !== "active") return new Response("Not found", { status: 404 });
 
   const ics = buildICS(meetup, group, url.origin);
 

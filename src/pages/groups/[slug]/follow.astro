@@ -8,7 +8,7 @@ const { slug } = Astro.params;
 if (!slug) return Astro.redirect("/groups");
 
 const [group] = await db.select().from(Groups).where(eq(Groups.slug, slug));
-if (!group || group.status !== "approved") return Astro.redirect("/groups");
+if (!group || group.status !== "active") return Astro.redirect("/groups");
 
 // GET: redirect back to the group page
 if (Astro.request.method !== "POST") return Astro.redirect(groupUrl(group));

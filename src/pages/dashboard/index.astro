@@ -37,7 +37,7 @@ if (group) {
 <DashboardLayout title="Dashboard">
   <div class="dash-page">
     <div class="dash-page-header">
-      <h1>Hello, {user.name?.split(" ")[0]}! 👋</h1>
+      <h1>Hello, {user.displayName?.split(" ")[0] ?? user.handle}! 👋</h1>
     </div>
 
     {justJoined && (
@@ -53,8 +53,8 @@ if (group) {
             <div class="state-icon" aria-hidden="true">◎</div>
             <h2>Your group is pending approval</h2>
             <p>
-              Your group application is being reviewed. We'll reach out to{" "}
-              <strong>{user.email}</strong> once it's been approved.
+              Your group application is being reviewed. We'll reach out via the
+              contact email you provided when registering your group.
             </p>
             <p>
               In the meantime, feel free to{" "}

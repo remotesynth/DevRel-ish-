@@ -13,7 +13,7 @@ const [meetup] = await db.select().from(Meetups).where(eq(Meetups.id, id));
 if (!meetup) return Astro.redirect("/groups");
 
 const [group] = await db.select().from(Groups).where(eq(Groups.id, meetup.groupId));
-if (!group || (group.status !== "approved" && group.status !== "closed")) {
+if (!group || (group.status !== "active" && group.status !== "closed")) {
   return Astro.redirect("/groups");
 }
 
@@ -39,7 +39,7 @@ if (Astro.request.method === "POST") {
   const elapsed = Date.now() - submittedAt;
   if (hp || elapsed < 3000) {
     // Silently fake success so bots don't know they were blocked
-    result = { type: "success", name: form.get("name")?.toString().trim() ?? "", email: form.get("email")?.toString().trim().toLowerCase() ?? "" };
+    result = { type: "success", name: form.get("name")?.toString().trim() ?? "", email: form.get("email")?.toString().trim().toLowerCase() ?? "", cancelToken: "" };
   } else {
     const name = form.get("name")?.toString().trim() ?? "";
     const email = form.get("email")?.toString().trim().toLowerCase() ?? "";

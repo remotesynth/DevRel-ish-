@@ -14,7 +14,7 @@ const activeCity = Astro.url.searchParams.get("city")?.trim() ?? "";
 const activeEvent = Astro.url.searchParams.get("event")?.trim() ?? "";
 
 // Fetch approved groups and build a lookup map
-const approvedGroups = await db.select().from(Groups).where(eq(Groups.status, "approved"));
+const approvedGroups = await db.select().from(Groups).where(eq(Groups.status, "active"));
 const groupMap = new Map(approvedGroups.map(g => [g.id, g]));
 const approvedGroupIds = new Set(approvedGroups.map(g => g.id));
 

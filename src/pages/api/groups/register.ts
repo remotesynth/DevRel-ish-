@@ -81,7 +81,7 @@ export const POST: APIRoute = async ({ request }) => {
     country: country?.trim() || null,
     description: description.trim(),
     contactEmail: contactEmail.trim().toLowerCase(),
-    status: "pending",
+    status: "active",
     createdAt: new Date(),
   });
 

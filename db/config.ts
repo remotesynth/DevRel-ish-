@@ -7,23 +7,20 @@ const Groups = defineTable({
     id: column.text({ primaryKey: true }),
     name: column.text({ unique: true }),
     slug: column.text({ unique: true }),
-    customSlug: column.text({ optional: true, unique: true }), // organizer-chosen short URL e.g. "sf-user-group"
-    // Location is optional — groups may be distributed/event-based
+    customSlug: column.text({ optional: true, unique: true }),
     city: column.text({ optional: true }),
-    region: column.text({ optional: true }), // state/province
+    region: column.text({ optional: true }),
     country: column.text({ optional: true }),
-    // Identity & discovery
-    tagline: column.text({ optional: true }), // short one-liner for cards
-    tags: column.text({ optional: true }), // comma-separated
-    category: column.text({ optional: true }), // slug from src/lib/categories.ts
+    tagline: column.text({ optional: true }),
+    tags: column.text({ optional: true }),
+    category: column.text({ optional: true }),
     website: column.text({ optional: true }),
     blueskyHandle: column.text({ optional: true }),
     linkedinUrl: column.text({ optional: true }),
-    // Core
     description: column.text(),
     contactEmail: column.text(),
-    status: column.text({ default: "pending" }), // pending | approved | rejected | closed
-    managerId: column.text({ optional: true }), // soft ref to User.id
+    status: column.text({ default: "active" }), // active | closed
+    managerId: column.text({ optional: true }), // soft ref to AppUser.did
     createdAt: column.date({ default: new Date() }),
   },
 });
@@ -31,18 +28,17 @@ const Groups = defineTable({
 const Meetups = defineTable({
   columns: {
     id: column.text({ primaryKey: true }),
-    groupId: column.text(), // soft ref to Groups.id
+    groupId: column.text(),
     title: column.text(),
     description: column.text(),
     date: column.date(),
-    time: column.text(), // "HH:MM" 24-hour
-    venue: column.text(), // venue name or address
+    time: column.text(),
+    venue: column.text(),
     address: column.text({ optional: true }),
-    // Location context for event-based gatherings
     city: column.text({ optional: true }),
     country: column.text({ optional: true }),
-    eventContext: column.text({ optional: true }), // e.g. "KubeCon EU 2026"
-    tags: column.text({ optional: true }), // comma-separated
+    eventContext: column.text({ optional: true }),
+    tags: column.text({ optional: true }),
     capacity: column.number(),
     status: column.text({ default: "active" }), // active | canceled
     createdAt: column.date({ default: new Date() }),
@@ -52,20 +48,20 @@ const Meetups = defineTable({
 const RSVPs = defineTable({
   columns: {
     id: column.text({ primaryKey: true }),
-    meetupId: column.text(), // soft ref to Meetups.id
+    meetupId: column.text(),
     name: column.text(),
     email: column.text(),
     jobTitle: column.text(),
     company: column.text(),
-    cancelToken: column.text({ optional: true, unique: true }), // for self-serve RSVP cancellation
+    cancelToken: column.text({ optional: true, unique: true }),
     createdAt: column.date({ default: new Date() }),
   },
 });
 
 const GroupInvites = defineTable({
   columns: {
-    id: column.text({ primaryKey: true }), // the invite token used in the URL
-    groupId: column.text(), // soft ref to Groups.id
+    id: column.text({ primaryKey: true }),
+    groupId: column.text(),
     createdAt: column.date(),
     expiresAt: column.date(),
   },
@@ -74,7 +70,7 @@ const GroupInvites = defineTable({
 const ContactMessages = defineTable({
   columns: {
     id: column.text({ primaryKey: true }),
-    groupId: column.text(), // soft ref to Groups.id
+    groupId: column.text(),
     name: column.text(),
     email: column.text(),
     message: column.text(),
@@ -86,11 +82,11 @@ const ContactMessages = defineTable({
 const GatheringSpeakers = defineTable({
   columns: {
     id: column.text({ primaryKey: true }),
-    gatheringId: column.text(), // soft ref to Meetups.id
+    gatheringId: column.text(),
     speakerName: column.text(),
     speakerJobTitle: column.text({ optional: true }),
     speakerCompany: column.text({ optional: true }),
-    speakerImageUrl: column.text({ optional: true }), // Cloudinary URL
+    speakerImageUrl: column.text({ optional: true }),
     speakerBio: column.text({ optional: true }),
     sortOrder: column.number({ default: 0 }),
     createdAt: column.date({ default: new Date() }),
@@ -100,10 +96,10 @@ const GatheringSpeakers = defineTable({
 const GatheringSessions = defineTable({
   columns: {
     id: column.text({ primaryKey: true }),
-    gatheringId: column.text(), // soft ref to Meetups.id
+    gatheringId: column.text(),
     title: column.text(),
     abstract: column.text({ optional: true }),
-    startTime: column.text({ optional: true }), // "HH:MM" 24-hour
+    startTime: column.text({ optional: true }),
     sortOrder: column.number({ default: 0 }),
     createdAt: column.date({ default: new Date() }),
   },
@@ -112,8 +108,8 @@ const GatheringSessions = defineTable({
 const GatheringSessionSpeakers = defineTable({
   columns: {
     id: column.text({ primaryKey: true }),
-    sessionId: column.text(), // soft ref to GatheringSessions.id
-    speakerId: column.text(), // soft ref to GatheringSpeakers.id
+    sessionId: column.text(),
+    speakerId: column.text(),
     sortOrder: column.number({ default: 0 }),
   },
 });
@@ -121,80 +117,70 @@ const GatheringSessionSpeakers = defineTable({
 const Followers = defineTable({
   columns: {
     id: column.text({ primaryKey: true }),
-    groupId: column.text(), // soft ref to Groups.id
+    groupId: column.text(),
     email: column.text(),
     name: column.text({ optional: true }),
     confirmed: column.boolean({ default: false }),
-    token: column.text({ unique: true }), // for confirm + unsubscribe links
+    token: column.text({ unique: true }),
     createdAt: column.date({ default: new Date() }),
   },
 });
 
-// ── better-auth Tables ────────────────────────────────────────────────────────
+// ── ATProto Auth Tables ───────────────────────────────────────────────────────
 
-const User = defineTable({
+// Organizer/admin accounts — keyed by ATProto DID
+const AppUser = defineTable({
   columns: {
-    id: column.text({ primaryKey: true }),
-    name: column.text(),
-    email: column.text({ unique: true }),
-    emailVerified: column.boolean({ default: false }),
-    image: column.text({ optional: true }),
-    createdAt: column.date(),
-    updatedAt: column.date(),
-    // Admin plugin
-    role: column.text({ optional: true }),
-    banned: column.boolean({ optional: true }),
-    banReason: column.text({ optional: true }),
-    banExpires: column.date({ optional: true }),
-    // App-specific: link manager to their group
-    groupId: column.text({ optional: true }),
+    did: column.text({ primaryKey: true }),
+    handle: column.text(),
+    displayName: column.text({ optional: true }),
+    role: column.text({ default: "user" }),   // "admin" | "user"
+    groupId: column.text({ optional: true }), // soft ref to Groups.id
+    createdAt: column.date({ default: new Date() }),
   },
 });
 
-const Session = defineTable({
+// Browser sessions — cookie value maps to a DID
+const AppSession = defineTable({
   columns: {
-    id: column.text({ primaryKey: true }),
+    id: column.text({ primaryKey: true }),    // random value stored in cookie
+    did: column.text(),                       // soft ref to AppUser.did
     expiresAt: column.date(),
-    token: column.text({ unique: true }),
-    createdAt: column.date(),
-    updatedAt: column.date(),
-    ipAddress: column.text({ optional: true }),
-    userAgent: column.text({ optional: true }),
-    userId: column.text(), // soft ref to User.id
-    // Admin plugin
-    impersonatedBy: column.text({ optional: true }),
+    createdAt: column.date({ default: new Date() }),
   },
 });
 
-const Account = defineTable({
+// ATProto OAuth state — ephemeral, 10-min TTL, keyed by state nonce
+const OAuthState = defineTable({
   columns: {
-    id: column.text({ primaryKey: true }),
-    accountId: column.text(),
-    providerId: column.text(),
-    userId: column.text(), // soft ref to User.id
-    accessToken: column.text({ optional: true }),
-    refreshToken: column.text({ optional: true }),
-    idToken: column.text({ optional: true }),
-    accessTokenExpiresAt: column.date({ optional: true }),
-    refreshTokenExpiresAt: column.date({ optional: true }),
-    scope: column.text({ optional: true }),
-    password: column.text({ optional: true }),
-    createdAt: column.date(),
-    updatedAt: column.date(),
-  },
-});
-
-const Verification = defineTable({
-  columns: {
-    id: column.text({ primaryKey: true }),
-    identifier: column.text(),
-    value: column.text(),
+    key: column.text({ primaryKey: true }),
+    value: column.text(),                     // JSON-serialized NodeSavedState
     expiresAt: column.date(),
-    createdAt: column.date({ optional: true }),
-    updatedAt: column.date({ optional: true }),
+  },
+});
+
+// ATProto OAuth session — persistent, keyed by DID (sub)
+const OAuthSession = defineTable({
+  columns: {
+    did: column.text({ primaryKey: true }),
+    value: column.text(),                     // JSON-serialized NodeSavedSession
   },
 });
 
 export default defineDb({
-  tables: { Groups, Meetups, RSVPs, GatheringSpeakers, GatheringSessions, GatheringSessionSpeakers, GroupInvites, ContactMessages, Followers, User, Session, Account, Verification },
+  tables: {
+    Groups,
+    Meetups,
+    RSVPs,
+    GatheringSpeakers,
+    GatheringSessions,
+    GatheringSessionSpeakers,
+    GroupInvites,
+    ContactMessages,
+    Followers,
+    AppUser,
+    AppSession,
+    OAuthState,
+    OAuthSession,
+  },
 });

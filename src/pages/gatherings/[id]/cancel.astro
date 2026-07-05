@@ -10,7 +10,7 @@ const [meetup] = await db.select().from(Meetups).where(eq(Meetups.id, id));
 if (!meetup) return Astro.redirect("/groups");
 
 const [group] = await db.select().from(Groups).where(eq(Groups.id, meetup.groupId));
-if (!group || (group.status !== "approved" && group.status !== "closed")) {
+if (!group || (group.status !== "active" && group.status !== "closed")) {
   return Astro.redirect("/groups");
 }
 

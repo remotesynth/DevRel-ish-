@@ -7,7 +7,7 @@ export const GET: APIRoute = async ({ params, url }) => {
   if (!slug) return new Response("Not found", { status: 404 });
 
   const [group] = await db.select().from(Groups).where(eq(Groups.slug, slug));
-  if (!group || group.status !== "approved") {
+  if (!group || group.status !== "active") {
     return new Response("Not found", { status: 404 });
   }
 

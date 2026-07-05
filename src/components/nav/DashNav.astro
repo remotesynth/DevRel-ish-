@@ -30,11 +30,11 @@ function isActive(href: string) {
 
     <div class="dash-user">
       <div class="user-avatar" aria-hidden="true">
-        {user?.name?.[0]?.toUpperCase() ?? "?"}
+        {(user?.displayName ?? user?.handle)?.[0]?.toUpperCase() ?? "?"}
       </div>
       <div>
-        <p class="user-name">{user?.name}</p>
-        <p class="user-email">{user?.email}</p>
+        <p class="user-name">{user?.displayName ?? user?.handle}</p>
+        <p class="user-email">@{user?.handle}</p>
       </div>
     </div>
 
