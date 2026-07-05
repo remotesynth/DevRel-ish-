@@ -98,7 +98,17 @@ export async function getOAuthClient(): Promise<NodeOAuthClient> {
 
   _client = new NodeOAuthClient({
     clientMetadata: isDev
-      ? { client_id: devClientId(), redirect_uris: [redirectUri] } as any
+      ? {
+          client_id: devClientId(),
+          client_name: "DevRel(ish) (dev)",
+          redirect_uris: [redirectUri],
+          scope: "atproto transition:generic",
+          grant_types: ["authorization_code", "refresh_token"],
+          response_types: ["code"],
+          application_type: "web",
+          token_endpoint_auth_method: "none",
+          dpop_bound_access_tokens: true,
+        } as any
       : {
           client_id: `${publicUrl}/oauth/client-metadata.json`,
           client_name: "DevRel(ish)",
