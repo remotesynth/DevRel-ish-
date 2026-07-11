@@ -223,6 +223,74 @@ const AtMemberships = defineTable({
   },
 });
 
+// ── Deprecated better-auth Tables (dropped in ATProto migration) ─────────────
+// Keep these deprecated stubs so AstroDB doesn't mistake the User→AppUser
+// column overlap for a table rename. Safe to remove after first successful deploy.
+
+const User = defineTable({
+  deprecated: true,
+  columns: {
+    id: column.text({ primaryKey: true }),
+    name: column.text(),
+    email: column.text({ unique: true }),
+    emailVerified: column.boolean({ default: false }),
+    image: column.text({ optional: true }),
+    createdAt: column.date(),
+    updatedAt: column.date(),
+    role: column.text({ optional: true }),
+    banned: column.boolean({ optional: true }),
+    banReason: column.text({ optional: true }),
+    banExpires: column.date({ optional: true }),
+    groupId: column.text({ optional: true }),
+  },
+});
+
+const Session = defineTable({
+  deprecated: true,
+  columns: {
+    id: column.text({ primaryKey: true }),
+    expiresAt: column.date(),
+    token: column.text({ unique: true }),
+    createdAt: column.date(),
+    updatedAt: column.date(),
+    ipAddress: column.text({ optional: true }),
+    userAgent: column.text({ optional: true }),
+    userId: column.text(),
+    impersonatedBy: column.text({ optional: true }),
+  },
+});
+
+const Account = defineTable({
+  deprecated: true,
+  columns: {
+    id: column.text({ primaryKey: true }),
+    accountId: column.text(),
+    providerId: column.text(),
+    userId: column.text(),
+    accessToken: column.text({ optional: true }),
+    refreshToken: column.text({ optional: true }),
+    idToken: column.text({ optional: true }),
+    accessTokenExpiresAt: column.date({ optional: true }),
+    refreshTokenExpiresAt: column.date({ optional: true }),
+    scope: column.text({ optional: true }),
+    password: column.text({ optional: true }),
+    createdAt: column.date(),
+    updatedAt: column.date(),
+  },
+});
+
+const Verification = defineTable({
+  deprecated: true,
+  columns: {
+    id: column.text({ primaryKey: true }),
+    identifier: column.text(),
+    value: column.text(),
+    expiresAt: column.date(),
+    createdAt: column.date({ optional: true }),
+    updatedAt: column.date({ optional: true }),
+  },
+});
+
 // ── ATProto Auth Tables ───────────────────────────────────────────────────────
 
 // Organizer/admin accounts — keyed by ATProto DID
@@ -275,6 +343,12 @@ export default defineDb({
     GroupInvites,
     ContactMessages,
     Followers,
+    // Deprecated better-auth tables — remove after first successful deploy
+    User,
+    Session,
+    Account,
+    Verification,
+    // ATProto tables
     AppUser,
     AppSession,
     OAuthState,
