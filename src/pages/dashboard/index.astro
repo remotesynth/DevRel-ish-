@@ -6,6 +6,8 @@ import { groupUrl } from "../../lib/utils";
 if (!Astro.locals.user) return Astro.redirect("/auth/login");
 const user = Astro.locals.user;
 const justJoined = Astro.url.searchParams.get("joined") === "1";
+const justPublished = Astro.url.searchParams.get("published") === "atproto";
+const publishError = Astro.url.searchParams.get("error") === "publish-failed";
 
 // Find the user's group — check by stored groupId first, fall back to managerId
 // (handles accounts created before Phase 4 linked group ↔ user)
@@ -59,6 +61,18 @@ if (group) {
       </div>
     )}
 
+    {justPublished && (
+      <div class="alert alert-success" style="margin-bottom: 1.5rem;">
+        Your group is now published to the ATProto network. Members can now join and RSVPs will sync.
+      </div>
+    )}
+
+    {publishError && (
+      <div class="alert alert-error" style="margin-bottom: 1.5rem;">
+        Could not publish to ATProto. Please try again or check that your session is still active.
+      </div>
+    )}
+
     {
       !group ? (
         <div class="no-group-state">
@@ -91,6 +105,20 @@ if (group) {
               View public page ↗
             </a>
           </div>
+
+          {!group.atUri && (
+            <div class="atproto-nudge">
+              <div class="atproto-nudge-text">
+                <strong>Not yet on the ATProto network</strong>
+                <span>Publish your group to ATProto so members can join via Bluesky and RSVPs sync across apps.</span>
+              </div>
+              <form method="POST" action="/api/groups/publish-atproto">
+                <button type="submit" class="btn btn-primary btn-sm">
+                  Publish to ATProto →
+                </button>
+              </form>
+            </div>
+          )}
 
           <div class="stat-cards">
             <div class="stat-card">
@@ -336,5 +364,33 @@ if (group) {
     display: flex;
     gap: 0.5rem;
     flex-wrap: wrap;
+  }
+
+  .atproto-nudge {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    background: color-mix(in srgb, #0085ff 8%, var(--color-surface));
+    border: 1px solid #0085ff44;
+    border-radius: var(--radius-md);
+    padding: 0.875rem 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .atproto-nudge-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: var(--size-sm);
+  }
+
+  .atproto-nudge-text strong {
+    color: var(--color-text);
+  }
+
+  .atproto-nudge-text span {
+    color: var(--color-text-muted);
   }
 </style>

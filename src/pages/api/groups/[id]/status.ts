@@ -17,10 +17,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   const { id, status } = body as Record<string, string>;
 
-  // Admins can only set a group to closed (remove it from listings).
-  // Groups are active by default when created — no approval gate.
-  if (!id || !["active", "closed"].includes(status)) {
-    return json({ error: "Invalid parameters. status must be 'active' or 'closed'." }, 400);
+  if (!id || !["active", "closed", "banned"].includes(status)) {
+    return json({ error: "Invalid parameters. status must be 'active', 'closed', or 'banned'." }, 400);
   }
 
   const [group] = await db.select().from(Groups).where(eq(Groups.id, id));

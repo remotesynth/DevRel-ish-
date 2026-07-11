@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { db, AppUser, Groups, GroupInvites, eq } from "astro:db";
+import { db, AppUser, Groups, GroupInvites, AtGroups, eq } from "astro:db";
+import { getPdsSession, pdsPut } from "../../lib/atproto-pds";
 
 const { token } = Astro.params;
 if (!token) return Astro.redirect("/");
@@ -32,6 +33,41 @@ if (isValid && user && Astro.request.method === "POST") {
 
     // Consume the invite so it can't be reused
     await db.delete(GroupInvites).where(eq(GroupInvites.id, token));
+
+    // Update the group's PDS record to include the new co-organizer's DID (best-effort)
+    if (group!.atUri && group!.atCid && group!.managerId) {
+      try {
+        const organizerSession = await getPdsSession(group!.managerId);
+        if (organizerSession) {
+          const [atGroup] = await db
+            .select({ coOrganizers: AtGroups.coOrganizers })
+            .from(AtGroups)
+            .where(eq(AtGroups.uri, group!.atUri));
+          const existing: string[] = atGroup?.coOrganizers
+            ? (() => { try { return JSON.parse(atGroup.coOrganizers); } catch { return []; } })()
+            : [];
+          const coOrganizers = [...new Set([...existing, user.did])];
+
+          await pdsPut(organizerSession, group!.atUri, {
+            name: group!.name,
+            description: group!.description,
+            ...(group!.city || group!.country
+              ? { location: {
+                  $type: "community.lexicon.location.address",
+                  ...(group!.city ? { city: group!.city } : {}),
+                  ...(group!.region ? { state: group!.region } : {}),
+                  ...(group!.country ? { country: group!.country } : {}),
+                }}
+              : {}),
+            ...(group!.category ? { category: group!.category } : {}),
+            coOrganizers,
+            createdAt: group!.createdAt.toISOString(),
+          });
+        }
+      } catch (err) {
+        console.warn("[invite] Could not update group PDS record with co-organizer:", err);
+      }
+    }
 
     successMsg = `You now have co-organizer access to ${group!.name}.`;
   }
