@@ -132,13 +132,7 @@ The dev seed creates placeholder users with fake DIDs — these can't actually s
 2. **Generate an ATProto OAuth key pair** (required for production — identifies your app to users' PDSes):
 
    ```sh
-   node -e "
-     const { JoseKey } = require('@atproto/jwk-jose');
-     JoseKey.generate(['ES256']).then(k => {
-       console.log('Private key (ATPROTO_PRIVATE_KEY_JWK):');
-       console.log(JSON.stringify(k.privateJwk));
-     });
-   "
+   node scripts/generate-key.mjs
    ```
 
    Store the output as `ATPROTO_PRIVATE_KEY_JWK`. Keep it secret — it authenticates your app.
