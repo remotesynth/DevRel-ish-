@@ -1,16 +1,29 @@
 ---
 import DashboardLayout from "../../layouts/DashboardLayout.astro";
-import { db, Groups, Meetups, Followers, count, eq, and, gte, asc } from "astro:db";
+import { db, Groups, Meetups, Followers, AppUser, count, eq, and, gte, asc } from "astro:db";
 import { groupUrl } from "../../lib/utils";
 
 if (!Astro.locals.user) return Astro.redirect("/auth/login");
 const user = Astro.locals.user;
 const justJoined = Astro.url.searchParams.get("joined") === "1";
 
-// Find the user's group
-const [group] = user.groupId
+// Find the user's group — check by stored groupId first, fall back to managerId
+// (handles accounts created before Phase 4 linked group ↔ user)
+let [group] = user.groupId
   ? await db.select().from(Groups).where(eq(Groups.id, user.groupId))
   : [];
+
+if (!group) {
+  const [byManager] = await db
+    .select()
+    .from(Groups)
+    .where(eq(Groups.managerId, user.did));
+  if (byManager) {
+    group = byManager;
+    // Heal the missing link so future loads skip this fallback
+    await db.update(AppUser).set({ groupId: byManager.id }).where(eq(AppUser.did, user.did));
+  }
+}
 
 const today = new Date();
 today.setHours(0, 0, 0, 0);
@@ -51,14 +64,16 @@ if (group) {
         <div class="no-group-state">
           <div class="no-group-card">
             <div class="state-icon" aria-hidden="true">◎</div>
-            <h2>Your group is pending approval</h2>
+            <h2>No group yet</h2>
             <p>
-              Your group application is being reviewed. We'll reach out via the
-              contact email you provided when registering your group.
+              You haven't started a group yet. Create one to start organizing
+              gatherings for your community — it goes live instantly.
             </p>
-            <p>
-              In the meantime, feel free to{" "}
-              <a href="/groups">browse other groups</a> to see what's happening in the community.
+            <a href="/groups/register" class="btn btn-primary" style="margin-top: 0.5rem;">
+              Start a group →
+            </a>
+            <p style="margin-top: 1rem; font-size: var(--size-sm); color: var(--color-text-muted);">
+              Already have a group? Ask the group admin to send you a co-organizer invite.
             </p>
           </div>
         </div>

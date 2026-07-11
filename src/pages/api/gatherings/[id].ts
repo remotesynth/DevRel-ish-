@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
-import { db, Meetups, Groups, RSVPs } from "astro:db";
-import { eq, and } from "astro:db";
+import { db, Meetups, Groups, RSVPs, eq, and } from "astro:db";
+import { getPdsSession, pdsPut, pdsDelete } from "../../../lib/atproto-pds";
 
 export const prerender = false;
 
@@ -16,6 +16,11 @@ async function getOwnedMeetup(meetupId: string, userId: string) {
     .from(Meetups)
     .where(and(eq(Meetups.id, meetupId), eq(Meetups.groupId, group.id)));
   return meetup ?? null;
+}
+
+function buildStartsAt(date: Date, timeStr: string): string {
+  const dateStr = date.toISOString().split("T")[0];
+  return `${dateStr}T${timeStr}:00.000Z`;
 }
 
 export const PUT: APIRoute = async ({ params, request, locals }) => {
@@ -78,6 +83,54 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
 
   await db.update(Meetups).set(updates).where(eq(Meetups.id, meetup.id));
 
+  // Update PDS records if they exist (best-effort)
+  if (meetup.atEventUri) {
+    const session = await getPdsSession(locals.user.did);
+    if (session) {
+      try {
+        const finalTitle   = (updates.title ?? meetup.title);
+        const finalDesc    = (updates.description ?? meetup.description);
+        const finalDate    = (updates.date ?? meetup.date);
+        const finalTime    = (updates.time ?? meetup.time);
+        const finalVenue   = (updates.venue ?? meetup.venue);
+        const finalAddress = (updates.address ?? meetup.address);
+
+        const eventResult = await pdsPut(session, meetup.atEventUri, {
+          name: finalTitle,
+          startsAt: buildStartsAt(finalDate, finalTime),
+          description: finalDesc,
+          locations: [{
+            $type: "community.lexicon.location.address",
+            name: finalVenue,
+            ...(finalAddress ? { street: finalAddress } : {}),
+          }],
+          createdAt: meetup.createdAt.toISOString(),
+        });
+        await db.update(Meetups)
+          .set({ atEventCid: eventResult.cid })
+          .where(eq(Meetups.id, meetup.id));
+
+        // Update meta record if capacity changed and meta exists
+        if (updates.capacity !== undefined && meetup.atMetaUri) {
+          const [group] = await db.select().from(Groups).where(eq(Groups.managerId, locals.user.id));
+          if (group?.atUri && group?.atCid) {
+            const metaResult = await pdsPut(session, meetup.atMetaUri, {
+              event: { uri: eventResult.uri, cid: eventResult.cid },
+              group: { uri: group.atUri, cid: group.atCid },
+              capacity: updates.capacity,
+              createdAt: meetup.createdAt.toISOString(),
+            });
+            await db.update(Meetups)
+              .set({ atMetaCid: metaResult.cid })
+              .where(eq(Meetups.id, meetup.id));
+          }
+        }
+      } catch (err) {
+        console.error("[gatherings/update] PDS write failed:", err);
+      }
+    }
+  }
+
   return json({ ok: true });
 };
 
@@ -87,7 +140,19 @@ export const DELETE: APIRoute = async ({ params, locals }) => {
   const meetup = await getOwnedMeetup(params.id!, locals.user.id);
   if (!meetup) return json({ error: "Gathering not found." }, 404);
 
-  // Delete RSVPs first (no cascade in AstroDB)
+  // Remove PDS records before local deletion (best-effort)
+  if (meetup.atEventUri) {
+    const session = await getPdsSession(locals.user.did);
+    if (session) {
+      try {
+        if (meetup.atMetaUri) await pdsDelete(session, meetup.atMetaUri);
+        await pdsDelete(session, meetup.atEventUri);
+      } catch (err) {
+        console.error("[gatherings/delete] PDS delete failed:", err);
+      }
+    }
+  }
+
   await db.delete(RSVPs).where(eq(RSVPs.meetupId, meetup.id));
   await db.delete(Meetups).where(eq(Meetups.id, meetup.id));
 

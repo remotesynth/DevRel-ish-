@@ -19,11 +19,11 @@ import {
 const today = new Date();
 today.setHours(0, 0, 0, 0);
 
-// Approved groups lookup
+// Active groups lookup
 const approvedGroups = await db
   .select()
   .from(Groups)
-  .where(eq(Groups.status, 'approved'));
+  .where(eq(Groups.status, 'active'));
 const groupMap = new Map(approvedGroups.map((g) => [g.id, g]));
 const approvedGroupIds = new Set(approvedGroups.map((g) => g.id));
 
@@ -52,7 +52,7 @@ const rsvpCounts: Record<string, number> = Object.fromEntries(rsvpRows.map((r) =
 const featuredGroups = await db
   .select()
   .from(Groups)
-  .where(eq(Groups.status, 'approved'))
+  .where(eq(Groups.status, 'active'))
   .orderBy(desc(Groups.createdAt))
   .limit(3);
 

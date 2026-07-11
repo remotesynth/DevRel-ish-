@@ -21,6 +21,8 @@ const Groups = defineTable({
     contactEmail: column.text(),
     status: column.text({ default: "active" }), // active | closed
     managerId: column.text({ optional: true }), // soft ref to AppUser.did
+    atUri: column.text({ optional: true }),     // at:// URI of com.devrelish.group
+    atCid: column.text({ optional: true }),     // CID of the group record
     createdAt: column.date({ default: new Date() }),
   },
 });
@@ -41,6 +43,10 @@ const Meetups = defineTable({
     tags: column.text({ optional: true }),
     capacity: column.number(),
     status: column.text({ default: "active" }), // active | canceled
+    atEventUri: column.text({ optional: true }), // at:// URI of community.lexicon.calendar.event
+    atEventCid: column.text({ optional: true }), // CID of the event record
+    atMetaUri: column.text({ optional: true }),  // at:// URI of com.devrelish.event.meta
+    atMetaCid: column.text({ optional: true }),  // CID of the meta record
     createdAt: column.date({ default: new Date() }),
   },
 });
