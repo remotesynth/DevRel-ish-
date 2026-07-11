@@ -1,7 +1,8 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import GatheringCard from "../../components/meetups/GatheringCard.astro";
-import { db, Groups, Meetups, RSVPs, count, eq, and, gte, asc, inArray } from "astro:db";
+import AtEventCard from "../../components/meetups/AtEventCard.astro";
+import { db, Groups, Meetups, RSVPs, AtEvents, AtEventMeta, AtGroups, count, eq, and, gte, asc, inArray } from "astro:db";
 import { CATEGORIES, getCategoryLabel } from "../../lib/categories";
 
 const today = new Date();
@@ -14,7 +15,7 @@ const activeCity = Astro.url.searchParams.get("city")?.trim() ?? "";
 const activeEvent = Astro.url.searchParams.get("event")?.trim() ?? "";
 
 // Fetch approved groups and build a lookup map
-const approvedGroups = await db.select().from(Groups).where(eq(Groups.status, "approved"));
+const approvedGroups = await db.select().from(Groups).where(eq(Groups.status, "active"));
 const groupMap = new Map(approvedGroups.map(g => [g.id, g]));
 const approvedGroupIds = new Set(approvedGroups.map(g => g.id));
 
@@ -66,6 +67,36 @@ const rsvpRows = filteredIds.length
 const rsvpCounts: Record<string, number> = Object.fromEntries(rsvpRows.map((r) => [r.meetupId, r.val]));
 
 const hasFilters = activeCategory || activeTag || activeCity || activeEvent;
+
+// External ATProto events (not in local DB) — only shown with no active filters
+const localAtEventUriSet = new Set(allUpcoming.filter(m => m.atEventUri).map(m => m.atEventUri!));
+const todayIso = today.toISOString();
+
+const externalEvents = !hasFilters
+  ? await db
+      .select({
+        uri: AtEvents.uri,
+        did: AtEvents.did,
+        name: AtEvents.name,
+        startsAt: AtEvents.startsAt,
+        locationJson: AtEvents.locationJson,
+        groupName: AtGroups.name,
+      })
+      .from(AtEvents)
+      .leftJoin(AtEventMeta, eq(AtEventMeta.eventUri, AtEvents.uri))
+      .leftJoin(AtGroups, eq(AtGroups.uri, AtEventMeta.groupUri))
+      .where(gte(AtEvents.startsAt, todayIso))
+      .orderBy(asc(AtEvents.startsAt))
+      .limit(30)
+      .then((rows) => {
+        const seen = new Set<string>();
+        return rows.filter((e) => {
+          if (seen.has(e.uri)) return false;
+          seen.add(e.uri);
+          return !localAtEventUriSet.has(e.uri);
+        });
+      })
+  : [];
 
 function clearUrl() {
   const params = new URLSearchParams(Astro.url.searchParams);
@@ -240,6 +271,31 @@ function clearUrl() {
     </div>
   </section>
 
+  {externalEvents.length > 0 && (
+    <section class="external-events-section">
+      <div class="container">
+        <div class="external-events-header">
+          <div>
+            <h2>From the ATProto community</h2>
+            <p class="external-events-desc">Events from other apps using the same open protocol — including <a href="https://smokesignal.events" target="_blank" rel="noopener noreferrer">Smoke Signal</a>.</p>
+          </div>
+        </div>
+        <div class="external-events-grid">
+          {externalEvents.map((e) => (
+            <AtEventCard
+              uri={e.uri}
+              did={e.did}
+              name={e.name}
+              startsAt={e.startsAt}
+              locationJson={e.locationJson ?? null}
+              groupName={e.groupName ?? null}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
   <section class="organizer-cta">
     <div class="container">
       <p>
@@ -368,5 +424,32 @@ function clearUrl() {
   .organizer-cta p {
     color: var(--color-text-muted);
     max-width: none;
+  }
+
+  .external-events-section {
+    padding: 2.5rem 0 1rem;
+    border-top: 2px dashed var(--color-border);
+    background: var(--color-surface-warm);
+  }
+
+  .external-events-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .external-events-header h2 {
+    font-size: var(--size-2xl);
+    margin-bottom: 0.375rem;
+  }
+
+  .external-events-desc {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+    max-width: none;
+  }
+
+  .external-events-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
   }
 </style>

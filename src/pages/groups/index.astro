@@ -13,7 +13,7 @@ const activeTag = Astro.url.searchParams.get("tag")?.trim() ?? "";
 const allGroups = await db
   .select()
   .from(Groups)
-  .where(eq(Groups.status, "approved"))
+  .where(eq(Groups.status, "active"))
   .orderBy(asc(Groups.name));
 
 // Categories that actually have groups

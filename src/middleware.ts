@@ -1,20 +1,39 @@
 import { defineMiddleware } from "astro:middleware";
-import { auth } from "./lib/auth";
+import { getSessionUser, isAdminHandle, promoteToAdmin, SESSION_COOKIE } from "./lib/session";
 
 export const onRequest = defineMiddleware(async (context, next) => {
-  try {
-    const session = await auth.api.getSession({
-      headers: context.request.headers,
-    });
-    context.locals.user = session?.user ?? null;
-    context.locals.session = session?.session ?? null;
-  } catch (err) {
-    // Auth unavailable (misconfigured env, DB unreachable, etc.).
-    // Log the error server-side but don't crash the request — public
-    // pages still render, protected pages redirect via their own guards.
-    console.error("[middleware] auth.getSession failed:", err);
+  const sessionId = context.cookies.get(SESSION_COOKIE)?.value ?? null;
+
+  if (sessionId) {
+    try {
+      const row = await getSessionUser(sessionId);
+      if (row) {
+        let role = row.role;
+
+        // If the handle is in ADMIN_HANDLES but the DB row isn't admin yet,
+        // promote now — handles already-logged-in users after the env var is set.
+        if (role !== "admin" && isAdminHandle(row.handle)) {
+          await promoteToAdmin(row.did);
+          role = "admin";
+        }
+
+        context.locals.user = {
+          id: row.did,
+          did: row.did,
+          handle: row.handle,
+          displayName: row.displayName ?? null,
+          role,
+          groupId: row.groupId ?? null,
+        };
+      } else {
+        context.locals.user = null;
+      }
+    } catch (err) {
+      console.error("[middleware] session lookup failed:", err);
+      context.locals.user = null;
+    }
+  } else {
     context.locals.user = null;
-    context.locals.session = null;
   }
 
   return next();

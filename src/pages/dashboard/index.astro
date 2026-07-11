@@ -1,16 +1,31 @@
 ---
 import DashboardLayout from "../../layouts/DashboardLayout.astro";
-import { db, Groups, Meetups, Followers, count, eq, and, gte, asc } from "astro:db";
+import { db, Groups, Meetups, Followers, AppUser, count, eq, and, gte, asc } from "astro:db";
 import { groupUrl } from "../../lib/utils";
 
 if (!Astro.locals.user) return Astro.redirect("/auth/login");
 const user = Astro.locals.user;
 const justJoined = Astro.url.searchParams.get("joined") === "1";
+const justPublished = Astro.url.searchParams.get("published") === "atproto";
+const publishError = Astro.url.searchParams.get("error") === "publish-failed";
 
-// Find the user's group
-const [group] = user.groupId
+// Find the user's group — check by stored groupId first, fall back to managerId
+// (handles accounts created before Phase 4 linked group ↔ user)
+let [group] = user.groupId
   ? await db.select().from(Groups).where(eq(Groups.id, user.groupId))
   : [];
+
+if (!group) {
+  const [byManager] = await db
+    .select()
+    .from(Groups)
+    .where(eq(Groups.managerId, user.did));
+  if (byManager) {
+    group = byManager;
+    // Heal the missing link so future loads skip this fallback
+    await db.update(AppUser).set({ groupId: byManager.id }).where(eq(AppUser.did, user.did));
+  }
+}
 
 const today = new Date();
 today.setHours(0, 0, 0, 0);
@@ -37,7 +52,7 @@ if (group) {
 <DashboardLayout title="Dashboard">
   <div class="dash-page">
     <div class="dash-page-header">
-      <h1>Hello, {user.name?.split(" ")[0]}! 👋</h1>
+      <h1>Hello, {user.displayName?.split(" ")[0] ?? user.handle}! 👋</h1>
     </div>
 
     {justJoined && (
@@ -46,19 +61,33 @@ if (group) {
       </div>
     )}
 
+    {justPublished && (
+      <div class="alert alert-success" style="margin-bottom: 1.5rem;">
+        Your group is now published to the ATProto network. Members can now join and RSVPs will sync.
+      </div>
+    )}
+
+    {publishError && (
+      <div class="alert alert-error" style="margin-bottom: 1.5rem;">
+        Could not publish to ATProto. Please try again or check that your session is still active.
+      </div>
+    )}
+
     {
       !group ? (
         <div class="no-group-state">
           <div class="no-group-card">
             <div class="state-icon" aria-hidden="true">◎</div>
-            <h2>Your group is pending approval</h2>
+            <h2>No group yet</h2>
             <p>
-              Your group application is being reviewed. We'll reach out to{" "}
-              <strong>{user.email}</strong> once it's been approved.
+              You haven't started a group yet. Create one to start organizing
+              gatherings for your community — it goes live instantly.
             </p>
-            <p>
-              In the meantime, feel free to{" "}
-              <a href="/groups">browse other groups</a> to see what's happening in the community.
+            <a href="/groups/register" class="btn btn-primary" style="margin-top: 0.5rem;">
+              Start a group →
+            </a>
+            <p style="margin-top: 1rem; font-size: var(--size-sm); color: var(--color-text-muted);">
+              Already have a group? Ask the group admin to send you a co-organizer invite.
             </p>
           </div>
         </div>
@@ -76,6 +105,20 @@ if (group) {
               View public page ↗
             </a>
           </div>
+
+          {!group.atUri && (
+            <div class="atproto-nudge">
+              <div class="atproto-nudge-text">
+                <strong>Not yet on the ATProto network</strong>
+                <span>Publish your group to ATProto so members can join via Bluesky and RSVPs sync across apps.</span>
+              </div>
+              <form method="POST" action="/api/groups/publish-atproto">
+                <button type="submit" class="btn btn-primary btn-sm">
+                  Publish to ATProto →
+                </button>
+              </form>
+            </div>
+          )}
 
           <div class="stat-cards">
             <div class="stat-card">
@@ -321,5 +364,33 @@ if (group) {
     display: flex;
     gap: 0.5rem;
     flex-wrap: wrap;
+  }
+
+  .atproto-nudge {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    background: color-mix(in srgb, #0085ff 8%, var(--color-surface));
+    border: 1px solid #0085ff44;
+    border-radius: var(--radius-md);
+    padding: 0.875rem 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .atproto-nudge-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: var(--size-sm);
+  }
+
+  .atproto-nudge-text strong {
+    color: var(--color-text);
+  }
+
+  .atproto-nudge-text span {
+    color: var(--color-text-muted);
   }
 </style>

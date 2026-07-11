@@ -12,7 +12,8 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       <h1>How DevRel(ish) Works</h1>
       <p class="hiw-lead">
         DevRel(ish) is a platform for developer relations professionals and adjacent roles to find and run in-person gatherings around the world.
-        Here's everything you need to know — whether you're looking to join a community or launch one.
+        It's built on the open <a href="https://atproto.com" target="_blank" rel="noopener">AT Protocol</a> — the same decentralized standard that powers Bluesky —
+        so your data is portable, your identity travels with you, and events are visible across compatible apps.
       </p>
       <div class="beta-notice">
         <span class="beta-tag">Beta</span>
@@ -27,16 +28,18 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     <!-- ── For Community Members ───────────────────────────────────────── -->
     <section class="hiw-section">
       <div class="section-label">For members</div>
-      <h2>Finding &amp; following a group</h2>
+      <h2>Finding &amp; joining the community</h2>
 
       <div class="steps">
         <div class="step">
           <div class="step-num">1</div>
           <div class="step-content">
-            <h3>Browse groups</h3>
+            <h3>Browse groups and events</h3>
             <p>
-              Head to <a href="/groups">devrelish.tech/groups</a> to see all approved communities.
-              Filter by category or tag to find groups relevant to your role or interests.
+              Head to <a href="/groups">devrelish.tech/groups</a> to see all active communities,
+              or <a href="/gatherings">devrelish.tech/gatherings</a> to browse upcoming events.
+              You'll also find events from other ATProto-compatible apps like Smoke Signal —
+              everything in the open calendar ecosystem shows up here.
             </p>
           </div>
         </div>
@@ -44,11 +47,11 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         <div class="step">
           <div class="step-num">2</div>
           <div class="step-content">
-            <h3>Follow for updates</h3>
+            <h3>Sign in with your Bluesky account</h3>
             <p>
-              On any group's page you can enter your email to follow the group.
-              You'll receive a confirmation email, and from then on you'll be notified when new gatherings are announced.
-              You can unsubscribe at any time from any notification email.
+              DevRel(ish) uses AT Protocol OAuth — if you have a Bluesky account, that's your login.
+              No separate password or account needed. Your handle and identity come from your AT Protocol
+              Personal Data Server (PDS), so they're yours regardless of what apps you use.
             </p>
           </div>
         </div>
@@ -56,11 +59,11 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         <div class="step">
           <div class="step-num">3</div>
           <div class="step-content">
-            <h3>RSVP to a gathering</h3>
+            <h3>Join a group on ATProto</h3>
             <p>
-              When a gathering is announced, you can RSVP directly on the event page.
-              Capacity is limited — RSVPs are first come, first served.
-              Your spot is confirmed as soon as you submit the form.
+              On any group's page, signed-in members can click <strong>Join on ATProto</strong>.
+              This writes a membership record directly to your AT Protocol PDS, meaning your membership
+              is stored in your own account — not just our database — and is readable by any compatible app.
             </p>
           </div>
         </div>
@@ -68,9 +71,35 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         <div class="step">
           <div class="step-num">4</div>
           <div class="step-content">
+            <h3>Follow for email updates</h3>
+            <p>
+              You can also enter your email on any group's page to follow via email.
+              You'll receive a confirmation, and from then on you'll be notified when new gatherings are announced.
+              You can unsubscribe at any time from any notification email.
+            </p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-content">
+            <h3>RSVP to a gathering</h3>
+            <p>
+              When a gathering is announced, RSVP directly on the event page.
+              Signed-in users can RSVP with one click via their ATProto account — this writes an RSVP record
+              to your PDS using the open <code>community.lexicon.calendar.rsvp</code> schema.
+              You can also fill out the traditional form if you prefer not to sign in.
+              Capacity is limited; spots are first come, first served.
+            </p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">6</div>
+          <div class="step-content">
             <h3>Cancel your RSVP if plans change</h3>
             <p>
-              No account required to cancel. When you RSVP, the confirmation page shows a personal
+              No account required to cancel. When you RSVP via the form, the confirmation page shows a personal
               cancellation link — bookmark it or save it somewhere handy.
               If you lose it, go back to the event's RSVP page and click
               <strong>Cancel your RSVP</strong> in the sidebar.
@@ -80,12 +109,12 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         </div>
 
         <div class="step">
-          <div class="step-num">5</div>
+          <div class="step-num">7</div>
           <div class="step-content">
             <h3>Stay in the loop with RSS</h3>
             <p>
               Every group has an RSS feed at <code>/groups/[group-slug]/rss.xml</code>.
-              Add it to your feed reader to get gathering announcements without email.
+              Add it to your feed reader to get gathering announcements without email or a login.
             </p>
           </div>
         </div>
@@ -106,7 +135,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
               Fill out the <a href="/groups/register">group registration form</a>.
               Provide your group's name, a description (50 characters minimum, Markdown supported),
               a contact email, and optionally a category, tags, and location.
-              Submitted groups start with a <strong>pending</strong> status.
+              Your group goes live instantly — no approval queue, no waiting.
             </p>
           </div>
         </div>
@@ -114,12 +143,12 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         <div class="step">
           <div class="step-num">2</div>
           <div class="step-content">
-            <h3>Wait for approval</h3>
+            <h3>Sign in with your Bluesky account</h3>
             <p>
-              The DevRel(ish) team reviews submissions manually.
-              When your group is approved you'll receive an email with an invite link.
-              Use that link to claim your group and set up your organizer account.
-              Invite links expire after 7 days — contact us if yours has lapsed.
+              Your Bluesky handle is your organizer login. Use AT Protocol OAuth on the
+              <a href="/auth/login">sign-in page</a> to claim your group and access the dashboard.
+              Your account is linked by your decentralized identifier (DID), so it works
+              even if you change your handle or move to a different PDS.
             </p>
           </div>
         </div>
@@ -127,11 +156,12 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         <div class="step">
           <div class="step-num">3</div>
           <div class="step-content">
-            <h3>Set up your group page</h3>
+            <h3>Publish your group to the ATProto network</h3>
             <p>
-              Once you've claimed your group, log into the <a href="/dashboard/group">organizer dashboard</a>.
-              You can edit your description, tagline, category, tags, location, and social links at any time.
-              Your group name is permanent — contact support if you need it changed.
+              From the <a href="/dashboard">organizer dashboard</a>, publish your group to AT Protocol.
+              This writes a <code>com.devrelish.group</code> record to your PDS, making your group
+              discoverable across the ATProto ecosystem and enabling members to join via Bluesky.
+              Gatherings you create are also published as open calendar records that compatible apps can index.
             </p>
           </div>
         </div>
@@ -139,12 +169,11 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         <div class="step">
           <div class="step-num">4</div>
           <div class="step-content">
-            <h3>Add a custom short URL</h3>
+            <h3>Set up your group page</h3>
             <p>
-              In the <a href="/dashboard/group">My Group</a> settings you can choose a custom short URL for your group,
-              such as <code>devrelish.tech/sf-user-group</code>.
-              This makes it easier to share at events, on slides, or in email signatures.
-              Short URLs redirect to your group's canonical page and can be changed at any time.
+              In the <a href="/dashboard/group">My Group</a> section of the dashboard you can edit
+              your description, tagline, category, tags, location, and social links at any time.
+              Your group name is set at registration — contact support if you need it changed.
             </p>
           </div>
         </div>
@@ -152,11 +181,11 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         <div class="step">
           <div class="step-num">5</div>
           <div class="step-content">
-            <h3>Announce a gathering</h3>
+            <h3>Add a custom short URL</h3>
             <p>
-              Go to <a href="/dashboard/gatherings">Gatherings</a> in the dashboard and click <strong>New gathering</strong>.
-              Add a title, description, date, time, venue, and capacity.
-              Gatherings are automatically listed on your public group page once created.
+              Choose a custom short URL for your group such as <code>devrelish.tech/sf-user-group</code>.
+              This makes it easier to share at events, on slides, or in email signatures.
+              Short URLs can be changed at any time from <a href="/dashboard/group">My Group</a>.
             </p>
           </div>
         </div>
@@ -164,12 +193,12 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         <div class="step">
           <div class="step-num">6</div>
           <div class="step-content">
-            <h3>Import upcoming events from Meetup</h3>
+            <h3>Announce a gathering</h3>
             <p>
-              Already running a group on Meetup.com? Use the <strong>Import from Meetup</strong> option in the
-              Gatherings dashboard to pull in your upcoming events directly. Paste your Meetup group URL and
-              DevRel(ish) will pre-fill the title, description, date, and time — you just confirm the venue and
-              capacity before importing. Only import events your group organizes.
+              Go to <a href="/dashboard/gatherings">Gatherings</a> in the dashboard and click <strong>New gathering</strong>.
+              Add a title, description, date, time, venue, and capacity.
+              Once created, the gathering appears on your public group page and is published as an open
+              <code>community.lexicon.calendar.event</code> record — compatible with Smoke Signal and other ATProto calendar apps.
             </p>
           </div>
         </div>
@@ -177,10 +206,12 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         <div class="step">
           <div class="step-num">7</div>
           <div class="step-content">
-            <h3>Manage attendees</h3>
+            <h3>Import upcoming events from Meetup</h3>
             <p>
-              In the dashboard you can view the RSVP list for each gathering and export it as a CSV.
-              The attendee list shows name, email, job title, and company.
+              Already running a group on Meetup.com? Use the <strong>Import from Meetup</strong> option in the
+              Gatherings dashboard to pull in your upcoming events directly. Paste your Meetup group URL and
+              DevRel(ish) will pre-fill the title, description, date, and time — you just confirm the venue and
+              capacity before importing.
             </p>
           </div>
         </div>
@@ -188,16 +219,28 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         <div class="step">
           <div class="step-num">8</div>
           <div class="step-content">
-            <h3>Add co-organizers</h3>
+            <h3>Manage attendees</h3>
             <p>
-              Share the load by inviting co-organizers via the <a href="/dashboard/team">Team</a> page.
-              Co-organizers have the same dashboard access as the primary organizer.
+              In the dashboard you can view the RSVP list for each gathering and export it as a CSV.
+              The attendee list shows name, email, job title, and company for form-based RSVPs.
             </p>
           </div>
         </div>
 
         <div class="step">
           <div class="step-num">9</div>
+          <div class="step-content">
+            <h3>Add co-organizers</h3>
+            <p>
+              Share the load by inviting co-organizers via the <a href="/dashboard/team">Team</a> page.
+              Co-organizers sign in with their own Bluesky account and are added as co-organizers on
+              your group's ATProto record. They have the same dashboard access as the primary organizer.
+            </p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">10</div>
           <div class="step-content">
             <h3>Respond to messages</h3>
             <p>
@@ -216,6 +259,38 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 
       <div class="faq-list">
         <details class="faq-item">
+          <summary>What is AT Protocol?</summary>
+          <p>
+            AT Protocol (atproto) is an open, decentralized protocol for building social apps — the same
+            standard that powers Bluesky. Your identity is a DID (decentralized identifier) that you control,
+            and your data lives on a Personal Data Server (PDS) that can be self-hosted or provided by a service.
+            DevRel(ish) uses ATProto so that your RSVPs, group memberships, and event records belong to
+            you — not a walled garden.
+          </p>
+        </details>
+
+        <details class="faq-item">
+          <summary>Do I need a Bluesky account?</summary>
+          <p>
+            You need an AT Protocol account to sign in as an organizer or to RSVP and join groups via ATProto.
+            Bluesky is the most common way to get one, but any AT Protocol PDS works.
+            You can still browse groups, view events, RSVP via the traditional form, and follow groups
+            by email without signing in.
+          </p>
+        </details>
+
+        <details class="faq-item">
+          <summary>What is Smoke Signal, and how does interop work?</summary>
+          <p>
+            Smoke Signal is another ATProto-based event app that uses the same open
+            <code>community.lexicon.calendar.event</code> and <code>community.lexicon.calendar.rsvp</code> schemas.
+            Because both apps write events to the shared ATProto network using the same format,
+            events created in DevRel(ish) can appear in Smoke Signal and vice versa.
+            This is the practical benefit of open standards — your events aren't siloed.
+          </p>
+        </details>
+
+        <details class="faq-item">
           <summary>Is DevRel(ish) free for organizers?</summary>
           <p>Yes, the platform is free for all organizers and community members.</p>
         </details>
@@ -225,22 +300,15 @@ import BaseLayout from "../layouts/BaseLayout.astro";
           <p>
             Groups focused on developer relations and adjacent roles — including developer advocacy,
             developer experience, technical writing, community management, and related fields.
-            Groups must be dedicated to in-person gatherings; online-only communities are not a current focus.
-          </p>
-        </details>
-
-        <details class="faq-item">
-          <summary>How long does approval take?</summary>
-          <p>
-            We review applications as quickly as possible, usually within a few business days.
-            You'll receive an email when your group is approved or if we need more information.
+            Groups are intended for in-person gatherings; online-only communities aren't the current focus.
+            There is no manual approval step — groups go live immediately after registration.
           </p>
         </details>
 
         <details class="faq-item">
           <summary>Can I change my group's name?</summary>
           <p>
-            Group names are permanent after approval to preserve recognition and existing links.
+            Group names are set at registration to preserve recognition and existing links.
             If you have a compelling reason to rename your group, contact us and we'll discuss options.
           </p>
         </details>
@@ -257,7 +325,8 @@ import BaseLayout from "../layouts/BaseLayout.astro";
           <summary>Can I close or pause my group?</summary>
           <p>
             Yes. If your group is no longer active, contact the DevRel(ish) team and we can mark it as closed.
-            Closed groups remain visible but display a notice that the group is no longer active.
+            Closed groups remain visible but display a notice that the group is no longer active and stop
+            appearing in the main event listings.
           </p>
         </details>
       </div>

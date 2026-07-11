@@ -4,7 +4,7 @@
  * Renders the group page directly so the short URL stays in the address bar.
  */
 import GroupPage from "../components/groups/GroupPage.astro";
-import { db, Groups, Meetups, RSVPs, Followers, count, eq, and, gte, asc, inArray } from "astro:db";
+import { db, Groups, Meetups, RSVPs, Followers, AtMemberships, count, eq, and, gte, asc, inArray } from "astro:db";
 
 const { customSlug } = Astro.params;
 if (!customSlug) return Astro.redirect("/groups");
@@ -14,7 +14,7 @@ const [group] = await db
   .from(Groups)
   .where(eq(Groups.customSlug, customSlug));
 
-if (!group || (group.status !== "approved" && group.status !== "closed")) {
+if (!group || (group.status !== "active" && group.status !== "closed")) {
   return new Response(null, { status: 404 });
 }
 
@@ -41,6 +41,10 @@ const [followerResult] = await db
   .from(Followers)
   .where(and(eq(Followers.groupId, group.id), eq(Followers.confirmed, true)));
 const followerCount = followerResult?.val ?? 0;
+
+const memberCount = group.atUri
+  ? (await db.select({ val: count() }).from(AtMemberships).where(eq(AtMemberships.groupUri, group.atUri)))[0]?.val ?? 0
+  : 0;
 ---
 
-<GroupPage group={group} meetups={meetups} rsvpCounts={rsvpCounts} followerCount={followerCount} />
+<GroupPage group={group} meetups={meetups} rsvpCounts={rsvpCounts} followerCount={followerCount} memberCount={memberCount} />

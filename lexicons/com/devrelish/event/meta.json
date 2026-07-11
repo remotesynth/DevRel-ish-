@@ -1,0 +1,127 @@
+{
+    "lexicon": 1,
+    "id": "com.devrelish.event.meta",
+    "defs": {
+        "main": {
+            "type": "record",
+            "description": "Extended metadata for a community.lexicon.calendar.event record, adding group affiliation, capacity, speakers, and sessions.",
+            "key": "tid",
+            "record": {
+                "type": "object",
+                "required": [
+                    "event",
+                    "group",
+                    "createdAt"
+                ],
+                "properties": {
+                    "event": {
+                        "type": "ref",
+                        "ref": "com.atproto.repo.strongRef",
+                        "description": "Strong reference to the community.lexicon.calendar.event record this metadata extends."
+                    },
+                    "group": {
+                        "type": "ref",
+                        "ref": "com.atproto.repo.strongRef",
+                        "description": "Strong reference to the com.devrelish.group record this event belongs to."
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "datetime",
+                        "description": "Client-declared timestamp when this metadata was created."
+                    },
+                    "capacity": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "Maximum number of attendees. Omit for unlimited."
+                    },
+                    "eventContext": {
+                        "type": "string",
+                        "maxLength": 200,
+                        "description": "Conference or event the meetup is co-located with (e.g. 'KubeCon EU 2026')."
+                    },
+                    "speakers": {
+                        "type": "array",
+                        "items": {
+                            "type": "ref",
+                            "ref": "#speaker"
+                        },
+                        "maxLength": 50,
+                        "description": "Speakers presenting at the event."
+                    },
+                    "sessions": {
+                        "type": "array",
+                        "items": {
+                            "type": "ref",
+                            "ref": "#session"
+                        },
+                        "maxLength": 50,
+                        "description": "Agenda sessions for the event."
+                    }
+                }
+            }
+        },
+        "speaker": {
+            "type": "object",
+            "description": "A speaker at the event.",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "maxLength": 120
+                },
+                "jobTitle": {
+                    "type": "string",
+                    "maxLength": 120
+                },
+                "company": {
+                    "type": "string",
+                    "maxLength": 120
+                },
+                "bio": {
+                    "type": "string",
+                    "maxLength": 2000
+                },
+                "imageUrl": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "URL to the speaker's photo."
+                },
+                "blueskyHandle": {
+                    "type": "string",
+                    "description": "Speaker's Bluesky handle (without the @)."
+                }
+            }
+        },
+        "session": {
+            "type": "object",
+            "description": "An agenda session at the event.",
+            "required": [
+                "title"
+            ],
+            "properties": {
+                "title": {
+                    "type": "string",
+                    "maxLength": 200
+                },
+                "abstract": {
+                    "type": "string",
+                    "maxLength": 5000
+                },
+                "startTime": {
+                    "type": "string",
+                    "description": "Local start time in HH:MM 24-hour format."
+                },
+                "speakerIndices": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "description": "Indices into the speakers array for this session's speakers."
+                }
+            }
+        }
+    }
+}

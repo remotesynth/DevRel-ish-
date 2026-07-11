@@ -1,12 +1,20 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { db, Groups } from "astro:db";
+import { db, Groups, AppUser } from "astro:db";
 import { eq } from "astro:db";
 import { generateId, slugify } from "../../lib/utils";
 import { CATEGORIES, getCategoryLabel } from "../../lib/categories";
+import { getPdsSession, pdsCreate } from "../../lib/atproto-pds";
+
+if (!Astro.locals.user) {
+  return Astro.redirect("/auth/login?redirect=/groups/register");
+}
+if (Astro.locals.user.groupId) {
+  return Astro.redirect("/dashboard");
+}
 
 type Result =
-  | { type: "success"; email: string }
+  | { type: "success"; slug: string }
   | { type: "error"; message: string };
 
 let result: Result | null = null;
@@ -36,7 +44,7 @@ if (Astro.request.method === "POST") {
   const placeNameRe = /^[a-zA-ZÀ-ÿ\s\-'.,()]+$/;
 
   if (hp || !submittedAt || Date.now() - submittedAt < 3000) {
-    result = { type: "success", email: vals.contactEmail };
+    result = { type: "success", slug: "" };
   } else if (!vals.name || !vals.description || !vals.contactEmail || !vals.category) {
     result = { type: "error", message: "Name, category, description, and contact email are required." };
   } else if (!CATEGORIES.find(c => c.slug === vals.category)) {
@@ -62,22 +70,64 @@ if (Astro.request.method === "POST") {
       const [slugConflict] = await db.select().from(Groups).where(eq(Groups.slug, slug));
       if (slugConflict) slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
 
-      await db.insert(Groups).values({
-        id: generateId(),
-        name: vals.name,
-        slug,
-        tagline: vals.tagline || null,
-        category: vals.category,
-        city: vals.city || null,
-        region: vals.region || null,
-        country: vals.country || null,
-        description: vals.description,
-        contactEmail: vals.contactEmail,
-        status: "pending",
-        createdAt: new Date(),
-      });
+      // Write com.devrelish.group record to the organizer's PDS
+      const session = await getPdsSession(Astro.locals.user.did);
+      if (!session) {
+        result = { type: "error", message: "Authentication session expired. Please sign in again." };
+      } else {
+        let atUri: string | null = null;
+        let atCid: string | null = null;
+        const now = new Date();
+        const groupId = generateId();
 
-      result = { type: "success", email: vals.contactEmail };
+        try {
+          const locationEntry = (vals.city || vals.country)
+            ? {
+                location: {
+                  $type: "community.lexicon.location.address",
+                  ...(vals.city ? { city: vals.city } : {}),
+                  ...(vals.region ? { state: vals.region } : {}),
+                  ...(vals.country ? { country: vals.country } : {}),
+                },
+              }
+            : {};
+
+          const pdsResult = await pdsCreate(session, "com.devrelish.group", {
+            name: vals.name,
+            description: vals.description,
+            category: vals.category,
+            ...locationEntry,
+            createdAt: now.toISOString(),
+          });
+          atUri = pdsResult.uri;
+          atCid = pdsResult.cid;
+        } catch (err) {
+          console.error("[register] PDS write failed:", err);
+          result = { type: "error", message: "Failed to publish group to ATProto network. Please try again." };
+        }
+
+        if (!result) {
+          await db.insert(Groups).values({
+            id: groupId,
+            name: vals.name,
+            slug,
+            tagline: vals.tagline || null,
+            category: vals.category,
+            city: vals.city || null,
+            region: vals.region || null,
+            country: vals.country || null,
+            description: vals.description,
+            contactEmail: vals.contactEmail,
+            status: "active",
+            managerId: Astro.locals.user.did,
+            atUri,
+            atCid,
+            createdAt: now,
+          });
+          await db.update(AppUser).set({ groupId }).where(eq(AppUser.did, Astro.locals.user.did));
+          result = { type: "success", slug };
+        }
+      }
     }
   }
 }
@@ -101,18 +151,17 @@ if (Astro.request.method === "POST") {
   <section class="form-section">
     <div class="container form-layout">
       <div class="form-main">
-        {result?.type === "success" ? (
+        {result?.type === "success" && result.slug ? (
           <div class="success-state">
             <div class="success-icon" aria-hidden="true">✦</div>
-            <h2>Application submitted!</h2>
+            <h2>Your group is live!</h2>
             <p>
-              Thanks for applying! We'll review your application
-              and be in touch at <strong>{result.email}</strong> shortly.
+              Your group has been created and published to the ATProto network.
             </p>
-            <p>
-              In the meantime, check out the <a href="/groups">existing groups</a> to see if
-              there's one near you.
-            </p>
+            <div style="display:flex;gap:0.75rem;flex-wrap:wrap;justify-content:center;margin-top:0.5rem;">
+              <a href={`/groups/${result.slug}`} class="btn btn-primary">View your group →</a>
+              <a href="/dashboard" class="btn btn-ghost">Go to dashboard</a>
+            </div>
           </div>
         ) : (
           <form method="POST" class="group-form">
@@ -205,17 +254,17 @@ if (Astro.request.method === "POST") {
                   required
                 />
                 <span class="form-hint">
-                  This is how we'll reach you when your group is approved. You'll use this to sign in.
+                  Used for organizer notifications. Not displayed publicly.
                 </span>
               </div>
             </div>
 
             <div class="form-actions">
               <button type="submit" class="btn btn-primary btn-lg">
-                Submit application →
+                Create group →
               </button>
               <p class="form-hint">
-                We review all applications within a few days. You'll hear from us either way!
+                Your group goes live instantly and is published to the ATProto network.
               </p>
             </div>
           </form>
@@ -229,22 +278,22 @@ if (Astro.request.method === "POST") {
             <li>
               <span class="step-num">1</span>
               <div>
-                <strong>You submit this form</strong>
+                <strong>Fill out this form</strong>
                 <p>Takes about 2 minutes.</p>
               </div>
             </li>
             <li>
               <span class="step-num">2</span>
               <div>
-                <strong>We review your application</strong>
-                <p>Usually within a few days. We'll email you either way.</p>
+                <strong>Your group goes live instantly</strong>
+                <p>No approval queue — your group is published to the ATProto network right away.</p>
               </div>
             </li>
             <li>
               <span class="step-num">3</span>
               <div>
-                <strong>You get access</strong>
-                <p>Log in and start creating gatherings for your group!</p>
+                <strong>Start creating gatherings</strong>
+                <p>Head to your dashboard and schedule your first event!</p>
               </div>
             </li>
           </ol>

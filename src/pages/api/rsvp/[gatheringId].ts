@@ -1,16 +1,15 @@
 import type { APIRoute } from "astro";
-import { db, RSVPs, Meetups, Groups } from "astro:db";
-import { eq, and, count } from "astro:db";
+import { db, RSVPs, Meetups, Groups, eq, and, count } from "astro:db";
 import { generateId } from "../../../lib/utils";
+import { getPdsSession, pdsCreate } from "../../../lib/atproto-pds";
 
 export const prerender = false;
 
-export const POST: APIRoute = async ({ params, request }) => {
+export const POST: APIRoute = async ({ params, request, locals }) => {
   const { gatheringId } = params;
 
   if (!gatheringId) return json({ error: "Missing gathering ID." }, 400);
 
-  // Verify meetup exists and group is approved
   const [meetup] = await db.select().from(Meetups).where(eq(Meetups.id, gatheringId));
   if (!meetup) return json({ error: "Gathering not found." }, 404);
 
@@ -19,11 +18,10 @@ export const POST: APIRoute = async ({ params, request }) => {
   }
 
   const [group] = await db.select().from(Groups).where(eq(Groups.id, meetup.groupId));
-  if (!group || group.status !== "approved") {
+  if (!group || group.status !== "active") {
     return json({ error: "Gathering not available." }, 404);
   }
 
-  // Meetup must be in the future
   if (meetup.date < new Date()) {
     return json({ error: "This gathering has already passed." }, 400);
   }
@@ -46,7 +44,6 @@ export const POST: APIRoute = async ({ params, request }) => {
     return json({ error: "Please enter a valid email address." }, 400);
   }
 
-  // Check for duplicate RSVP
   const [duplicate] = await db
     .select()
     .from(RSVPs)
@@ -56,7 +53,6 @@ export const POST: APIRoute = async ({ params, request }) => {
     return json({ error: "Already registered.", code: "duplicate" }, 409);
   }
 
-  // Check capacity
   const [countResult] = await db
     .select({ val: count() })
     .from(RSVPs)
@@ -76,6 +72,19 @@ export const POST: APIRoute = async ({ params, request }) => {
     company: company.trim(),
     createdAt: new Date(),
   });
+
+  // If the user is logged in and the event has an AT URI, also write an ATProto RSVP
+  // to their PDS so it appears in the ATProto network (Smoke Signal interop, etc.)
+  if (locals.user && meetup.atEventUri && meetup.atEventCid) {
+    const session = await getPdsSession(locals.user.did);
+    if (session) {
+      pdsCreate(session, "community.lexicon.calendar.rsvp", {
+        event: { uri: meetup.atEventUri, cid: meetup.atEventCid },
+        status: "yes",
+        createdAt: new Date().toISOString(),
+      }).catch(err => console.warn("[rsvp] ATProto RSVP failed (non-fatal):", err));
+    }
+  }
 
   return json({ ok: true }, 201);
 };

@@ -1,10 +1,9 @@
 ---
 import DashboardLayout from "../../../layouts/DashboardLayout.astro";
-import { db, Groups, GroupInvites, User } from "astro:db";
+import { db, Groups, GroupInvites, AppUser } from "astro:db";
 import { eq } from "astro:db";
 import { generateId, groupUrl } from "../../../lib/utils";
 import { renderMarkdown } from "../../../lib/markdown";
-import { sendApprovalNotice } from "../../../lib/email";
 import { getCategoryLabel } from "../../../lib/categories";
 
 if (!Astro.locals.user) return Astro.redirect("/auth/login");
@@ -38,10 +37,10 @@ if (Astro.request.method === "POST") {
     approvalInviteUrl = `${Astro.url.origin}/invite/${token}`;
   } else {
     const statusMap: Record<string, string> = {
-      approve: "approved",
-      reject: "rejected",
       close: "closed",
-      reopen: "approved",
+      reopen: "active",
+      ban: "banned",
+      unban: "active",
     };
 
     if (action && action in statusMap) {
@@ -57,32 +56,15 @@ if (Astro.request.method === "POST") {
 
         if (res.ok) {
           const msgs: Record<string, string> = {
-            reject: "Group application rejected.",
             close: "Group closed. It will no longer appear in public listings.",
             reopen: "Group reopened and is now publicly visible again.",
+            ban: "Group banned. It is hidden from all public listings and direct URLs.",
+            unban: "Group unbanned. It is now publicly visible again.",
           };
           successMsg = msgs[action] ?? "Done.";
 
           const [updated] = await db.select().from(Groups).where(eq(Groups.id, id));
           if (updated) Object.assign(group, updated);
-
-          if (action === "approve") {
-            await db.delete(GroupInvites).where(eq(GroupInvites.groupId, id));
-            const token = generateId();
-            await db.insert(GroupInvites).values({
-              id: token,
-              groupId: id,
-              createdAt: new Date(),
-              expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-            });
-            approvalInviteUrl = `${Astro.url.origin}/invite/${token}`;
-            successMsg = `Group approved. Invite link generated and sent to ${group.contactEmail}.`;
-            sendApprovalNotice({
-              to: group.contactEmail,
-              groupName: group.name,
-              inviteUrl: approvalInviteUrl,
-            }).catch(e => console.error("[approval notice] email error:", e));
-          }
         } else {
           errorMsg = "Action failed. Please try again.";
         }
@@ -94,8 +76,8 @@ if (Astro.request.method === "POST") {
 }
 
 // Team members and active invite (queried after POST so state is current)
-const members = await db.select().from(User).where(eq(User.groupId, id));
-const isUnclaimed = group.status === "approved" && members.length === 0;
+const members = await db.select().from(AppUser).where(eq(AppUser.groupId, id));
+const isUnclaimed = group.status === "active" && members.length === 0;
 
 const now = new Date();
 const [activeInviteRow] = await db
@@ -108,7 +90,7 @@ const existingInviteUrl = activeInvite ? `${Astro.url.origin}/invite/${activeInv
 
 <DashboardLayout title={`Review — ${group.name}`}>
   <div class="page-header">
-    <a href="/admin" class="back-link">← Back to admin</a>
+    <a href="/admin/groups" class="back-link">← Back to all groups</a>
     <div class="header-row">
       <h1>{group.name}</h1>
       <span class:list={["badge", `badge-${group.status}`]}>
@@ -122,7 +104,7 @@ const existingInviteUrl = activeInvite ? `${Astro.url.origin}/invite/${activeInv
       <div class="approval-header">
         <span class="approval-check">✓</span>
         <div>
-          <strong>Group approved!</strong>
+          <strong>Invite link generated!</strong>
           <p>Copy the email below and send it to <strong>{group.contactEmail}</strong>.</p>
         </div>
       </div>
@@ -134,9 +116,9 @@ const existingInviteUrl = activeInvite ? `${Astro.url.origin}/invite/${activeInv
         </div>
         <pre id="email-body" class="email-body">{`Hi there,
 
-Great news — your DevRel(ish) group "${group.name}" has been approved!
+You've been added as a co-organizer for the DevRel(ish) group "${group.name}"!
 
-You can now create your organizer account and start setting up gatherings. Use the link below to get started — it'll walk you through creating your account and give you access to the dashboard.
+Use the link below to accept the invitation and access the organizer dashboard.
 
 ${approvalInviteUrl}
 
@@ -146,7 +128,7 @@ Welcome to the community!`}</pre>
       </div>
 
       <p class="approval-hint">
-        The invite link is also saved — you can find it again under the group's public page or regenerate it from the organizer's Team page.
+        The invite link is also saved — you can regenerate it any time from this page.
       </p>
     </div>
   ) : successMsg ? (
@@ -194,8 +176,7 @@ Welcome to the community!`}</pre>
         <div class="description-text prose" set:html={renderMarkdown(group.description)} />
       </div>
 
-      {group.status !== "pending" && (
-        <div class="detail-card">
+      <div class="detail-card">
           <h3>
             Organizers
             {isUnclaimed && <span class="badge-unclaimed">Unclaimed</span>}
@@ -208,10 +189,10 @@ Welcome to the community!`}</pre>
             <ul class="member-list">
               {members.map((m) => (
                 <li class="member-item">
-                  <div class="member-avatar">{m.name?.[0]?.toUpperCase() ?? "?"}</div>
+                  <div class="member-avatar">{(m.displayName ?? m.handle)?.[0]?.toUpperCase() ?? "?"}</div>
                   <div class="member-info">
-                    <strong>{m.name}</strong>
-                    <a href={`mailto:${m.email}`} class="member-email">{m.email}</a>
+                    <strong>{m.displayName ?? m.handle}</strong>
+                    <span class="member-email">@{m.handle}</span>
                   </div>
                 </li>
               ))}
@@ -221,103 +202,90 @@ Welcome to the community!`}</pre>
       )}
     </div>
 
-    {
-      group.status === "pending" && (
-        <div class="action-card">
-          <h3>Take action</h3>
-          <p>Once approved, this group will appear publicly and the contact can sign in to manage gatherings.</p>
-
-          <div class="action-btns">
-            <form method="POST">
-              <input type="hidden" name="action" value="approve" />
-              <button type="submit" class="btn btn-accent btn-lg">
-                ✓ Approve group
-              </button>
-            </form>
-            <form method="POST">
-              <input type="hidden" name="action" value="reject" />
-              <button type="submit" class="btn btn-danger">
-                ✗ Reject application
-              </button>
-            </form>
-          </div>
-        </div>
-      )
-    }
-
-    {
-      group.status !== "pending" && (
-        <div class="action-card">
-          <h3>Status</h3>
-          <p>
-            This group is <strong>{group.status}</strong>.
-          </p>
-          <div class="action-btns">
-            {group.status === "approved" && (
-              <>
-                {isUnclaimed && (
-                  <div class="invite-section">
-                    <p class="invite-section-label">
-                      {approvalInviteUrl || existingInviteUrl
-                        ? "Invite link — share with the organizer:"
-                        : "No active invite link."}
-                    </p>
-                    {(approvalInviteUrl || existingInviteUrl) && (
-                      <div class="invite-url-row">
-                        <input
-                          id="regen-invite-url"
-                          type="text"
-                          value={approvalInviteUrl || existingInviteUrl}
-                          readonly
-                          class="invite-input"
-                        />
-                        <button type="button" id="copy-invite-btn" class="btn btn-ghost btn-sm">Copy</button>
-                      </div>
-                    )}
-                    <form method="POST">
-                      <input type="hidden" name="action" value="regenerate_invite" />
-                      <button type="submit" class="btn btn-accent btn-sm">
-                        {approvalInviteUrl || existingInviteUrl ? "Regenerate link" : "Generate invite link →"}
-                      </button>
-                    </form>
+    <div class="action-card">
+      <h3>Status</h3>
+      <p>
+        This group is <strong>{group.status}</strong>.
+      </p>
+      <div class="action-btns">
+        {group.status === "active" && (
+          <>
+            {isUnclaimed && (
+              <div class="invite-section">
+                <p class="invite-section-label">
+                  {approvalInviteUrl || existingInviteUrl
+                    ? "Invite link — share with the organizer:"
+                    : "No active invite link."}
+                </p>
+                {(approvalInviteUrl || existingInviteUrl) && (
+                  <div class="invite-url-row">
+                    <input
+                      id="regen-invite-url"
+                      type="text"
+                      value={approvalInviteUrl || existingInviteUrl}
+                      readonly
+                      class="invite-input"
+                    />
+                    <button type="button" id="copy-invite-btn" class="btn btn-ghost btn-sm">Copy</button>
                   </div>
                 )}
-                <a href={groupUrl(group)} class="btn btn-ghost" target="_blank" rel="noopener">
-                  View public page ↗
-                </a>
                 <form method="POST">
-                  <input type="hidden" name="action" value="close" />
-                  <button type="submit" class="btn btn-danger">
-                    Close group
+                  <input type="hidden" name="action" value="regenerate_invite" />
+                  <button type="submit" class="btn btn-accent btn-sm">
+                    {approvalInviteUrl || existingInviteUrl ? "Regenerate link" : "Generate invite link →"}
                   </button>
                 </form>
-              </>
+              </div>
             )}
-            {group.status === "closed" && (
-              <>
-                <a href={groupUrl(group)} class="btn btn-ghost" target="_blank" rel="noopener">
-                  View group page ↗
-                </a>
-                <form method="POST">
-                  <input type="hidden" name="action" value="reopen" />
-                  <button type="submit" class="btn btn-accent">
-                    Reopen group
-                  </button>
-                </form>
-              </>
-            )}
-            {group.status === "rejected" && (
-              <form method="POST">
-                <input type="hidden" name="action" value="approve" />
-                <button type="submit" class="btn btn-accent">
-                  ✓ Approve anyway
-                </button>
-              </form>
-            )}
-          </div>
-        </div>
-      )
-    }
+            <a href={groupUrl(group)} class="btn btn-ghost" target="_blank" rel="noopener">
+              View public page ↗
+            </a>
+            <form method="POST">
+              <input type="hidden" name="action" value="close" />
+              <button type="submit" class="btn btn-danger">
+                Close group
+              </button>
+            </form>
+            <form method="POST">
+              <input type="hidden" name="action" value="ban" />
+              <button type="submit" class="btn btn-danger btn-ban">
+                Ban group
+              </button>
+            </form>
+          </>
+        )}
+        {group.status === "closed" && (
+          <>
+            <a href={groupUrl(group)} class="btn btn-ghost" target="_blank" rel="noopener">
+              View group page ↗
+            </a>
+            <form method="POST">
+              <input type="hidden" name="action" value="reopen" />
+              <button type="submit" class="btn btn-accent">
+                Reopen group
+              </button>
+            </form>
+            <form method="POST">
+              <input type="hidden" name="action" value="ban" />
+              <button type="submit" class="btn btn-danger btn-ban">
+                Ban group
+              </button>
+            </form>
+          </>
+        )}
+        {group.status === "banned" && (
+          <>
+            <p class="banned-notice">This group is banned and hidden from all public pages.</p>
+            <form method="POST">
+              <input type="hidden" name="action" value="unban" />
+              <button type="submit" class="btn btn-accent">
+                Unban group
+              </button>
+            </form>
+          </>
+        )}
+      </div>
+    </div>
   </div>
 </DashboardLayout>
 
@@ -443,6 +411,22 @@ Welcome to the community!`}</pre>
 
   .action-btns form {
     display: contents;
+  }
+
+  .btn-ban {
+    background: #7f1d1d;
+    border-color: #7f1d1d;
+  }
+  .btn-ban:hover { background: #991b1b; }
+
+  .banned-notice {
+    font-size: var(--size-sm);
+    color: #7f1d1d;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: var(--radius-sm);
+    padding: 0.5rem 0.75rem;
+    max-width: none;
   }
 
   /* Approval panel */

@@ -1,82 +1,36 @@
-import { db, Groups, Meetups, User, Account } from "astro:db";
-import { hashPassword } from "better-auth/crypto";
+import { db, AppUser, Groups, Meetups } from "astro:db";
 
 export default async function seed() {
-  const adminId = "admin-001";
-  const managerId = "manager-001";
-  const manager2Id = "manager-002";
+  // Dev seed uses placeholder DIDs — in production, real DIDs come from ATProto OAuth.
+  const adminDid = "did:plc:admin-devrelish";
+  const alexDid = "did:plc:alex-devrelish";
+  const samDid = "did:plc:sam-devrelish";
 
-  // Hash passwords using better-auth's own scrypt implementation
-  // Dev credentials — change these in production
-  const [adminHash, alexHash, samHash] = await Promise.all([
-    hashPassword("admin-devrelish"),
-    hashPassword("alex-devrelish"),
-    hashPassword("sam-devrelish"),
-  ]);
+  // ── AppUsers ──────────────────────────────────────────────────────────────
 
-  // ── Users ────────────────────────────────────────────────────────────────
-
-  await db.insert(User).values([
+  await db.insert(AppUser).values([
     {
-      id: adminId,
-      name: "Site Admin",
-      email: "admin@devrelish.tech",
-      emailVerified: true,
+      did: adminDid,
+      handle: "admin.devrelish.tech",
+      displayName: "Site Admin",
       role: "admin",
       createdAt: new Date(),
-      updatedAt: new Date(),
     },
     {
-      id: managerId,
-      name: "Alex Chen",
-      email: "alex@example.com",
-      emailVerified: true,
+      did: alexDid,
+      handle: "alex.bsky.social",
+      displayName: "Alex Chen",
       role: "user",
       groupId: "group-sf",
       createdAt: new Date(),
-      updatedAt: new Date(),
     },
     {
-      id: manager2Id,
-      name: "Sam Rivera",
-      email: "sam@example.com",
-      emailVerified: true,
+      did: samDid,
+      handle: "sam.bsky.social",
+      displayName: "Sam Rivera",
       role: "user",
       groupId: "group-nyc",
       createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-  ]);
-
-  // ── Accounts (credential records for email/password login) ────────────────
-
-  await db.insert(Account).values([
-    {
-      id: "account-admin",
-      accountId: adminId,
-      providerId: "credential",
-      userId: adminId,
-      password: adminHash,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-    {
-      id: "account-alex",
-      accountId: managerId,
-      providerId: "credential",
-      userId: managerId,
-      password: alexHash,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-    {
-      id: "account-sam",
-      accountId: manager2Id,
-      providerId: "credential",
-      userId: manager2Id,
-      password: samHash,
-      createdAt: new Date(),
-      updatedAt: new Date(),
     },
   ]);
 
@@ -96,8 +50,8 @@ export default async function seed() {
       description:
         "A cozy gathering for DevRel folks, developer advocates, community managers, and anyone who finds themselves doing the job without the title. We meet monthly to commiserate, celebrate, and remind each other we're not alone in the universe.",
       contactEmail: "alex@example.com",
-      status: "approved",
-      managerId: managerId,
+      status: "active",
+      managerId: alexDid,
       createdAt: new Date(),
     },
     {
@@ -113,23 +67,8 @@ export default async function seed() {
       description:
         "Where the cloud-native people of NYC come to breathe, laugh, and talk shop away from the keyboard. Join us for casual get-togethers across the five boroughs — operators, platform engineers, and the SRE crowd all welcome.",
       contactEmail: "sam@example.com",
-      status: "approved",
-      managerId: manager2Id,
-      createdAt: new Date(),
-    },
-    {
-      id: "group-pending",
-      name: "Open Source Austin",
-      slug: "open-source-austin",
-      category: "open-source",
-      tagline: "Keeping Austin weird and open source",
-      city: "Austin",
-      region: "TX",
-      country: "USA",
-      description:
-        "Keeping Austin weird and open-source-friendly. A gathering for contributors, maintainers, and enthusiasts who want to connect face-to-face in the live music capital of the world.",
-      contactEmail: "pending@example.com",
-      status: "pending",
+      status: "active",
+      managerId: samDid,
       createdAt: new Date(),
     },
   ]);

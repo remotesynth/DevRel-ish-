@@ -9,7 +9,7 @@ const path = Astro.url.pathname;
 const isAdmin = user?.role === "admin";
 
 let unreadMessages = 0;
-if (!isAdmin && user?.groupId) {
+if (user?.groupId) {
   const [result] = await db
     .select({ val: count() })
     .from(ContactMessages)
@@ -30,62 +30,59 @@ function isActive(href: string) {
 
     <div class="dash-user">
       <div class="user-avatar" aria-hidden="true">
-        {user?.name?.[0]?.toUpperCase() ?? "?"}
+        {(user?.displayName ?? user?.handle)?.[0]?.toUpperCase() ?? "?"}
       </div>
       <div>
-        <p class="user-name">{user?.name}</p>
-        <p class="user-email">{user?.email}</p>
+        <p class="user-name">{user?.displayName ?? user?.handle}</p>
+        <p class="user-email">@{user?.handle}</p>
       </div>
     </div>
 
     <nav aria-label="Dashboard navigation">
-      {
-        isAdmin ? (
+      {isAdmin && (
+        <>
+          <p class="nav-section-label">Admin</p>
           <ul class="dash-menu" role="list">
-            <li>
-              <a href="/admin" class:list={["dash-link", { active: isActive("/admin") && path === "/admin" }]}>
-                ✦ Pending Groups
-              </a>
-            </li>
             <li>
               <a href="/admin/groups" class:list={["dash-link", { active: isActive("/admin/groups") }]}>
                 ◈ All Groups
               </a>
             </li>
           </ul>
-        ) : (
-          <ul class="dash-menu" role="list">
-            <li>
-              <a href="/dashboard" class:list={["dash-link", { active: path === "/dashboard" }]}>
-                ◎ Overview
-              </a>
-            </li>
-            <li>
-              <a href="/dashboard/group" class:list={["dash-link", { active: isActive("/dashboard/group") }]}>
-                ◈ My Group
-              </a>
-            </li>
-            <li>
-              <a href="/dashboard/gatherings" class:list={["dash-link", { active: isActive("/dashboard/gatherings") }]}>
-                ✦ Gatherings
-              </a>
-            </li>
-            <li>
-              <a href="/dashboard/messages" class:list={["dash-link", { active: isActive("/dashboard/messages") }]}>
-                <span class="nav-link-inner">
-                  ✉ Messages
-                  {unreadMessages > 0 && <span class="nav-badge">{unreadMessages}</span>}
-                </span>
-              </a>
-            </li>
-            <li>
-              <a href="/dashboard/team" class:list={["dash-link", { active: isActive("/dashboard/team") }]}>
-                ◎ Team
-              </a>
-            </li>
-          </ul>
-        )
-      }
+        </>
+      )}
+
+      <p class="nav-section-label">Organizer</p>
+      <ul class="dash-menu" role="list">
+        <li>
+          <a href="/dashboard" class:list={["dash-link", { active: path === "/dashboard" }]}>
+            ◎ Overview
+          </a>
+        </li>
+        <li>
+          <a href="/dashboard/group" class:list={["dash-link", { active: isActive("/dashboard/group") }]}>
+            ◈ My Group
+          </a>
+        </li>
+        <li>
+          <a href="/dashboard/gatherings" class:list={["dash-link", { active: isActive("/dashboard/gatherings") }]}>
+            ✦ Gatherings
+          </a>
+        </li>
+        <li>
+          <a href="/dashboard/messages" class:list={["dash-link", { active: isActive("/dashboard/messages") }]}>
+            <span class="nav-link-inner">
+              ✉ Messages
+              {unreadMessages > 0 && <span class="nav-badge">{unreadMessages}</span>}
+            </span>
+          </a>
+        </li>
+        <li>
+          <a href="/dashboard/team" class:list={["dash-link", { active: isActive("/dashboard/team") }]}>
+            ◎ Team
+          </a>
+        </li>
+      </ul>
     </nav>
 
     <div class="dash-nav-footer">
@@ -169,6 +166,18 @@ function isActive(href: string) {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .nav-section-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-text-muted);
+    padding: 0 0.75rem;
+    margin-bottom: 0.125rem;
+    margin-top: 0.25rem;
+    max-width: none;
   }
 
   .dash-menu {

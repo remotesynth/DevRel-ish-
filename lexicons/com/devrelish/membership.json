@@ -1,0 +1,47 @@
+{
+    "lexicon": 1,
+    "id": "com.devrelish.membership",
+    "defs": {
+        "main": {
+            "type": "record",
+            "description": "A user's declared membership in a DevRel-ish group.",
+            "key": "tid",
+            "record": {
+                "type": "object",
+                "required": [
+                    "group",
+                    "createdAt"
+                ],
+                "properties": {
+                    "group": {
+                        "type": "ref",
+                        "ref": "com.atproto.repo.strongRef",
+                        "description": "Strong reference to the com.devrelish.group record."
+                    },
+                    "role": {
+                        "type": "string",
+                        "default": "com.devrelish.membership#member",
+                        "knownValues": [
+                            "com.devrelish.membership#member",
+                            "com.devrelish.membership#organizer"
+                        ],
+                        "description": "The member's role within the group."
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "datetime",
+                        "description": "Client-declared timestamp when the membership was created."
+                    }
+                }
+            }
+        },
+        "member": {
+            "type": "token",
+            "description": "A regular member of the group."
+        },
+        "organizer": {
+            "type": "token",
+            "description": "An organizer with management permissions for the group."
+        }
+    }
+}

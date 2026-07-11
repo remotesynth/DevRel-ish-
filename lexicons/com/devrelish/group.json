@@ -1,0 +1,78 @@
+{
+    "lexicon": 1,
+    "id": "com.devrelish.group",
+    "defs": {
+        "main": {
+            "type": "record",
+            "description": "A recurring meetup group with a persistent identity.",
+            "key": "tid",
+            "record": {
+                "type": "object",
+                "required": [
+                    "name",
+                    "description",
+                    "createdAt"
+                ],
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 120,
+                        "description": "The display name of the group."
+                    },
+                    "description": {
+                        "type": "string",
+                        "maxLength": 10000,
+                        "description": "A description of the group. Markdown is supported."
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "datetime",
+                        "description": "Client-declared timestamp when the group was created."
+                    },
+                    "location": {
+                        "type": "ref",
+                        "ref": "community.lexicon.location.address",
+                        "description": "The primary location of the group."
+                    },
+                    "category": {
+                        "type": "string",
+                        "maxLength": 64,
+                        "description": "The primary category of the group (e.g. 'devrel', 'web', 'ai')."
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "maxLength": 64
+                        },
+                        "maxLength": 10,
+                        "description": "Tags describing the group's focus areas."
+                    },
+                    "website": {
+                        "type": "string",
+                        "format": "uri",
+                        "description": "The group's website URL."
+                    },
+                    "blueskyHandle": {
+                        "type": "string",
+                        "description": "The group's Bluesky handle (without the @)."
+                    },
+                    "linkedinUrl": {
+                        "type": "string",
+                        "format": "uri",
+                        "description": "The group's LinkedIn page URL."
+                    },
+                    "coOrganizers": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "did"
+                        },
+                        "maxLength": 20,
+                        "description": "DIDs of co-organizers who can manage the group."
+                    }
+                }
+            }
+        }
+    }
+}
