@@ -126,6 +126,97 @@ const Followers = defineTable({
   },
 });
 
+// ── ATProto AppView Index Tables ─────────────────────────────────────────────
+
+// Persists the Jetstream cursor across scheduled function runs
+const JetstreamCursor = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),   // always "default"
+    cursor: column.text(),                   // microseconds timestamp as string
+    updatedAt: column.date({ default: new Date() }),
+  },
+});
+
+// Indexed community.lexicon.calendar.event records
+const AtEvents = defineTable({
+  columns: {
+    uri: column.text({ primaryKey: true }), // at://did/collection/rkey
+    cid: column.text(),
+    did: column.text(),                     // creator DID
+    name: column.text(),
+    startsAt: column.text(),                // ISO datetime string
+    endsAt: column.text({ optional: true }),
+    description: column.text({ optional: true }),
+    locationJson: column.text({ optional: true }), // JSON-serialized locations array
+    status: column.text({ optional: true }),
+    createdAt: column.text(),
+    indexedAt: column.text(),
+  },
+});
+
+// Indexed community.lexicon.calendar.rsvp records
+const AtRsvps = defineTable({
+  columns: {
+    uri: column.text({ primaryKey: true }),
+    cid: column.text(),
+    did: column.text(),                     // responder DID
+    eventUri: column.text(),                // at:// URI of the event
+    status: column.text(),                  // yes | no | maybe
+    createdAt: column.text(),
+    indexedAt: column.text(),
+  },
+});
+
+// Indexed com.devrelish.group records
+const AtGroups = defineTable({
+  columns: {
+    uri: column.text({ primaryKey: true }),
+    cid: column.text(),
+    did: column.text(),                     // organizer DID
+    name: column.text(),
+    description: column.text(),
+    locationJson: column.text({ optional: true }),
+    category: column.text({ optional: true }),
+    tags: column.text({ optional: true }),  // JSON array
+    website: column.text({ optional: true }),
+    blueskyHandle: column.text({ optional: true }),
+    linkedinUrl: column.text({ optional: true }),
+    coOrganizers: column.text({ optional: true }), // JSON array of DIDs
+    createdAt: column.text(),
+    indexedAt: column.text(),
+  },
+});
+
+// Indexed com.devrelish.event.meta records
+const AtEventMeta = defineTable({
+  columns: {
+    uri: column.text({ primaryKey: true }),
+    cid: column.text(),
+    did: column.text(),
+    eventUri: column.text(),                // at:// URI of the calendar event
+    groupUri: column.text(),                // at:// URI of the group
+    capacity: column.number({ optional: true }),
+    eventContext: column.text({ optional: true }),
+    speakersJson: column.text({ optional: true }), // JSON array
+    sessionsJson: column.text({ optional: true }), // JSON array
+    createdAt: column.text(),
+    indexedAt: column.text(),
+  },
+});
+
+// Indexed com.devrelish.membership records
+const AtMemberships = defineTable({
+  columns: {
+    uri: column.text({ primaryKey: true }),
+    cid: column.text(),
+    did: column.text(),                     // member DID
+    groupUri: column.text(),                // at:// URI of the group
+    role: column.text({ optional: true }),
+    createdAt: column.text(),
+    indexedAt: column.text(),
+  },
+});
+
 // ── ATProto Auth Tables ───────────────────────────────────────────────────────
 
 // Organizer/admin accounts — keyed by ATProto DID
@@ -182,5 +273,11 @@ export default defineDb({
     AppSession,
     OAuthState,
     OAuthSession,
+    JetstreamCursor,
+    AtEvents,
+    AtRsvps,
+    AtGroups,
+    AtEventMeta,
+    AtMemberships,
   },
 });

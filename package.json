@@ -16,6 +16,7 @@
     "@astrojs/node": "^10.0.4",
     "@astrojs/react": "^4.2.1",
     "@atproto/jwk-jose": "^0.2.3",
+    "@libsql/client": "^0.15.15",
     "@atproto/oauth-client-node": "^0.4.5",
     "astro": "^6.1.1",
     "cloudinary": "^2.10.0",
