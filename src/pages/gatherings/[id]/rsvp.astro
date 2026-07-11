@@ -1,9 +1,11 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
+import BlueskyThreadPanel from "../../../components/BlueskyThreadPanel";
 import { db, Meetups, RSVPs, Groups, GatheringSpeakers, GatheringSessions, GatheringSessionSpeakers, count, eq, and } from "astro:db";
 import { asc, inArray } from "astro:db";
 import { formatDate, formatTime, spotsLeft, generateId, googleCalendarUrl, osmUrl, groupUrl } from "../../../lib/utils";
 import { renderMarkdown } from "../../../lib/markdown";
+import { getPdsSession, pdsCreate } from "../../../lib/atproto-pds";
 
 const { id } = Astro.params;
 
@@ -23,6 +25,7 @@ const isPast = meetup.date < new Date();
 
 type FormResult =
   | { type: "success"; name: string; email: string; cancelToken: string }
+  | { type: "atproto-success"; handle: string }
   | { type: "duplicate"; email: string }
   | { type: "full" }
   | { type: "error"; message: string };
@@ -32,6 +35,30 @@ let result: FormResult | null = null;
 if (Astro.request.method === "POST") {
   const form = await Astro.request.formData();
 
+  if (form.get("_atproto") === "1") {
+    // ATProto-native RSVP path: write directly to the user's PDS
+    if (!Astro.locals.user) {
+      result = { type: "error", message: "You must be logged in to RSVP with your ATProto account." };
+    } else if (!meetup.atEventUri || !meetup.atEventCid) {
+      result = { type: "error", message: "This event is not yet published to the ATProto network." };
+    } else if (isGroupClosed || isMeetupCanceled || meetup.date < new Date()) {
+      result = { type: "error", message: "RSVPs are not available for this event." };
+    } else {
+      try {
+        const session = await getPdsSession(Astro.locals.user.did);
+        if (!session) throw new Error("no PDS session");
+        await pdsCreate(session, "community.lexicon.calendar.rsvp", {
+          event: { uri: meetup.atEventUri, cid: meetup.atEventCid },
+          status: "yes",
+          createdAt: new Date().toISOString(),
+        });
+        result = { type: "atproto-success", handle: Astro.locals.user.handle };
+      } catch (err) {
+        console.error("[rsvp/atproto] PDS write failed:", err);
+        result = { type: "error", message: "Could not post your RSVP to ATProto. Please try again." };
+      }
+    }
+  } else {
   // Bot protection: honeypot field must be empty
   const hp = form.get("_hp")?.toString() ?? "";
   // Bot protection: form must have been open for at least 3 seconds
@@ -92,6 +119,7 @@ if (Astro.request.method === "POST") {
       }
     }
   }
+  } // end else (regular form path)
 }
 
 // Bluesky share intent
@@ -253,6 +281,8 @@ const descriptionHtml = renderMarkdown(meetup.description);
               </div>
             </section>
           )}
+
+          <BlueskyThreadPanel eventUrl={Astro.url.href} client:visible />
         </div>
 
         <!-- Right: action sidebar -->
@@ -292,7 +322,33 @@ const descriptionHtml = renderMarkdown(meetup.description);
 
           <!-- RSVP action area -->
           <div class="rsvp-action-box">
-            {result?.type === "success" ? (
+            {result?.type === "atproto-success" ? (
+              <div class="success-state">
+                <div class="success-icon" aria-hidden="true">🦋</div>
+                <h2>RSVP'd on ATProto!</h2>
+                <p>Your RSVP was posted to the ATProto network as <strong>@{result.handle}</strong>.</p>
+
+                <div class="calendar-section">
+                  <p class="calendar-label">Add to your calendar:</p>
+                  <div class="calendar-btns">
+                    <a href={gcalUrl} target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M19 3h-1V1h-2v2H8V1H6v2H5C3.89 3 3 3.9 3 5v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+                      </svg>
+                      Google Calendar
+                    </a>
+                    <a href={icsUrl} download class="btn btn-ghost btn-sm">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                      </svg>
+                      Download .ics
+                    </a>
+                  </div>
+                </div>
+
+                <a href={groupUrl(group)} class="back-link-success">← Back to {group.name}</a>
+              </div>
+            ) : result?.type === "success" ? (
               <div class="success-state">
                 <div class="success-icon" aria-hidden="true">🎉</div>
                 <h2>You're in!</h2>
@@ -362,6 +418,23 @@ const descriptionHtml = renderMarkdown(meetup.description);
                   </div>
                 ) : (
                   <>
+                    {Astro.locals.user && meetup.atEventUri && meetup.atEventCid && !isPast && (
+                      <div class="atproto-rsvp-box">
+                        <p class="atproto-rsvp-label">RSVP with your ATProto account:</p>
+                        <form method="POST">
+                          <input type="hidden" name="_atproto" value="1" />
+                          <button type="submit" class="btn btn-bsky" style="width: 100%; justify-content: center;">
+                            <svg width="14" height="14" viewBox="0 0 360 320" fill="currentColor" aria-hidden="true">
+                              <path d="M180 142c-16.3-31.7-60.7-90.8-102-120C38 2 15.3 1 7.5 1 1 1 0 8.3 0 14.8v11.3c0 27.3 14.7 96.2 62.3 119.4C99.3 163.8 148.7 164 180 164c31.3 0 80.7-.2 117.7-18.5C345.3 122.3 360 53.4 360 26.1V14.8C360 8.3 359 1 352.5 1c-7.8 0-30.5 1-70.5 21C240.7 51.2 196.3 110.3 180 142z"/>
+                              <path d="M180 178c-16.3 31.7-60.7 90.8-102 120-40 20-62.7 21-70.5 21C1 319 0 311.7 0 305.2v-11.3c0-27.3 14.7-96.2 62.3-119.4C99.3 156.2 148.7 156 180 156c31.3 0 80.7.2 117.7 18.5C345.3 197.7 360 266.6 360 293.9v11.3c0 6.5-1 13.8-7.5 13.8-7.8 0-30.5-1-70.5-21-41.3-29.2-85.7-88.3-102-120z"/>
+                            </svg>
+                            RSVP as @{Astro.locals.user.handle}
+                          </button>
+                        </form>
+                        <p class="atproto-rsvp-hint">Posts an RSVP to your ATProto PDS. No email needed.</p>
+                        <div class="atproto-or"><span>or fill in the form below</span></div>
+                      </div>
+                    )}
                     <h2 class="rsvp-cta-heading">Count me in!</h2>
                     <form method="POST" class="rsvp-form" novalidate>
                       <input name="_hp" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" class="hp-field" />
@@ -557,6 +630,48 @@ const descriptionHtml = renderMarkdown(meetup.description);
     border: 2px solid var(--color-border);
     border-radius: var(--radius-lg);
     padding: 1.25rem;
+  }
+
+  .atproto-rsvp-box {
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.875rem;
+  }
+
+  .atproto-rsvp-label {
+    font-size: var(--size-xs);
+    font-weight: 700;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.5rem;
+    max-width: none;
+  }
+
+  .atproto-rsvp-hint {
+    font-size: var(--size-xs);
+    color: var(--color-text-light);
+    margin-top: 0.375rem;
+    max-width: none;
+  }
+
+  .atproto-or {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    color: var(--color-text-light);
+    font-size: var(--size-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+  }
+
+  .atproto-or::before,
+  .atproto-or::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--color-border);
   }
 
   .rsvp-cta-heading {

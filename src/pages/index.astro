@@ -2,11 +2,15 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import GroupCard from '../components/groups/GroupCard.astro';
 import GatheringCardCompact from '../components/meetups/GatheringCardCompact.astro';
+import AtEventCard from '../components/meetups/AtEventCard.astro';
 import {
   db,
   Groups,
   Meetups,
   RSVPs,
+  AtEvents,
+  AtEventMeta,
+  AtGroups,
   count,
   eq,
   and,
@@ -55,6 +59,29 @@ const featuredGroups = await db
   .where(eq(Groups.status, 'active'))
   .orderBy(desc(Groups.createdAt))
   .limit(3);
+
+// External ATProto events for the "from the network" section
+const localAtEventUriSet = new Set(allUpcoming.filter(m => m.atEventUri).map(m => m.atEventUri!));
+const todayIso = today.toISOString();
+const rawExternalEvents = await db
+  .select({
+    uri: AtEvents.uri,
+    did: AtEvents.did,
+    name: AtEvents.name,
+    startsAt: AtEvents.startsAt,
+    locationJson: AtEvents.locationJson,
+    groupName: AtGroups.name,
+  })
+  .from(AtEvents)
+  .leftJoin(AtEventMeta, eq(AtEventMeta.eventUri, AtEvents.uri))
+  .leftJoin(AtGroups, eq(AtGroups.uri, AtEventMeta.groupUri))
+  .where(gte(AtEvents.startsAt, todayIso))
+  .orderBy(asc(AtEvents.startsAt))
+  .limit(10);
+const seen = new Set<string>();
+const externalEvents = rawExternalEvents
+  .filter((e) => { if (seen.has(e.uri)) return false; seen.add(e.uri); return !localAtEventUriSet.has(e.uri); })
+  .slice(0, 3);
 
 const featuredGroupIds = featuredGroups.map((g) => g.id);
 const upcomingRows = featuredGroupIds.length
@@ -183,6 +210,33 @@ const upcomingCounts: Record<string, number> = Object.fromEntries(upcomingRows.m
       }
     </div>
   </section>
+
+  <!-- External ATProto events -->
+  {externalEvents.length > 0 && (
+    <section class="external-section">
+      <div class="container">
+        <div class="section-header">
+          <h2>From the ATProto network</h2>
+          <a href="/gatherings" class="btn btn-ghost">See all →</a>
+        </div>
+        <p class="external-desc">
+          Events discovered from other apps using the open ATProto calendar protocol.
+        </p>
+        <div class="gatherings-grid">
+          {externalEvents.map((e) => (
+            <AtEventCard
+              uri={e.uri}
+              did={e.did}
+              name={e.name}
+              startsAt={e.startsAt}
+              locationJson={e.locationJson ?? null}
+              groupName={e.groupName ?? null}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
 
   <!-- Groups -->
   {
@@ -442,6 +496,21 @@ const upcomingCounts: Record<string, number> = Object.fromEntries(upcomingRows.m
 
   .empty-state p {
     color: var(--color-text-muted);
+    max-width: none;
+  }
+
+  /* ── External events ── */
+  .external-section {
+    padding: clamp(2.5rem, 6vw, 4rem) 0;
+    background: var(--color-surface);
+    border-top: 2px dashed var(--color-border);
+  }
+
+  .external-desc {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+    margin-top: -1rem;
+    margin-bottom: 1.5rem;
     max-width: none;
   }
 
