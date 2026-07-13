@@ -383,12 +383,12 @@ const descriptionHtml = renderMarkdown(meetup.description);
                 </div>
 
                 <div class="cancel-link-section">
-                  <p class="cancel-link-label">Need to cancel? Save this link:</p>
+                  <p class="cancel-link-label">Save your cancel link — it won't be emailed to you</p>
                   <div class="cancel-link-box">
-                    <code class="cancel-link-url">{Astro.url.origin}/gatherings/{id}/cancel/{result.cancelToken}</code>
-                    <a href={`/gatherings/${id}/cancel/${result.cancelToken}`} class="btn btn-ghost btn-sm">Cancel RSVP</a>
+                    <code class="cancel-link-url" id="cancel-url">{Astro.url.origin}/gatherings/{id}/cancel/{result.cancelToken}</code>
+                    <button type="button" class="btn btn-ghost btn-sm js-copy-cancel" data-url={`${Astro.url.origin}/gatherings/${id}/cancel/${result.cancelToken}`}>Copy link</button>
                   </div>
-                  <p class="cancel-link-hint">Bookmark this or copy it somewhere safe.</p>
+                  <p class="cancel-link-hint">Bookmark this page or save the link — if you lose it, you'll need to contact the organizer to cancel.</p>
                 </div>
 
                 <a href={groupUrl(group)} class="back-link-success">← Back to {group.name}</a>
@@ -420,7 +420,7 @@ const descriptionHtml = renderMarkdown(meetup.description);
                   <>
                     {Astro.locals.user && meetup.atEventUri && meetup.atEventCid && !isPast && (
                       <div class="atproto-rsvp-box">
-                        <p class="atproto-rsvp-label">RSVP with your ATProto account:</p>
+                        <p class="atproto-rsvp-label">Signed in as <strong>@{Astro.locals.user.handle}</strong> — RSVP with Bluesky:</p>
                         <form method="POST">
                           <input type="hidden" name="_atproto" value="1" />
                           <button type="submit" class="btn btn-bsky" style="width: 100%; justify-content: center;">
@@ -428,14 +428,16 @@ const descriptionHtml = renderMarkdown(meetup.description);
                               <path d="M180 142c-16.3-31.7-60.7-90.8-102-120C38 2 15.3 1 7.5 1 1 1 0 8.3 0 14.8v11.3c0 27.3 14.7 96.2 62.3 119.4C99.3 163.8 148.7 164 180 164c31.3 0 80.7-.2 117.7-18.5C345.3 122.3 360 53.4 360 26.1V14.8C360 8.3 359 1 352.5 1c-7.8 0-30.5 1-70.5 21C240.7 51.2 196.3 110.3 180 142z"/>
                               <path d="M180 178c-16.3 31.7-60.7 90.8-102 120-40 20-62.7 21-70.5 21C1 319 0 311.7 0 305.2v-11.3c0-27.3 14.7-96.2 62.3-119.4C99.3 156.2 148.7 156 180 156c31.3 0 80.7.2 117.7 18.5C345.3 197.7 360 266.6 360 293.9v11.3c0 6.5-1 13.8-7.5 13.8-7.8 0-30.5-1-70.5-21-41.3-29.2-85.7-88.3-102-120z"/>
                             </svg>
-                            RSVP as @{Astro.locals.user.handle}
+                            RSVP with Bluesky →
                           </button>
                         </form>
-                        <p class="atproto-rsvp-hint">Posts an RSVP to your ATProto PDS. No email needed.</p>
-                        <div class="atproto-or"><span>or fill in the form below</span></div>
+                        <p class="atproto-rsvp-hint">Your RSVP is stored on your own ATProto account — no email needed.</p>
+                        <div class="atproto-or"><span>or register by email below</span></div>
                       </div>
                     )}
+                    {!Astro.locals.user && <p class="rsvp-no-account">No Bluesky account? No problem.</p>}
                     <h2 class="rsvp-cta-heading">Count me in!</h2>
+                    <p class="form-outcome-note">We'll email you a confirmation and your cancel link.</p>
                     <form method="POST" class="rsvp-form" novalidate>
                       <input name="_hp" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" class="hp-field" />
                       <input name="_t" type="hidden" value={String(Date.now())} />
@@ -485,7 +487,6 @@ const descriptionHtml = renderMarkdown(meetup.description);
             )}
           </div>
 
-          <p class="rsvp-note">No account needed.</p>
         </aside>
 
       </div><!-- end .event-layout -->
@@ -737,392 +738,21 @@ const descriptionHtml = renderMarkdown(meetup.description);
     tab-size: 0;
   }
 
-  .rsvp-page {
-    padding: 2.5rem 0 4rem;
-  }
-
-  .rsvp-layout {
-    display: grid;
-    grid-template-columns: 1fr 300px;
-    gap: 2.5rem;
-    align-items: start;
-  }
-
-  .breadcrumb {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: var(--size-sm);
+  .rsvp-no-account {
+    font-size: var(--size-xs);
     color: var(--color-text-muted);
-    margin-bottom: 1.5rem;
-    flex-wrap: wrap;
-  }
-
-  .breadcrumb a {
-    text-decoration: none;
     font-weight: 600;
-    color: var(--color-text-muted);
-  }
-
-  .breadcrumb a:hover {
-    color: var(--color-primary);
-  }
-
-  h1 {
-    margin-bottom: 0.375rem;
-  }
-
-  .rsvp-subtitle {
-    color: var(--color-text-muted);
-    font-size: var(--size-lg);
-    margin-bottom: 1.75rem;
-  }
-
-  .rsvp-form {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-    max-width: 480px;
-  }
-
-  .privacy-notice {
-    font-size: var(--size-xs);
-    color: var(--color-text-muted);
-    background: var(--color-surface-warm);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    padding: 0.625rem 0.875rem;
-    line-height: 1.5;
+    margin-bottom: 0.25rem;
     max-width: none;
   }
 
-  .alert {
-    max-width: 480px;
-  }
-
-  /* Success state */
-  .success-state {
-    text-align: center;
-    padding: 3rem 2rem;
-    background: var(--color-surface);
-    border: 2px solid var(--color-accent);
-    border-radius: var(--radius-lg);
-    max-width: 480px;
-  }
-
-  .success-icon {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-  }
-
-  .success-state h1 {
-    margin-bottom: 0.75rem;
-    color: var(--color-accent-dark);
-  }
-
-  .success-state p {
-    color: var(--color-text-muted);
-    margin-bottom: 0.75rem;
-  }
-
-  .calendar-section {
-    margin-top: 1.5rem;
-    padding-top: 1.25rem;
-    border-top: 1px dashed var(--color-border);
-  }
-
-  .calendar-label {
-    font-size: var(--size-sm);
-    font-weight: 700;
-    color: var(--color-text-muted);
-    margin-bottom: 0.75rem;
-    max-width: none;
-  }
-
-  .calendar-btns {
-    display: flex;
-    gap: 0.75rem;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-
-  .bsky-share {
-    margin-top: 0.75rem;
-    display: flex;
-    justify-content: center;
-  }
-
-  .btn-bsky {
-    background: #0085ff;
-    color: white !important;
-    border: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.45rem 1rem;
-    border-radius: var(--radius-full);
-    font-size: var(--size-sm);
-    font-weight: 600;
-    text-decoration: none;
-    transition: background var(--transition);
-  }
-
-  .btn-bsky:hover {
-    background: #0066cc;
-  }
-
-  .cancel-link-section {
-    margin-top: 1.25rem;
-    padding-top: 1.25rem;
-    border-top: 1px dashed var(--color-border);
-    text-align: left;
-  }
-
-  .cancel-link-label {
-    font-size: var(--size-sm);
-    font-weight: 700;
-    color: var(--color-text-muted);
-    margin-bottom: 0.5rem;
-    max-width: none;
-  }
-
-  .cancel-link-box {
-    display: flex;
-    align-items: center;
-    gap: 0.625rem;
-    background: var(--color-surface-warm);
-    border: 1.5px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    padding: 0.5rem 0.625rem;
-    flex-wrap: wrap;
-  }
-
-  .cancel-link-url {
+  .form-outcome-note {
     font-size: var(--size-xs);
     color: var(--color-text-muted);
-    word-break: break-all;
-    flex: 1;
-    min-width: 0;
-  }
-
-  .cancel-link-hint {
-    font-size: var(--size-xs);
-    color: var(--color-text-light);
-    margin-top: 0.5rem;
+    margin-top: -0.625rem;
+    margin-bottom: 0.875rem;
     max-width: none;
   }
-
-  .duplicate-cancel-hint {
-    font-size: var(--size-sm);
-    color: var(--color-text-muted);
-    margin-top: 0.875rem;
-    max-width: none;
-  }
-
-  .duplicate-cancel-hint a {
-    color: var(--color-primary);
-    font-weight: 600;
-    text-decoration: none;
-  }
-
-  .duplicate-cancel-hint a:hover { text-decoration: underline; }
-
-  .back-link-success {
-    display: inline-block;
-    margin-top: 1.25rem;
-    font-size: var(--size-sm);
-    font-weight: 600;
-    color: var(--color-text-muted);
-    text-decoration: none;
-  }
-
-  .back-link-success:hover {
-    color: var(--color-primary);
-  }
-
-  /* Sidebar */
-  .rsvp-sidebar {
-    position: sticky;
-    top: 80px;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .meetup-details-card {
-    background: var(--color-surface);
-    border: 2px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    padding: 1.25rem;
-  }
-
-  .meetup-details-card h3 {
-    font-size: var(--size-lg);
-    margin-bottom: 1rem;
-    padding-bottom: 0.625rem;
-    border-bottom: 1px dashed var(--color-border);
-  }
-
-  .meetup-detail-row {
-    display: flex;
-    gap: 0.625rem;
-    align-items: flex-start;
-    font-size: var(--size-sm);
-    margin-bottom: 0.625rem;
-  }
-
-  .detail-icon {
-    flex-shrink: 0;
-    font-size: var(--size-base);
-  }
-
-  .venue-link {
-    color: inherit;
-    font-weight: 600;
-    text-decoration: underline;
-    text-decoration-style: dotted;
-    text-underline-offset: 2px;
-  }
-
-  .venue-link:hover {
-    color: var(--color-primary);
-    text-decoration-style: solid;
-  }
-
-  .address {
-    color: var(--color-text-muted);
-    font-size: var(--size-xs);
-    margin-top: 0.125rem;
-  }
-
-  .hosted-by {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    font-size: var(--size-sm);
-  }
-
-  .hosted-label {
-    color: var(--color-text-muted);
-    font-size: var(--size-xs);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-weight: 700;
-  }
-
-  .hosted-group {
-    font-weight: 700;
-  }
-
-  .rsvp-note {
-    font-size: var(--size-xs);
-    color: var(--color-text-light);
-    text-align: center;
-    max-width: none;
-  }
-
-  .cancel-note {
-    font-size: var(--size-xs);
-    color: var(--color-text-light);
-    text-align: center;
-    max-width: none;
-  }
-
-  .cancel-note a {
-    color: var(--color-text-light);
-    text-decoration: underline;
-    text-decoration-style: dotted;
-    text-underline-offset: 2px;
-  }
-
-  .cancel-note a:hover {
-    color: var(--color-text-muted);
-  }
-
-  /* Public speakers & agenda sections */
-  .pub-section {
-    margin-top: 2.5rem;
-    padding-top: 2rem;
-    border-top: 2px dashed var(--color-border);
-  }
-
-  .pub-heading {
-    font-size: var(--size-xl);
-    margin-bottom: 1.25rem;
-  }
-
-  /* Speakers */
-  .pub-speakers-list { display: flex; flex-direction: column; gap: 1.25rem; }
-
-  .pub-speaker-card { display: flex; gap: 1rem; align-items: flex-start; }
-
-  .pub-speaker-photo {
-    width: 64px; height: 64px;
-    border-radius: 50%; object-fit: cover;
-    border: 2px solid var(--color-border);
-    flex-shrink: 0;
-  }
-
-  .pub-speaker-placeholder {
-    width: 64px; height: 64px;
-    border-radius: 50%;
-    background: var(--color-primary); color: white;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.5rem; font-weight: 700; font-family: var(--font-display);
-    flex-shrink: 0;
-  }
-
-  .pub-speaker-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.125rem; }
-  .pub-speaker-name { font-weight: 700; font-size: var(--size-base); }
-  .pub-speaker-role { font-size: var(--size-sm); color: var(--color-text-muted); }
-  .pub-speaker-bio {
-    font-size: var(--size-xs); color: var(--color-text-muted);
-    line-height: 1.5; margin: 0.375rem 0 0; max-width: none;
-    padding-top: 0.375rem; border-top: 1px solid var(--color-border);
-  }
-
-  /* Agenda */
-  .pub-sessions-list { display: flex; flex-direction: column; gap: 1rem; }
-
-  .pub-session-card {
-    background: var(--color-surface);
-    border: 1.5px solid var(--color-border);
-    border-radius: var(--radius-md);
-    padding: 1rem 1.125rem;
-    display: flex; flex-direction: column; gap: 0.5rem;
-  }
-
-  .pub-session-header { display: flex; align-items: baseline; gap: 0.625rem; flex-wrap: wrap; }
-  .pub-session-time { font-size: var(--size-xs); font-weight: 700; color: var(--color-primary); white-space: nowrap; }
-  .pub-session-title { font-weight: 700; font-size: var(--size-base); }
-
-  .pub-session-abstract {
-    font-size: var(--size-sm); color: var(--color-text-muted);
-    line-height: 1.5; margin: 0; max-width: none;
-  }
-
-  .pub-session-speakers { display: flex; flex-direction: column; gap: 0.375rem; padding-top: 0.5rem; border-top: 1px dashed var(--color-border); }
-
-  .pub-session-speaker { display: flex; align-items: center; gap: 0.5rem; }
-
-  .pub-session-avatar {
-    width: 28px; height: 28px;
-    border-radius: 50%; object-fit: cover;
-    border: 1.5px solid var(--color-border);
-    flex-shrink: 0;
-  }
-
-  .pub-session-avatar-placeholder {
-    width: 28px; height: 28px;
-    border-radius: 50%;
-    background: var(--color-primary); color: white;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 0.75rem; font-weight: 700;
-    flex-shrink: 0;
-  }
-
-  .pub-session-speaker-name { font-weight: 600; font-size: var(--size-sm); }
-  .pub-session-speaker-meta { font-size: var(--size-xs); color: var(--color-text-muted); }
 
   @media (max-width: 768px) {
     .event-title { font-size: var(--size-3xl); }
@@ -1130,3 +760,15 @@ const descriptionHtml = renderMarkdown(meetup.description);
     .event-action { position: static; order: -1; }
   }
 </style>
+
+<script>
+  document.querySelectorAll('.js-copy-cancel').forEach((btn) => {
+    const url = (btn as HTMLButtonElement).dataset.url ?? '';
+    btn.addEventListener('click', () => {
+      navigator.clipboard.writeText(url).then(() => {
+        (btn as HTMLButtonElement).textContent = 'Copied!';
+        setTimeout(() => { (btn as HTMLButtonElement).textContent = 'Copy link'; }, 2000);
+      });
+    });
+  });
+</script>

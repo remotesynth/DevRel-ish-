@@ -36,7 +36,7 @@ function isActive(href: string) {
         </a>
       </li>
       <li>
-        <a href="/groups/register" class:list={["nav-link", { active: isActive("/groups/register") }]}>
+        <a href="/groups/register" class:list={["nav-link nav-link-start", { active: isActive("/groups/register") }]}>
           Start a Group
         </a>
       </li>
@@ -164,6 +164,17 @@ function isActive(href: string) {
 
   .nav-link-cta:hover {
     background: var(--color-primary-dark) !important;
+    color: white !important;
+  }
+
+  .nav-link-start {
+    color: var(--color-primary) !important;
+    border: 1.5px solid var(--color-primary);
+  }
+
+  .nav-link-start:hover,
+  .nav-link-start.active {
+    background: var(--color-primary) !important;
     color: white !important;
   }
 

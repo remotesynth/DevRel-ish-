@@ -217,13 +217,13 @@ const upcomingCounts: Record<string, number> = Object.fromEntries(upcomingRows.m
   {externalEvents.length > 0 && (
     <section class="external-section">
       <div class="container">
-        <div class="section-header">
-          <h2>From the ATProto network</h2>
-          <a href="/gatherings" class="btn btn-ghost">See all →</a>
+        <div class="external-heading">
+          <p class="external-eyebrow">Open calendar network</p>
+          <h2>From across the ecosystem</h2>
+          <p class="external-desc">
+            Events from other apps using the same open ATProto calendar protocol — including <a href="https://smokesignal.events" target="_blank" rel="noopener noreferrer">Smoke Signal</a>.
+          </p>
         </div>
-        <p class="external-desc">
-          Events discovered from other apps using the open ATProto calendar protocol.
-        </p>
         <div class="gatherings-grid">
           {externalEvents.map((e) => (
             <AtEventCard
@@ -509,11 +509,28 @@ const upcomingCounts: Record<string, number> = Object.fromEntries(upcomingRows.m
     border-top: 2px dashed var(--color-border);
   }
 
+  .external-heading {
+    margin-bottom: 1.75rem;
+  }
+
+  .external-eyebrow {
+    font-size: var(--size-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-primary);
+    margin-bottom: 0.375rem;
+    max-width: none;
+  }
+
+  .external-heading h2 {
+    font-size: var(--size-3xl);
+    margin-bottom: 0.375rem;
+  }
+
   .external-desc {
     font-size: var(--size-sm);
     color: var(--color-text-muted);
-    margin-top: -1rem;
-    margin-bottom: 1.5rem;
     max-width: none;
   }
 

@@ -109,9 +109,9 @@ const snippet = plain.length > 140 ? plain.slice(0, 140) + "…" : plain;
     display: inline-block;
     font-size: var(--size-xs);
     font-weight: 700;
-    background: rgba(124, 58, 237, 0.08);
-    color: #7c3aed;
-    border: 1px solid rgba(124, 58, 237, 0.2);
+    background: color-mix(in oklch, var(--color-lavender) 18%, var(--color-bg));
+    color: color-mix(in oklch, var(--color-lavender) 85%, var(--color-text));
+    border: 1px solid color-mix(in oklch, var(--color-lavender) 35%, var(--color-bg));
     border-radius: var(--radius-full);
     padding: 0.1rem 0.55rem;
     margin-bottom: 0.3rem;
@@ -120,8 +120,8 @@ const snippet = plain.length > 140 ? plain.slice(0, 140) + "…" : plain;
   }
 
   .category-badge:hover {
-    background: rgba(124, 58, 237, 0.15);
-    border-color: rgba(124, 58, 237, 0.4);
+    background: color-mix(in oklch, var(--color-lavender) 28%, var(--color-bg));
+    border-color: color-mix(in oklch, var(--color-lavender) 60%, var(--color-bg));
   }
 
   .group-tagline {
