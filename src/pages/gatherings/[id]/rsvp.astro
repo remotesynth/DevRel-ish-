@@ -5,6 +5,7 @@ import { db, Meetups, RSVPs, Groups, GatheringSpeakers, GatheringSessions, Gathe
 import { asc, inArray } from "astro:db";
 import { formatDate, formatTime, spotsLeft, generateId, googleCalendarUrl, osmUrl, groupUrl } from "../../../lib/utils";
 import { renderMarkdown } from "../../../lib/markdown";
+import { createHash } from "node:crypto";
 import { getPdsSession, pdsCreate } from "../../../lib/atproto-pds";
 
 const { id } = Astro.params;
@@ -47,11 +48,15 @@ if (Astro.request.method === "POST") {
       try {
         const session = await getPdsSession(Astro.locals.user.did);
         if (!session) throw new Error("no PDS session");
+        const rsvpRkey = createHash("sha256")
+          .update(meetup.atEventUri!)
+          .digest("hex")
+          .slice(0, 13);
         await pdsCreate(session, "community.lexicon.calendar.rsvp", {
-          event: { uri: meetup.atEventUri, cid: meetup.atEventCid },
-          status: "yes",
+          subject: { uri: meetup.atEventUri, cid: meetup.atEventCid },
+          status: "community.lexicon.calendar.rsvp#going",
           createdAt: new Date().toISOString(),
-        });
+        }, rsvpRkey);
         result = { type: "atproto-success", handle: Astro.locals.user.handle };
       } catch (err) {
         console.error("[rsvp/atproto] PDS write failed:", err);

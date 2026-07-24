@@ -25,7 +25,8 @@ function parseAtUri(uri: string): { did: string; collection: string; rkey: strin
 export async function pdsCreate(
   session: PdsSession,
   collection: string,
-  record: Record<string, unknown>
+  record: Record<string, unknown>,
+  rkey?: string
 ): Promise<{ uri: string; cid: string }> {
   const res = await session.fetchHandler("/xrpc/com.atproto.repo.createRecord", {
     method: "POST",
@@ -33,6 +34,7 @@ export async function pdsCreate(
     body: JSON.stringify({
       repo: session.did,
       collection,
+      ...(rkey ? { rkey } : {}),
       record: { $type: collection, ...record },
     }),
   });

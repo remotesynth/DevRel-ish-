@@ -86,7 +86,8 @@ async function indexRecord(
   }
 
   if (collection === "community.lexicon.calendar.rsvp") {
-    const eventRef = record.event as { uri?: string } | undefined;
+    // community lexicon uses "subject"; tolerate legacy "event" field from earlier DevRel(ish) writes
+    const eventRef = (record.subject ?? record.event) as { uri?: string } | undefined;
     await db.execute({
       sql: `INSERT INTO "AtRsvps" (uri, cid, did, eventUri, status, createdAt, indexedAt)
             VALUES (:uri, :cid, :did, :eventUri, :status, :createdAt, :indexedAt)

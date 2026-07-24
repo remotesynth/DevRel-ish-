@@ -1,10 +1,4 @@
 ---
-interface Location {
-  name?: string;
-  city?: string;
-  country?: string;
-}
-
 interface Props {
   uri: string;
   did: string;
@@ -28,12 +22,25 @@ const formattedTime = new Intl.DateTimeFormat("en-US", {
   hour12: true,
 }).format(startDate);
 
-const locations: Location[] = locationJson
+const rawLocations: Array<Record<string, unknown>> = locationJson
   ? (() => { try { return JSON.parse(locationJson); } catch { return []; } })()
   : [];
-const venue = locations[0]?.name;
-const locationCity = locations[0]?.city;
-const locationCountry = locations[0]?.country;
+
+// Parse location fields by $type — different community lexicon location types use different field names.
+// community.lexicon.location.address uses "locality" for city; .geo/.fsq/.hthree have only "name".
+function extractLocationDisplay(loc: Record<string, unknown>) {
+  const name = typeof loc.name === "string" ? loc.name : undefined;
+  const city = typeof loc.locality === "string" ? loc.locality
+    : typeof loc.city === "string" ? loc.city
+    : undefined;
+  const country = typeof loc.country === "string" ? loc.country : undefined;
+  return { name, city, country };
+}
+
+const primaryLoc = rawLocations[0] ? extractLocationDisplay(rawLocations[0]) : null;
+const venue = primaryLoc?.name;
+const locationCity = primaryLoc?.city;
+const locationCountry = primaryLoc?.country;
 const placeDisplay = [venue, locationCity, locationCountry].filter(Boolean).join(", ");
 
 const attribution = groupName ?? "ATProto community";
@@ -59,7 +66,6 @@ const attribution = groupName ?? "ATProto community";
   .at-event-card {
     background: var(--color-surface);
     border: 2px solid var(--color-border);
-    border-left: 4px solid #0085ff;
     border-radius: var(--radius-lg);
     padding: 1.125rem 1.25rem;
     display: flex;
