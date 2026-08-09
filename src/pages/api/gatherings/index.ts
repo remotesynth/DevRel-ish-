@@ -78,7 +78,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         $type: "community.lexicon.location.address",
         name: String(venue).trim(),
         ...(address ? { street: String(address).trim() } : {}),
-        ...(group.city ? { city: group.city } : {}),
+        ...(group.city ? { locality: group.city } : {}),
         ...(group.country ? { country: group.country } : {}),
       };
 

@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { db, RSVPs, Meetups, Groups, eq, and, count } from "astro:db";
+import { createHash } from "node:crypto";
 import { generateId } from "../../../lib/utils";
 import { getPdsSession, pdsCreate } from "../../../lib/atproto-pds";
 
@@ -78,11 +79,15 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
   if (locals.user && meetup.atEventUri && meetup.atEventCid) {
     const session = await getPdsSession(locals.user.did);
     if (session) {
+      const rsvpRkey = createHash("sha256")
+        .update(meetup.atEventUri!)
+        .digest("hex")
+        .slice(0, 13);
       pdsCreate(session, "community.lexicon.calendar.rsvp", {
-        event: { uri: meetup.atEventUri, cid: meetup.atEventCid },
-        status: "yes",
+        subject: { uri: meetup.atEventUri, cid: meetup.atEventCid },
+        status: "community.lexicon.calendar.rsvp#going",
         createdAt: new Date().toISOString(),
-      }).catch(err => console.warn("[rsvp] ATProto RSVP failed (non-fatal):", err));
+      }, rsvpRkey).catch(err => console.warn("[rsvp] ATProto RSVP failed (non-fatal):", err));
     }
   }
 
