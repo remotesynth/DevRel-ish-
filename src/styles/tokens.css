@@ -9,26 +9,32 @@
  */
 
 :root {
-  /* ── Paper · three elevation steps, all tinted warm ─────────────────────── */
-  --color-paper: oklch(95% 0.016 62);      /* #f7ece4 — the page */
-  --color-paper-2: oklch(92% 0.018 62);    /* #eee2d9 — raised bands */
-  --color-paper-3: oklch(88% 0.018 62);    /* #e1d5cc — pressed / inset */
+  /* ── Paper · three steps, warm enough to read as paper rather than grey ─── */
+  --color-paper: oklch(95.5% 0.022 68);    /* #faeee1 — the page */
+  --color-paper-2: oklch(92.5% 0.026 66);  /* #f3e3d5 — raised bands, card fills */
+  --color-paper-3: oklch(88.5% 0.030 64);  /* #e8d5c5 — pressed / inset */
 
-  /* ── Ink ─────────────────────────────────────────────────────────────────── */
-  --color-ink: oklch(22% 0.014 55);        /* 14.96:1 on paper */
-  --color-ink-2: oklch(42% 0.014 55);      /*  7.32:1 — secondary prose */
-  --color-muted: oklch(50% 0.012 55);      /*  5.19:1 — metadata, captions */
+  /* ── Ink · warm-brown black, never neutral ──────────────────────────────── */
+  --color-ink: oklch(24% 0.020 48);        /* 14.46:1 on paper */
+  --color-ink-2: oklch(44% 0.020 48);      /*  6.84:1 — secondary prose */
+  --color-muted: oklch(48.5% 0.016 50);    /*  5.63:1 — metadata; 4.53:1 on paper-3 */
 
-  /* ── Rules · hairlines are the divider language, not card borders ────────── */
-  --color-rule: oklch(80% 0.016 62);       /* decorative hairline */
-  --color-rule-2: oklch(86% 0.014 62);     /* faintest, inside dense blocks */
-  --color-rule-strong: oklch(60% 0.016 62);/* 3.41:1 — form + UI boundaries */
+  /* ── Rules ───────────────────────────────────────────────────────────────── */
+  --color-rule: oklch(82% 0.024 66);
+  --color-rule-2: oklch(87% 0.022 66);
+  --color-rule-strong: oklch(62% 0.026 60);/* 3.21:1 — form + UI boundaries */
 
-  /* ── Accent · terracotta. One hue. Budget: under 5% of any viewport ─────── */
-  --color-accent: oklch(52% 0.16 34);      /* 5.13:1 both directions */
-  --color-accent-deep: oklch(42% 0.15 34); /* hover / pressed */
-  --color-accent-wash: oklch(93% 0.035 34);/* tint band; accent text reads 4.79:1 */
-  --color-accent-ink: oklch(97% 0.012 62); /* text on an accent fill */
+  /* ── Accent · terracotta, the primary voice ─────────────────────────────── */
+  --color-accent: oklch(52% 0.16 34);      /* 5.20:1 on paper */
+  --color-accent-deep: oklch(42% 0.15 34);
+  --color-accent-wash: oklch(92% 0.055 38);/* accent text reads 4.54:1 on it */
+  --color-accent-ink: oklch(97.5% 0.018 70); /* 5.52:1 on the accent fill */
+
+  /* ── Sun · the second hue. Warmth needs somewhere to be cheerful that
+     isn't the CTA. Highlights, counts, the drawn mark. ─────────────────────── */
+  --color-sun: oklch(52% 0.135 72);        /* 4.93:1 on paper */
+  --color-sun-wash: oklch(93.5% 0.062 80); /* 4.63:1 for sun text on it */
+
   --color-focus: oklch(52% 0.20 34);
 
   /* ── State · functional signals, not palette accents ─────────────────────── */
@@ -47,6 +53,11 @@
   /* Outlier register: machine-readable identifiers only — handles, DIDs,
      at:// URIs, dates, counts. One role, applied consistently. */
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Fraunces' variable axes are the whole reason to load it. SOFT rounds the
+     terminals; WONK lets the quirky alternates through. Both were off before,
+     which is how a font picked for warmth ended up reading like a broadsheet. */
+  --display-axes: "SOFT" 60, "WONK" 1;
 
   /* Major third (1.25) through the UI range, then a real display tier. */
   --text-2xs: 0.6875rem;
@@ -82,17 +93,18 @@
   --rule-thin: 1.5px;
   --rule-thick: 3px;
 
-  /* ── Radius · this is print. Corners are nearly square. ──────────────────── */
-  --radius-xs: 2px;
-  --radius-sm: 3px;
-  --radius-md: 5px;
+  /* ── Radius · softened. Square corners read as institutional; this is a
+     noticeboard, not a broadsheet. 12px is the ceiling. ────────────────────── */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
   --radius-full: 9999px;
 
-  /* ── Depth · a zine has ink and paper, not drop shadows. Used sparingly. ─── */
-  --shadow-raise: 0 1px 0 oklch(80% 0.016 62);
-  --shadow-lift: 0 2px 0 oklch(72% 0.020 62);
-  --shadow-panel: 0 6px 24px oklch(22% 0.014 55 / 0.10);
-  --color-scrim: oklch(22% 0.014 55 / 0.45); /* dialog backdrop — an overlay modifier */
+  /* ── Depth · soft and warm-tinted, never a grey drop shadow ─────────────── */
+  --shadow-raise: 0 1px 2px oklch(40% 0.05 50 / 0.07);
+  --shadow-lift: 0 6px 18px -8px oklch(40% 0.06 50 / 0.24);
+  --shadow-panel: 0 14px 38px -18px oklch(35% 0.07 45 / 0.32);
+  --color-scrim: oklch(24% 0.020 48 / 0.45); /* dialog backdrop — an overlay modifier */
 
   /* ── Motion ──────────────────────────────────────────────────────────────── */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);

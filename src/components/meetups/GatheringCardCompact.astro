@@ -109,16 +109,15 @@ const weekday = new Intl.DateTimeFormat("en-US", { weekday: "short" }).format(da
 
   .d-weekday,
   .d-month {
-    font-family: var(--font-mono);
+    font-family: var(--font-body);
     font-size: var(--text-2xs);
     letter-spacing: 0.1em;
-    text-transform: uppercase;
     color: var(--color-muted);
   }
 
   .d-day {
     font-family: var(--font-display);
-    font-variation-settings: "SOFT" 0, "WONK" 1;
+    font-variation-settings: var(--display-axes);
     font-weight: 700;
     font-size: var(--text-3xl);
     line-height: 0.9;
@@ -128,10 +127,9 @@ const weekday = new Intl.DateTimeFormat("en-US", { weekday: "short" }).format(da
   }
 
   .entry-group {
-    font-family: var(--font-mono);
+    font-family: var(--font-body);
     font-size: var(--text-2xs);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+
     color: var(--color-muted);
     max-width: none;
     margin-bottom: 0.1rem;
@@ -158,7 +156,7 @@ const weekday = new Intl.DateTimeFormat("en-US", { weekday: "short" }).format(da
   }
 
   .entry-time {
-    font-family: var(--font-mono);
+    font-family: var(--font-body);
     font-size: var(--text-xs);
     color: var(--color-ink);
   }
@@ -183,7 +181,7 @@ const weekday = new Intl.DateTimeFormat("en-US", { weekday: "short" }).format(da
   }
 
   .spots-n {
-    font-family: var(--font-mono);
+    font-family: var(--font-body);
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     color: var(--color-ink);

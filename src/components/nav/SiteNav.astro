@@ -1,14 +1,20 @@
 ---
 /**
- * N6 · Newspaper masthead.
+ * Custom warm bar — replaces the N6 newspaper masthead.
  *
- * The previous nav was the canonical AI shape — wordmark left, inline links,
- * CTA button right, sticky, hairline border. It told you nothing about what
- * kind of site you were on. A masthead does: this is a community publication
- * about what's happening and where.
+ * The masthead was the loudest institutional signal on the site: centred stack,
+ * uppercase mono issue line, double rule below. It read like a broadsheet when
+ * the page needs to read like a noticeboard in a good coffee shop.
  *
- * The issue line carries live counts rather than a fake date, so it earns its
- * place as a discovery signal instead of reading as costume.
+ * What changed: asymmetric instead of centred, wordmark at a friendly scale
+ * rather than a headline one, links in the body serif at reading size rather
+ * than uppercase mono, and a soft tinted band instead of a hard rule. The live
+ * counts stay — they're the most welcoming thing here — but phrased as a
+ * sentence, not an edition line.
+ *
+ * Gate 42 (AI nav fingerprint) is avoided on all four counts: tinted rather
+ * than white, no hairline border-bottom, links sit beside the wordmark rather
+ * than centred-or-right, and nothing is uppercase.
  */
 import { db, Groups, Meetups, count, eq, and, gte } from "astro:db";
 
@@ -30,7 +36,6 @@ const [groupRow] = await db
   .select({ val: count() })
   .from(Groups)
   .where(eq(Groups.status, "active"));
-
 const [gatheringRow] = await db
   .select({ val: count() })
   .from(Meetups)
@@ -38,85 +43,78 @@ const [gatheringRow] = await db
 
 const groupCount = groupRow?.val ?? 0;
 const gatheringCount = gatheringRow?.val ?? 0;
-
-const edition = new Intl.DateTimeFormat("en-US", {
-  month: "long",
-  year: "numeric",
-}).format(today);
+const hasSomething = gatheringCount > 0;
 ---
 
-<header class="mast">
-  <div class="container mast-inner">
-    <p class="mast-line">
-      <span>{edition}</span>
-      <span class="mast-dot" aria-hidden="true">·</span>
-      <span>{groupCount} {groupCount === 1 ? "group" : "groups"}</span>
-      <span class="mast-dot" aria-hidden="true">·</span>
-      <span>{gatheringCount} upcoming</span>
-      <span class="mast-dot" aria-hidden="true">·</span>
-      <span>on the AT Protocol</span>
-    </p>
+<header class="bar">
+  <div class="container bar-inner">
+    <div class="bar-brand">
+      <a href="/" class="wordmark" aria-label="DevRel(ish) home">
+        DevRel<span class="wordmark-ish">(ish)</span>
+      </a>
+      {
+        hasSomething && (
+          <p class="bar-count">
+            <strong>{gatheringCount}</strong>
+            {gatheringCount === 1 ? " gathering" : " gatherings"} coming up across
+            <strong>{groupCount}</strong>
+            {groupCount === 1 ? " group" : " groups"}
+          </p>
+        )
+      }
+    </div>
 
-    <a href="/" class="mast-name" aria-label="DevRel(ish) home">
-      DevRel<span class="mast-ish">(ish)</span>
-    </a>
+    <button class="bar-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-links">
+      Menu
+    </button>
 
-    <div class="mast-navrow">
-      <button class="mast-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-links">
-        Menu
-      </button>
-
-      <nav class="mast-nav" aria-label="Primary">
-        <ul id="nav-links" role="list">
-          <li>
-            <a href="/gatherings" class:list={["mast-link", { active: isActive("/gatherings") }]}>
-              Gatherings
-            </a>
-          </li>
-          <li>
-            <a
-              href="/groups"
-              class:list={["mast-link", { active: isActive("/groups") && !isActive("/groups/register") }]}
-            >
-              Groups
-            </a>
-          </li>
-          <li>
-            <a href="/how-it-works" class:list={["mast-link", { active: isActive("/how-it-works") }]}>
-              How it works
-            </a>
-          </li>
-          <li>
-            <a href="/groups/register" class:list={["mast-link", { active: isActive("/groups/register") }]}>
-              Start a group
-            </a>
-          </li>
-          {
-            user ? (
-              <>
-                <li>
-                  <a
-                    href={user.role === "admin" ? "/admin" : "/dashboard"}
-                    class:list={["mast-link", { active: isActive(user.role === "admin" ? "/admin" : "/dashboard") }]}
-                  >
-                    {user.role === "admin" ? "Admin" : "My group"}
-                  </a>
-                </li>
-                <li><a href="/auth/signout" class="mast-link">Sign out</a></li>
-              </>
-            ) : (
+    <nav class="bar-nav" aria-label="Primary">
+      <ul id="nav-links" role="list">
+        <li>
+          <a href="/gatherings" class:list={["bar-link", { active: isActive("/gatherings") }]}>
+            Gatherings
+          </a>
+        </li>
+        <li>
+          <a
+            href="/groups"
+            class:list={["bar-link", { active: isActive("/groups") && !isActive("/groups/register") }]}
+          >
+            Groups
+          </a>
+        </li>
+        <li>
+          <a href="/how-it-works" class:list={["bar-link", { active: isActive("/how-it-works") }]}>
+            How it works
+          </a>
+        </li>
+        {
+          user ? (
+            <>
               <li>
-                <a href="/auth/login" class:list={["mast-link", { active: isActive("/auth/login") }]}>
-                  Sign in
+                <a
+                  href={user.role === "admin" ? "/admin" : "/dashboard"}
+                  class:list={["bar-link", { active: isActive(user.role === "admin" ? "/admin" : "/dashboard") }]}
+                >
+                  {user.role === "admin" ? "Admin" : "My group"}
                 </a>
               </li>
-            )
-          }
-        </ul>
-      </nav>
-    </div>
+              <li><a href="/auth/signout" class="bar-link">Sign out</a></li>
+            </>
+          ) : (
+            <li>
+              <a href="/auth/login" class:list={["bar-link", { active: isActive("/auth/login") }]}>
+                Sign in
+              </a>
+            </li>
+          )
+        }
+        <li class="bar-cta-item">
+          <a href="/groups/register" class="bar-cta">Start a group</a>
+        </li>
+      </ul>
+    </nav>
   </div>
-  <hr class="rule-double" aria-hidden="true" />
 </header>
 
 <script>
@@ -129,79 +127,75 @@ const edition = new Intl.DateTimeFormat("en-US", {
 </script>
 
 <style>
-  .mast {
-    background: var(--color-paper);
+  .bar {
+    /* A tinted band, not a white bar with a hairline under it. */
+    background: var(--color-paper-2);
     position: relative;
     z-index: var(--z-header);
   }
 
-  .mast-inner {
-    display: grid;
-    justify-items: center;
-    gap: var(--space-2xs);
-    padding-top: var(--space-sm);
-    padding-bottom: var(--space-xs);
-    text-align: center;
+  .bar-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+    padding-block: var(--space-sm);
   }
 
-  /* The issue line — small caps, mono, live counts. */
-  .mast-line {
-    font-family: var(--font-mono);
-    font-size: var(--text-2xs);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--color-muted);
-    max-width: none;
+  .bar-brand {
     display: flex;
+    align-items: baseline;
+    gap: var(--space-sm);
     flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.4em;
+    min-width: 0;
+  }
+
+  .wordmark {
+    font-family: var(--font-display);
+    font-variation-settings: var(--display-axes);
+    font-weight: 700;
+    /* Friendly, not a headline. The masthead ran to 3.5rem. */
+    font-size: var(--text-2xl);
+    line-height: 1;
+    letter-spacing: -0.025em;
+    color: var(--color-ink);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .wordmark:hover {
+    color: var(--color-accent);
+  }
+
+  .wordmark-ish {
+    color: var(--color-accent);
+  }
+
+  /* The count reads as a sentence, because it's the friendliest fact we have. */
+  .bar-count {
+    font-size: var(--text-sm);
+    color: var(--color-ink-2);
+    max-width: none;
+    line-height: 1.3;
+  }
+
+  .bar-count strong {
+    font-weight: 700;
+    color: var(--color-sun);
     font-variant-numeric: tabular-nums;
   }
 
-  .mast-dot {
-    color: var(--color-rule-strong);
-  }
-
-  .mast-name {
-    font-family: var(--font-display);
-    font-variation-settings: "SOFT" 0, "WONK" 1;
-    font-weight: 700;
-    font-size: clamp(2rem, 6vw, 3.5rem);
-    line-height: 0.95;
-    letter-spacing: -0.03em;
-    color: var(--color-ink);
-    text-decoration: none;
-    overflow-wrap: anywhere;
-  }
-
-  .mast-name:hover {
-    color: var(--color-accent);
-  }
-
-  .mast-ish {
-    color: var(--color-accent);
-  }
-
-  .mast-navrow {
-    display: contents;
-  }
-
-  .mast-nav ul {
+  .bar-nav ul {
     display: flex;
+    align-items: center;
     flex-wrap: wrap;
-    justify-content: center;
     gap: var(--space-md);
     list-style: none;
-    margin-top: var(--space-3xs);
   }
 
-  .mast-link {
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    font-weight: 500;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+  .bar-link {
+    font-size: var(--text-base);
     color: var(--color-ink-2);
     text-decoration: none;
     padding-bottom: 2px;
@@ -212,56 +206,98 @@ const edition = new Intl.DateTimeFormat("en-US", {
       border-color var(--dur-micro) var(--ease-out);
   }
 
-  .mast-link:hover {
+  .bar-link:hover {
     color: var(--color-ink);
     border-bottom-color: var(--color-rule-strong);
   }
 
-  .mast-link.active {
+  .bar-link.active {
     color: var(--color-accent);
     border-bottom-color: var(--color-accent);
   }
 
-  .mast-toggle {
+  .bar-cta {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.5rem;
+    padding: 0.35rem 1rem;
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
+    border-radius: var(--radius-full);
+    font-weight: 600;
+    font-size: var(--text-sm);
+    text-decoration: none;
+    white-space: nowrap;
+    box-shadow: var(--shadow-raise);
+    transition:
+      background-color var(--dur-micro) var(--ease-out),
+      transform var(--dur-micro) var(--ease-out);
+  }
+
+  .bar-cta:hover {
+    background: var(--color-accent-deep);
+    color: var(--color-accent-ink);
+    transform: translateY(-1px);
+  }
+
+  .bar-cta:active {
+    transform: translateY(0);
+  }
+
+  .bar-toggle {
     display: none;
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: var(--text-sm);
     background: transparent;
     color: var(--color-ink);
     border: var(--rule-thin) solid var(--color-rule-strong);
-    border-radius: var(--radius-xs);
-    padding: 0.4rem 0.9rem;
+    border-radius: var(--radius-full);
+    padding: 0.4rem 1rem;
     min-height: 2.75rem;
     cursor: pointer;
-    margin-top: var(--space-2xs);
   }
 
-  .mast-toggle:hover {
+  .bar-toggle:hover {
     border-color: var(--color-ink);
   }
 
-  /* Below the typography breakpoint the nav row collapses behind a
-     disclosure, per the N6 responsive contract. */
-  @media (max-width: 40rem) {
-    .mast-toggle {
+  @media (max-width: 52rem) {
+    .bar-count {
+      flex-basis: 100%;
+    }
+  }
+
+  @media (max-width: 44rem) {
+    .bar-toggle {
       display: inline-flex;
       align-items: center;
       justify-content: center;
     }
 
-    .mast-nav ul {
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      gap: var(--space-sm);
-      width: 100%;
-      padding-block: var(--space-sm);
+    .bar-nav {
+      flex-basis: 100%;
     }
 
-    .mast-nav ul.open {
+    .bar-nav ul {
+      display: none;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--space-sm);
+      padding-block: var(--space-sm) var(--space-2xs);
+    }
+
+    .bar-nav ul.open {
       display: flex;
+    }
+
+    .bar-cta-item {
+      width: 100%;
+    }
+
+    .bar-cta {
+      width: 100%;
+      justify-content: center;
     }
   }
 </style>

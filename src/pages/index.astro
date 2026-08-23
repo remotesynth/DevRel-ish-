@@ -13,6 +13,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import GroupCard from '../components/groups/GroupCard.astro';
 import GatheringCardCompact from '../components/meetups/GatheringCardCompact.astro';
 import AtEventCard from '../components/meetups/AtEventCard.astro';
+import DrawnUnderline from '../components/marks/DrawnUnderline.astro';
 import { isCancelled } from '../lib/at-events';
 import { getCategoryLabel } from '../lib/categories';
 import {
@@ -104,16 +105,16 @@ const categories = [...categoryTally.entries()]
   <section class="lede reveal" style="--i: 0">
     <div class="container">
       <p class="lede-text">
-        Most tech work happens in front of a screen, for people you never meet.
-        <strong>DevRel(ish)</strong> indexes the times that isn&rsquo;t true &mdash; local
-        groups, and the gatherings they run.
+        Most tech work happens in front of a screen, for people you&rsquo;ll never
+        meet. Here are the times it doesn&rsquo;t &mdash; local groups, real rooms,
+        and <span class="marked">people worth the trip<DrawnUnderline tone="sun" variant={1} /></span>.
       </p>
       <p class="lede-note">
-        Every corner of it: web and mobile, data and AI, platform and security, game dev,
-        design systems, indie projects, developer relations. What the groups here have in
-        common isn&rsquo;t a subject &mdash; it&rsquo;s that they put real effort into
-        being worth walking into alone.
-        <a href="/code-of-conduct">That&rsquo;s the bar for being listed</a>.
+        Every corner of tech: web and mobile, data and AI, platform and security, game
+        dev, design systems, indie projects, developer relations. What these groups have
+        in common isn&rsquo;t a subject &mdash; it&rsquo;s that they&rsquo;re built for
+        turning up on your own and leaving glad you did.
+        <a href="/code-of-conduct">That&rsquo;s the one thing we ask of them</a>.
       </p>
     </div>
   </section>
@@ -122,7 +123,7 @@ const categories = [...categoryTally.entries()]
   <section class="band reveal" style="--i: 1">
     <div class="container">
       <div class="rail">
-        <h2 class="rail-title">What&rsquo;s on</h2>
+        <h2 class="rail-title">Coming up</h2>
         <span class="rail-meta">
           {upcomingGatherings.length} upcoming {upcomingGatherings.length === 1 ? 'gathering' : 'gatherings'}
         </span>
@@ -131,8 +132,8 @@ const categories = [...categoryTally.entries()]
 
       {upcomingGatherings.length === 0 ? (
         <p class="rail-empty">
-          Nothing scheduled yet. <a href="/groups/register">Start a group</a> and put the
-          first one on the calendar.
+          Nothing on the calendar yet. <a href="/groups/register">Start a group</a> and
+          put the first one up &mdash; someone nearby is waiting for exactly this.
         </p>
       ) : (
         <div class="grid-3">
@@ -162,8 +163,9 @@ const categories = [...categoryTally.entries()]
           <a href="/gatherings" class="rail-more">Browse the network &rarr;</a>
         </div>
         <p class="rail-lede">
-          Published by other apps &mdash; Smoke Signal, atmo.rsvp, OpenMeet &mdash; and readable
-          here because everyone writes the same records. Nobody integrated with anybody.
+          Put up by people using other apps &mdash; Smoke Signal, atmo.rsvp, OpenMeet
+          &mdash; and visible here because we all speak the same schema. Nobody had to
+          integrate with anybody. Go anyway.
         </p>
         <div class="grid-3">
           {externalEvents.map((e) => (
@@ -208,8 +210,8 @@ const categories = [...categoryTally.entries()]
     <section class="band reveal" style="--i: 4">
       <div class="container">
         <div class="rail">
-          <h2 class="rail-title">Ways in</h2>
-          <span class="rail-meta">by place &middot; by subject</span>
+          <h2 class="rail-title">Find your corner</h2>
+          <span class="rail-meta">by city, or by what you&rsquo;re into</span>
         </div>
         <div class="cuts">
           {cities.length > 0 && (
@@ -229,7 +231,7 @@ const categories = [...categoryTally.entries()]
           )}
           {categories.length > 0 && (
             <div class="cut">
-              <h3 class="cut-head">By subject</h3>
+              <h3 class="cut-head">By what you&rsquo;re into</h3>
               <ul class="cut-list" role="list">
                 {categories.map(([slug, n]) => (
                   <li>
@@ -251,7 +253,7 @@ const categories = [...categoryTally.entries()]
   <section class="band closing reveal" style="--i: 5">
     <div class="container">
       <div class="rail">
-        <h2 class="rail-title">Running something?</h2>
+        <h2 class="rail-title">Thinking of starting one?</h2>
       </div>
       <div class="closing-body">
         <p>
@@ -265,7 +267,10 @@ const categories = [...categoryTally.entries()]
           of clicks.
         </p>
         <div class="closing-actions">
-          <a href="/groups/register" class="btn btn-primary">Start a group</a>
+          <span class="marked marked-btn">
+            <a href="/groups/register" class="btn btn-primary">Start a group</a>
+            <DrawnUnderline tone="accent" variant={2} />
+          </span>
           <a href="/how-it-works" class="btn btn-quiet">How it works</a>
         </div>
       </div>
@@ -276,13 +281,13 @@ const categories = [...categoryTally.entries()]
 <style>
   /* ── Lede ─────────────────────────────────────────────────────────────── */
   .lede {
-    padding-top: var(--space-xl);
+    padding-top: var(--space-2xl);
     padding-bottom: var(--space-lg);
   }
 
   .lede-text {
     font-family: var(--font-display);
-    font-variation-settings: 'SOFT' 0, 'WONK' 1;
+    font-variation-settings: var(--display-axes);
     font-weight: 400;
     font-size: clamp(1.375rem, 3.2vw, 2rem);
     line-height: 1.32;
@@ -292,9 +297,13 @@ const categories = [...categoryTally.entries()]
     overflow-wrap: anywhere;
   }
 
-  .lede-text strong {
-    font-weight: 700;
-    color: var(--color-accent);
+  .lede-text .marked {
+    white-space: normal;
+  }
+
+  .marked-btn {
+    display: inline-block;
+    position: relative;
   }
 
   .lede-note {
@@ -350,12 +359,11 @@ const categories = [...categoryTally.entries()]
   }
 
   .cut-head {
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    font-weight: 500;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--color-muted);
+    font-family: var(--font-display);
+    font-variation-settings: var(--display-axes);
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--color-ink-2);
     margin-bottom: var(--space-2xs);
   }
 
@@ -387,8 +395,8 @@ const categories = [...categoryTally.entries()]
   .cut-name { min-width: 0; overflow-wrap: anywhere; }
 
   .cut-count {
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
+    font-size: var(--text-sm);
+    font-weight: 600;
     font-variant-numeric: tabular-nums;
     color: var(--color-muted);
   }

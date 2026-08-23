@@ -1,115 +1,125 @@
 ---
 /**
- * Ft4 · Dense colophon.
+ * Ft6 · Letter close — replaces the Ft4 dense colophon.
  *
- * The previous footer was the compressed AI shape — brand blurb, link column,
- * hairline, tiny copyright. A colophon is the print convention for stating how
- * a thing was made and on what, which is exactly the note this site needs to
- * end on: your records aren't here, they're yours.
+ * The colophon was a justified wall of monospace. Print-shop accurate, and the
+ * coldest thing on the page. A letter close does the same job — say what this
+ * is, say who made it — while sounding like a person.
+ *
+ * The signoff stays roman: gate 38a bans italic on display type and names a
+ * footer statement explicitly.
  */
 const year = new Date().getFullYear();
 ---
 
-<footer class="colophon">
-  <hr class="rule-double" aria-hidden="true" />
-  <div class="container colophon-inner">
-    <nav class="colophon-links" aria-label="Footer navigation">
+<footer class="close">
+  <div class="container close-inner">
+    <div class="close-letter">
+      <p class="close-line">
+        Go to something. Talk to a stranger about the thing you both care about.
+        It&rsquo;s worth the awkward first ten minutes.
+      </p>
+      <p class="close-sign">
+        &mdash; DevRel<span class="close-ish">(ish)</span>, {year}
+      </p>
+    </div>
+
+    <nav class="close-nav" aria-label="Footer navigation">
       <a href="/gatherings">Gatherings</a>
       <a href="/groups">Groups</a>
       <a href="/groups/register">Start a group</a>
       <a href="/how-it-works">How it works</a>
-      <a href="/auth/login">Organizer sign-in</a>
       <a href="/code-of-conduct">Code of conduct</a>
+      <a href="/auth/login">Organizer sign-in</a>
       <a href="/privacy">Privacy</a>
     </nav>
 
-    <p class="colophon-text">
-      <strong>DevRel(ish)</strong> — in-person gatherings for people who work in and
-      around technology, run by groups that take being welcoming seriously. Set in Fraunces and Source Serif&nbsp;4, with
-      JetBrains Mono for identifiers. Built on the
-      <a href="https://atproto.com" target="_blank" rel="noopener noreferrer">AT&nbsp;Protocol</a>:
-      groups, events, and RSVPs are
-      <code class="ident">community.lexicon.calendar.*</code> and
-      <code class="ident">com.devrelish.*</code> records written to
-      <em>your</em> Personal Data Server, not ours. We run no PDS, store no
-      passwords, and hold nothing you can't take with you. Events shown here
-      also come from Smoke&nbsp;Signal, atmo.rsvp, and OpenMeet, because they
-      publish the same open schema. No account needed to attend — only to
-      organize. Groups listed here agree to the
-      <a href="/code-of-conduct">code of conduct</a>. {year}.
+    <p class="close-ps">
+      P.S. &mdash; your groups, events, and RSVPs are
+      <span class="ident">community.lexicon.calendar.*</span> records on
+      <em>your</em> account, not ours. We run no server for them, store no
+      password, and hold nothing you can&rsquo;t walk away with. Events here also
+      come from Smoke&nbsp;Signal, atmo.rsvp, and OpenMeet, because we all speak
+      the same schema. No account needed to turn up &mdash; only to organize.
     </p>
   </div>
 </footer>
 
 <style>
-  .colophon {
+  .close {
     margin-top: var(--space-3xl);
+    background: var(--color-paper-2);
+    padding-block: var(--space-2xl);
   }
 
-  .colophon-inner {
-    padding-top: var(--space-md);
-    padding-bottom: var(--space-2xl);
+  .close-inner {
     display: grid;
-    gap: var(--space-sm);
+    gap: var(--space-lg);
   }
 
-  .colophon-links {
+  .close-letter {
+    max-width: 46ch;
+  }
+
+  /* The one warm sentence the whole site is arguing for. */
+  .close-line {
+    font-family: var(--font-display);
+    font-variation-settings: var(--display-axes);
+    font-weight: 400;
+    font-size: var(--text-xl);
+    line-height: 1.4;
+    color: var(--color-ink);
+    max-width: none;
+  }
+
+  .close-sign {
+    margin-top: var(--space-2xs);
+    font-family: var(--font-display);
+    font-variation-settings: var(--display-axes);
+    font-weight: 600;
+    font-size: var(--text-lg);
+    color: var(--color-ink-2);
+    max-width: none;
+  }
+
+  .close-ish {
+    color: var(--color-accent);
+  }
+
+  .close-nav {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-sm);
+    gap: var(--space-sm) var(--space-md);
+    padding-top: var(--space-md);
+    border-top: var(--rule-hair) solid var(--color-rule);
   }
 
-  .colophon-links a {
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    font-weight: 500;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+  .close-nav a {
+    font-size: var(--text-sm);
     color: var(--color-ink-2);
     text-decoration: none;
-    border-bottom: var(--rule-hair) solid var(--color-rule);
-    padding-bottom: 1px;
+    border-bottom: var(--rule-hair) solid transparent;
     white-space: nowrap;
   }
 
-  .colophon-links a:hover {
+  .close-nav a:hover {
     color: var(--color-accent);
     border-bottom-color: var(--color-accent);
   }
 
-  /* The colophon proper — one dense block, ragged right, mono-adjacent. */
-  .colophon-text {
-    font-family: var(--font-mono);
-    font-size: var(--text-2xs);
-    line-height: 1.75;
-    letter-spacing: 0.005em;
+  .close-ps {
+    font-size: var(--text-sm);
+    line-height: 1.65;
     color: var(--color-muted);
-    max-width: 74ch;
+    max-width: 68ch;
   }
 
-  .colophon-text strong {
-    color: var(--color-ink);
-    font-weight: 600;
-  }
-
-  .colophon-text em {
+  .close-ps em {
     font-style: italic;
     color: var(--color-ink-2);
   }
 
-  .colophon-text a {
-    color: var(--color-accent);
-  }
-
-  .colophon-text code {
-    font-size: 1em;
+  .close-ps .ident {
     color: var(--color-ink-2);
-  }
-
-  @media (max-width: 40rem) {
-    .colophon-text {
-      font-size: var(--text-2xs);
-      line-height: 1.7;
-    }
   }
 </style>

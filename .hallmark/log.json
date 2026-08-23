@@ -5,10 +5,10 @@
     "genre": "editorial",
     "theme": "custom",
     "theme_axes": "light / roman-serif / chromatic-terracotta",
-    "vibe": "community zine, warm, crafted, unvarnished",
-    "nav": "N6 newspaper masthead",
-    "footer": "Ft4 dense colophon",
-    "enrichment": "none",
+    "vibe": "warm, handmade, invites you to turn up alone",
+    "nav": "custom warm bar",
+    "footer": "Ft6 letter close",
+    "enrichment": "E-hand drawn underline (2 slots)",
     "brief": "DevRel(ish) · ATProto index of local devrel groups and gatherings"
   }
 ]
