@@ -75,12 +75,17 @@ const descHtml = renderMarkdown(description);
   .meetup-card {
     display: flex;
     flex-direction: column;
-    gap: 0.875rem;
+    gap: var(--space-xs);
+    /* Without a boundary the entry ran straight into the next one: the gap
+       between cards (20px) was barely larger than the gap inside one (14px),
+       and the only rule on the page was the dashed one *inside* each card. */
+    border-top: var(--rule-thin) solid var(--color-rule-strong);
+    padding-top: var(--space-sm);
   }
 
   .meetup-meta {
     display: flex;
-    gap: 1rem;
+    gap: var(--space-sm);
     align-items: flex-start;
   }
 
@@ -129,7 +134,7 @@ const descHtml = renderMarkdown(description);
   .meetup-time {
     font-size: var(--text-sm);
     color: var(--color-ink-2);
-    margin-top: 0.25rem;
+    margin-top: var(--space-3xs);
     max-width: none;
   }
 
@@ -169,9 +174,10 @@ const descHtml = renderMarkdown(description);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.5rem;
-    padding-top: 0.5rem;
-    border-top: var(--rule-hair) dashed var(--color-rule);
+    gap: var(--space-2xs);
+    margin-top: auto;
+    padding-top: var(--space-2xs);
+    border-top: var(--rule-hair) solid var(--color-rule-2);
   }
 
   .spots-left {

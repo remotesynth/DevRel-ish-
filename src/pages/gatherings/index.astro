@@ -406,7 +406,9 @@ function clearUrl() {
   .gatherings-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-    gap: 1.25rem;
+    /* Row gap has to beat the card's internal rhythm or the entries merge. */
+    gap: var(--space-xl) var(--space-lg);
+    align-items: start;
   }
 
   .empty-state {
