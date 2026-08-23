@@ -55,91 +55,98 @@ const ogDescription = (() => {
         }
       </div>
 
-      <h1>
-        {group.name}
-      </h1>
+      {/* Two columns: the group's own words on the left, everything factual
+          about it on the right. Stacked, all of this sat at one measure and
+          left the right half of the page empty. */}
+      <div class="group-grid">
+        <div class="group-main">
+          <h1>{group.name}</h1>
+          {group.tagline && <p class="group-tagline">{group.tagline}</p>}
 
-      {group.tagline && <p class="group-tagline">{group.tagline}</p>}
-
-      <div class="group-details-row">
-        {group.category && (
-          <a href={`/groups?category=${encodeURIComponent(group.category)}`} class="category-chip">
-            {getCategoryLabel(group.category) ?? group.category}
-          </a>
-        )}
-        {location && <span class="group-location">{location}</span>}
-        {tagList.map(tag => (
-          <a href={`/groups?tag=${encodeURIComponent(tag)}`} class="tag-chip">{tag}</a>
-        ))}
-        {memberCount > 0 && (
-          <span class="group-stat">
-            <span class="at-mark" aria-hidden="true">◎</span>
-            {memberCount} ATProto {memberCount === 1 ? "member" : "members"}
-          </span>
-        )}
-      </div>
-
-      {group.website || group.handle || group.linkedinUrl ? (
-        <div class="social-links">
-          {group.website && (
-            <a href={group.website} class="social-link" target="_blank" rel="noopener noreferrer">
-              Website
-            </a>
+          {isGroupClosed && (
+            <div class="closed-notice">
+              This group is no longer active. Prior gathering pages remain available for reference.
+            </div>
           )}
-          {group.handle && (
-            <a href={profileUrl(group.handle)} class="social-link" target="_blank" rel="noopener noreferrer">
-              ◎ @{group.handle.replace(/^@/, "")}
-            </a>
-          )}
-          {group.linkedinUrl && (
-            <a href={group.linkedinUrl} class="social-link" target="_blank" rel="noopener noreferrer">
-              in LinkedIn
+
+          <div class="group-desc prose" set:html={renderMarkdown(group.description)} />
+
+          {!isGroupClosed && (
+            <a href={`/groups/${group.slug}/contact`} class="contact-link">
+              Have a question? Contact the organizers →
             </a>
           )}
         </div>
-      ) : null}
 
-      {!isGroupClosed && Astro.locals.user && group.atUri && group.atCid && (
-        <div class="join-action">
-          {Astro.url.searchParams.get("joined") === "atproto" ? (
-            <span class="join-success">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <polyline points="20 6 9 17 4 12"/>
-              </svg>
-              Joined on ATProto!
-            </span>
-          ) : (
-            <form method="POST" action={`/api/groups/${group.id}/join`}>
-              <button type="submit" class="btn btn-ghost btn-sm join-btn">
+        <aside class="group-aside">
+          <div class="group-details-row">
+            {group.category && (
+              <a href={`/groups?category=${encodeURIComponent(group.category)}`} class="category-chip">
+                {getCategoryLabel(group.category) ?? group.category}
+              </a>
+            )}
+            {location && <span class="group-location">{location}</span>}
+            {tagList.map(tag => (
+              <a href={`/groups?tag=${encodeURIComponent(tag)}`} class="tag-chip">{tag}</a>
+            ))}
+            {memberCount > 0 && (
+              <span class="group-stat">
                 <span class="at-mark" aria-hidden="true">◎</span>
-                Join on ATProto
-              </button>
-            </form>
+                {memberCount} ATProto {memberCount === 1 ? "member" : "members"}
+              </span>
+            )}
+          </div>
+
+          {group.website || group.handle || group.linkedinUrl ? (
+            <div class="social-links">
+              {group.website && (
+                <a href={group.website} class="social-link" target="_blank" rel="noopener noreferrer">
+                  Website
+                </a>
+              )}
+              {group.handle && (
+                <a href={profileUrl(group.handle)} class="social-link" target="_blank" rel="noopener noreferrer">
+                  ◎ @{group.handle.replace(/^@/, "")}
+                </a>
+              )}
+              {group.linkedinUrl && (
+                <a href={group.linkedinUrl} class="social-link" target="_blank" rel="noopener noreferrer">
+                  in LinkedIn
+                </a>
+              )}
+            </div>
+          ) : null}
+
+          {!isGroupClosed && Astro.locals.user && group.atUri && group.atCid && (
+            <div class="join-action">
+              {Astro.url.searchParams.get("joined") === "atproto" ? (
+                <span class="join-success">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  Joined on ATProto!
+                </span>
+              ) : (
+                <form method="POST" action={`/api/groups/${group.id}/join`}>
+                  <button type="submit" class="btn btn-ghost btn-sm join-btn">
+                    <span class="at-mark" aria-hidden="true">◎</span>
+                    Join on ATProto
+                  </button>
+                </form>
+              )}
+            </div>
           )}
-        </div>
-      )}
 
-      {isGroupClosed && (
-        <div class="closed-notice">
-          This group is no longer active. Prior gathering pages remain available for reference.
-        </div>
-      )}
-
-      <div class="group-desc prose" set:html={renderMarkdown(group.description)} />
-
-      {!isGroupClosed && (
-        <div class="group-actions-row">
-          <a href={`/groups/${group.slug}/contact`} class="contact-link">
-            Have a question? Contact the organizers →
-          </a>
-          <p class="conduct-line">
-            This group follows the DevRel(ish)
-            <a href="/code-of-conduct">code of conduct</a>. Something wrong at an event?
-            <a href={`/groups/${group.slug}/contact`}>Tell the organizers</a>, or
-            <a href="/code-of-conduct#reporting">tell us</a>.
-          </p>
-        </div>
-      )}
+          {!isGroupClosed && (
+            <p class="conduct-line">
+              This group follows the DevRel(ish)
+              <a href="/code-of-conduct">code of conduct</a>. Something wrong at an event?
+              <a href={`/groups/${group.slug}/contact`}>Tell the organizers</a>, or
+              <a href="/code-of-conduct#reporting">tell us</a>.
+            </p>
+          )}
+        </aside>
+      </div>
     </div>
   </section>
 
@@ -335,11 +342,29 @@ const ogDescription = (() => {
     max-width: none;
   }
 
+  .group-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    gap: var(--space-xl);
+    align-items: start;
+  }
+
+  .group-aside {
+    display: grid;
+    gap: var(--space-sm);
+    justify-items: start;
+    padding: var(--space-sm);
+    background: var(--color-paper);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-md);
+  }
+
   .group-desc {
     font-size: var(--text-lg);
     color: var(--color-ink-2);
     line-height: 1.7;
-    max-width: 64ch;
+    /* the column sets the measure — ~62ch at this size */
+    max-width: none;
     margin-bottom: 1rem;
   }
 
@@ -397,6 +422,7 @@ const ogDescription = (() => {
 
   .contact-link {
     display: inline-block;
+    justify-self: start;
     font-size: var(--text-sm);
     font-weight: 600;
     color: var(--color-ink-2);
@@ -489,10 +515,10 @@ const ogDescription = (() => {
   .meetups-section h2 { margin-bottom: 1.5rem; }
 
   .meetups-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-    max-width: 720px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-md) var(--space-lg);
+    align-items: start;
   }
 
   .empty-meetups {
@@ -516,16 +542,24 @@ const ogDescription = (() => {
     max-width: none;
   }
 
-  .group-actions-row {
-    display: grid;
-    gap: var(--space-2xs);
-    margin-top: var(--space-sm);
-  }
-
   .conduct-line {
     font-size: var(--text-xs);
     color: var(--color-muted);
-    max-width: var(--measure);
+    max-width: none;
+    padding-top: var(--space-2xs);
+    border-top: var(--rule-hair) solid var(--color-rule);
+  }
+
+
+  @media (max-width: 60rem) {
+    .group-grid {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--space-md);
+    }
+
+    .meetups-list {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
 
 </style>
