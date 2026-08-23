@@ -99,20 +99,21 @@ const categories = [...categoryTally.entries()]
   .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 12);
 ---
 
-<BaseLayout title="In-person gatherings for developer relations">
+<BaseLayout title="Local tech groups worth showing up to">
   {/* Positioning paragraph — Ecosystem Index opens with a statement, not a display hero. */}
   <section class="lede reveal" style="--i: 0">
     <div class="container">
       <p class="lede-text">
-        Developer relations is a job you mostly do alone, in front of a screen, for people
-        you rarely meet. <strong>DevRel(ish)</strong> indexes the times that isn&rsquo;t
-        true &mdash; local groups and the gatherings they run.
+        Most tech work happens in front of a screen, for people you never meet.
+        <strong>DevRel(ish)</strong> indexes the times that isn&rsquo;t true &mdash; local
+        groups, and the gatherings they run.
       </p>
       <p class="lede-note">
-        For developer advocates, DX engineers, technical writers, community managers, and
-        everyone doing the work without the title. Events here come from DevRel(ish)
-        <em>and</em> from every other app on the AT&nbsp;Protocol that speaks the same
-        calendar schema. No account needed to read, or to show up.
+        Every corner of it: web and mobile, data and AI, platform and security, game dev,
+        design systems, indie projects, developer relations. What the groups here have in
+        common isn&rsquo;t a subject &mdash; it&rsquo;s that they put real effort into
+        being worth walking into alone.
+        <a href="/code-of-conduct">That&rsquo;s the bar for being listed</a>.
       </p>
     </div>
   </section>
@@ -255,10 +256,13 @@ const categories = [...categoryTally.entries()]
       <div class="closing-body">
         <p>
           Register a group and it&rsquo;s live immediately &mdash; no approval queue, no
-          review. Your group and every gathering you post become records on your own
-          account, so they surface in other Atmosphere apps too, and they stay yours if you
-          ever stop using this one. Already running events elsewhere? Bring them across in
-          a couple of clicks.
+          review. We ask one thing: that you run something people can turn up to on their
+          own and be glad they did, and that you act when someone tells you it
+          isn&rsquo;t. That&rsquo;s the <a href="/code-of-conduct">code of conduct</a>, in
+          a sentence. Your group and every gathering become records on your own account,
+          so they surface in other Atmosphere apps too, and stay yours if you ever stop
+          using this one. Already running events elsewhere? Bring them across in a couple
+          of clicks.
         </p>
         <div class="closing-actions">
           <a href="/groups/register" class="btn btn-primary">Start a group</a>

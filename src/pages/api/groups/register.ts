@@ -25,6 +25,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   const { name, tagline, category, city, region, country, description, contactEmail, _hp, _t } =
     body as Record<string, string>;
+  const conduct = (body as Record<string, unknown>).conduct;
 
   // Bot protection
   const submittedAt = parseInt(_t ?? "0", 10);
@@ -57,6 +58,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  // Same gate as the form. Without this the commitment is bypassable by
+  // anything that can POST JSON, and the admin's close-group action loses
+  // the basis it depends on.
+  if (conduct !== true && conduct !== "on") {
+    return json({ error: "You must agree to the code of conduct to register a group." }, 400);
+  }
   if (!emailRe.test(contactEmail)) {
     return json({ error: "Please enter a valid email address." }, 400);
   }
@@ -119,6 +126,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     description: description.trim(),
     contactEmail: contactEmail.trim().toLowerCase(),
     status: "active",
+    conductAgreedAt: now,
     managerId: locals.user.did,
     atUri,
     atCid,

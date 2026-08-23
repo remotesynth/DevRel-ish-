@@ -21,6 +21,7 @@ const Groups = defineTable({
     description: column.text(),
     contactEmail: column.text(),
     status: column.text({ default: "active" }), // active | closed
+    conductAgreedAt: column.date({ optional: true }), // organizer accepted the code of conduct
     managerId: column.text({ optional: true }), // soft ref to AppUser.did
     atUri: column.text({ optional: true }),     // at:// URI of com.devrelish.group
     atCid: column.text({ optional: true }),     // CID of the group record

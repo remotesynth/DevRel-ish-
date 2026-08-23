@@ -240,6 +240,11 @@ Welcome to the community!`}</pre>
             <a href={groupUrl(group)} class="btn btn-ghost" target="_blank" rel="noopener">
               View public page ↗
             </a>
+            <p class="conduct-status">
+              {group.conductAgreedAt
+                ? <>Organizer accepted the <a href="/code-of-conduct" target="_blank" rel="noopener">code of conduct</a> on <time>{new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(group.conductAgreedAt)}</time>.</>
+                : <>Registered before the <a href="/code-of-conduct" target="_blank" rel="noopener">code of conduct</a> gate — no recorded agreement.</>}
+            </p>
             <form method="POST">
               <input type="hidden" name="action" value="close" />
               <button type="submit" class="btn btn-danger">
@@ -620,6 +625,13 @@ Welcome to the community!`}</pre>
       position: static;
     }
   }
+
+  .conduct-status {
+    font-size: var(--text-xs);
+    color: var(--color-muted);
+    max-width: none;
+  }
+
 </style>
 
 <script>

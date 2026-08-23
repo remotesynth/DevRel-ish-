@@ -1,0 +1,287 @@
+---
+/**
+ * The code of conduct the admin's close-group action has always referred to.
+ *
+ * Written to be honest about scope: DevRel(ish) indexes gatherings, it doesn't
+ * host them. Promising to keep someone safe in a room we're not in would be a
+ * lie. What we can do is set the bar for being listed here, and remove groups
+ * that don't meet it.
+ */
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const CONDUCT_EMAIL = import.meta.env.CONDUCT_EMAIL ?? "conduct@devrelish.tech";
+const updated = "August 2026";
+---
+
+<BaseLayout
+  title="Code of Conduct"
+  description="What DevRel(ish) expects of the groups listed here, what organizers commit to, and how to report a problem."
+>
+  <article class="coc">
+    <div class="container-narrow">
+      <header class="coc-head">
+        <h1>Code of Conduct</h1>
+        <p class="coc-stamp ident">Last updated {updated}</p>
+        <p class="coc-lede">
+          DevRel(ish) exists to get people in tech into the same room. That only works
+          if the room is one people can actually walk into. This is the bar for being
+          listed here.
+        </p>
+      </header>
+
+      <section class="coc-section">
+        <div class="rail"><h2 class="rail-title">The short version</h2></div>
+        <p>
+          Be someone a newcomer is glad to have met. Assume the person you&rsquo;re
+          talking to knows something you don&rsquo;t. When you get it wrong &mdash; and
+          everyone does &mdash; listen, fix it, move on.
+        </p>
+        <p>
+          The rest of this page is what that means in practice, and what happens when
+          someone doesn&rsquo;t.
+        </p>
+      </section>
+
+      <section class="coc-section">
+        <div class="rail"><h2 class="rail-title">Who this covers</h2></div>
+        <p>
+          Everyone at a gathering listed on DevRel(ish), and everyone using this site:
+          attendees, speakers, organizers, sponsors, and volunteers. It applies at the
+          venue, in the group&rsquo;s online spaces, and in one-to-one contact that
+          starts at one of these events.
+        </p>
+      </section>
+
+      <section class="coc-section">
+        <div class="rail"><h2 class="rail-title">What we expect</h2></div>
+        <ul class="coc-list">
+          <li>
+            <strong>Make room for people who just arrived.</strong> Open your circle.
+            Explain the acronym. The person standing alone at their first meetup is the
+            whole reason this site exists.
+          </li>
+          <li>
+            <strong>Take people at their word</strong> about their own experience,
+            identity, pronouns, and name.
+          </li>
+          <li>
+            <strong>Disagree about the work, not the person.</strong> Strong opinions
+            about tools are the point. Contempt for the people holding them isn&rsquo;t.
+          </li>
+          <li>
+            <strong>Ask before you photograph, record, or post</strong> anyone. Not
+            everyone can be publicly visible at a tech event, and they don&rsquo;t owe
+            you a reason.
+          </li>
+          <li>
+            <strong>Accept &ldquo;no&rdquo; the first time</strong> &mdash; to a
+            conversation, a photo, a pitch, a drink, a follow.
+          </li>
+        </ul>
+      </section>
+
+      <section class="coc-section">
+        <div class="rail"><h2 class="rail-title">What isn&rsquo;t allowed</h2></div>
+        <ul class="coc-list">
+          <li>
+            Harassment in any form &mdash; including comments about gender, gender
+            identity or expression, sexual orientation, disability, neurotype, physical
+            appearance, body size, race, ethnicity, nationality, age, religion, or
+            technical background.
+          </li>
+          <li>Unwelcome sexual attention, advances, or imagery.</li>
+          <li>
+            Deliberate intimidation, stalking, or following &mdash; at the venue or
+            afterwards, in person or online.
+          </li>
+          <li>
+            Photography, recording, or posting about someone after they&rsquo;ve asked
+            you not to.
+          </li>
+          <li>Sustained disruption of a talk, a session, or a conversation.</li>
+          <li>
+            Publishing someone&rsquo;s private information &mdash; address, employer,
+            immigration status, health, or an identity they haven&rsquo;t shared
+            themselves.
+          </li>
+          <li>
+            Deliberate misgendering, or repeatedly using a name someone has asked you
+            not to use.
+          </li>
+          <li>
+            Advocating for or encouraging any of the above, including &ldquo;as a
+            joke&rdquo; or &ldquo;just asking questions.&rdquo;
+          </li>
+        </ul>
+        <p class="coc-note">
+          Being asked to stop is not itself harassment. Neither is being told that
+          something you said landed badly. The expectation is that you stop.
+        </p>
+      </section>
+
+      <section class="coc-section">
+        <div class="rail"><h2 class="rail-title">What organizers commit to</h2></div>
+        <p>Listing a group here means agreeing to all of this:</p>
+        <ul class="coc-list">
+          <li>
+            <strong>Your event is open to anyone who fits its stated subject.</strong>
+            Groups organized for a specific community &mdash; women in tech,
+            underrepresented practitioners, a local language group &mdash; are welcome
+            and encouraged; say who the group is for on your group page.
+          </li>
+          <li>
+            <strong>You&rsquo;ll act on reports</strong> rather than wait for them to
+            resolve themselves. You can remove someone from your event. You don&rsquo;t
+            need proof beyond reasonable belief, and you don&rsquo;t need to run a trial.
+          </li>
+          <li>
+            <strong>You&rsquo;ll state accessibility honestly</strong> &mdash; stairs,
+            step-free access, seating, loud rooms, whether food covers common
+            restrictions. &ldquo;I don&rsquo;t know&rdquo; is a fine answer. Silence
+            isn&rsquo;t.
+          </li>
+          <li>
+            <strong>You won&rsquo;t make alcohol the point.</strong> Serve it if you
+            like; make sure someone who isn&rsquo;t drinking still has a reason to be
+            there and something to drink.
+          </li>
+          <li>
+            <strong>You&rsquo;ll be reachable.</strong> Attendees need a way to contact
+            you that isn&rsquo;t shouting across a room.
+          </li>
+        </ul>
+      </section>
+
+      <section class="coc-section" id="reporting">
+        <div class="rail"><h2 class="rail-title">Reporting</h2></div>
+        <p>
+          <strong>If you can, tell the organizer.</strong> They&rsquo;re in the room and
+          can act immediately. Every group page has a contact form, and organizers list
+          a contact address.
+        </p>
+        <p>
+          <strong>If the problem is the organizer</strong> &mdash; or you&rsquo;ve
+          reported something and nothing happened &mdash; write to
+          <a href={`mailto:${CONDUCT_EMAIL}`} class="ident">{CONDUCT_EMAIL}</a>. That
+          goes to DevRel(ish), not to the group.
+        </p>
+        <p>Useful to include, if you have it: what happened, when and where, who was involved, whether anyone else saw it, and what you&rsquo;d like to happen. Any of those can be missing. Report anyway.</p>
+        <p class="coc-note">
+          We won&rsquo;t share your name with the person you&rsquo;re reporting without
+          asking you first. We may have to describe the incident to act on it.
+        </p>
+      </section>
+
+      <section class="coc-section">
+        <div class="rail"><h2 class="rail-title">What we can and can&rsquo;t do</h2></div>
+        <p>
+          Being straight with you matters more here than sounding reassuring.
+          <strong>DevRel(ish) is an index, not a host.</strong> We don&rsquo;t run these
+          events, we aren&rsquo;t in the room, and we have no staff at the venue. What we
+          can do is decide who gets listed.
+        </p>
+        <p>On a report we will look into it, and we can:</p>
+        <ul class="coc-list">
+          <li>Ask the organizer for their account and what they did about it.</li>
+          <li>Require a specific change before the group stays listed.</li>
+          <li>
+            Close the group &mdash; it stops appearing in search, listings, and the
+            network feed.
+          </li>
+        </ul>
+        <p>
+          What we can&rsquo;t do: remove someone from a room we&rsquo;re not in, delete
+          records from an account we don&rsquo;t control, or act as an investigator or a
+          court. <strong>If you are in danger, contact local emergency services first.</strong>
+          A code of conduct is not a substitute for that.
+        </p>
+        <p class="coc-note">
+          Because groups and events are published to the AT&nbsp;Protocol network, other
+          apps may have already copied a record. Closing a group here removes it from
+          DevRel(ish); it can&rsquo;t reach into anyone else&rsquo;s index. Deleting the
+          underlying record is the organizer&rsquo;s to do, on their own account.
+        </p>
+      </section>
+
+      <section class="coc-section">
+        <div class="rail"><h2 class="rail-title">Attribution</h2></div>
+        <p class="coc-note">
+          Adapted from the
+          <a href="https://www.contributor-covenant.org" target="_blank" rel="noopener noreferrer">Contributor Covenant</a>
+          and the
+          <a href="https://berlincodeofconduct.org" target="_blank" rel="noopener noreferrer">Berlin Code of Conduct</a>,
+          both widely used and freely adaptable. Errors and additions are ours.
+        </p>
+      </section>
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .coc {
+    padding-block: var(--space-xl) var(--space-lg);
+  }
+
+  .coc-head {
+    margin-bottom: var(--space-xl);
+  }
+
+  .coc-stamp {
+    font-size: var(--text-2xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    margin-top: var(--space-3xs);
+    max-width: none;
+  }
+
+  .coc-lede {
+    margin-top: var(--space-md);
+    font-family: var(--font-display);
+    font-variation-settings: "SOFT" 0, "WONK" 1;
+    font-weight: 400;
+    font-size: var(--text-xl);
+    line-height: 1.35;
+    max-width: 48ch;
+  }
+
+  .coc-section {
+    margin-bottom: var(--space-xl);
+  }
+
+  .coc-section > p + p,
+  .coc-section > ul + p {
+    margin-top: var(--space-sm);
+  }
+
+  .coc-list {
+    list-style: none;
+    margin-top: var(--space-sm);
+  }
+
+  .coc-list li {
+    padding-left: var(--space-sm);
+    padding-block: var(--space-3xs);
+    border-left: var(--rule-thin) solid var(--color-rule);
+    max-width: var(--measure);
+  }
+
+  .coc-list li + li {
+    margin-top: var(--space-2xs);
+  }
+
+  .coc-list strong {
+    font-weight: 700;
+  }
+
+  .coc-note {
+    margin-top: var(--space-sm);
+    font-size: var(--text-sm);
+    color: var(--color-muted);
+  }
+
+  .coc-section[id] {
+    scroll-margin-top: var(--space-lg);
+  }
+
+</style>
