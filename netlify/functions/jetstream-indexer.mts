@@ -1,9 +1,20 @@
 import { createClient, type Client } from "@libsql/client";
 import { classifyEvent } from "../../src/lib/topical";
 
-// Runs every 5 minutes via Netlify Scheduled Functions
+// Runs via Netlify Scheduled Functions.
+//
+// Cost budget (Netlify free plan: 300 credits/month, compute at 10 credits per
+// GB-hour, scheduled functions capped at 30s execution):
+//
+//   every  5 min → 8,640 runs/mo × 20s worst case = 48 GB-h = 480 credits  ✗ over
+//   every 15 min → 2,880 runs/mo × 20s worst case = 16 GB-h = 160 credits  ✓
+//                  steady state is ~9s, so realistically ~40 credits
+//
+// Fifteen minutes is plenty: this function only fetches OTHER people's events.
+// Gatherings created here are written to our own table synchronously and appear
+// immediately, with no indexer involvement at all.
 export const config = {
-  schedule: "*/5 * * * *",
+  schedule: "*/15 * * * *",
 };
 
 const JETSTREAM_URL = "wss://jetstream2.us-east.bsky.network/subscribe";
@@ -15,12 +26,20 @@ const WANTED_COLLECTIONS = [
   "com.devrelish.membership",
 ];
 
-// Stop collecting after this many ms — well within the 5-min interval
-const MAX_COLLECT_MS = 45_000;
+// Netlify caps scheduled functions at 30s. At 45s this function was being
+// killed mid-run, losing the cursor write and re-replaying the same window
+// forever. 20s leaves headroom for the backfill and DB writes that follow.
+const MAX_COLLECT_MS = 20_000;
 
-// How far back a first run replays. Jetstream keeps a rolling window; asking for
-// more than it holds simply starts at the oldest it has.
-const COLD_START_LOOKBACK_MS = 24 * 60 * 60 * 1000;
+// Belt and braces: stop reading if the stream floods, so one bad window can't
+// blow the time budget even if the timeout logic misbehaves.
+const MAX_EVENTS_PER_RUN = 40_000;
+
+// How far back a first run replays. Measured replay rate is ~100x realtime, so
+// 2h drains in roughly one run. A longer window sounds better but isn't: in a
+// real 24h sample the firehose yielded ONE calendar event. The per-repo
+// backfill below is what actually populates the index with history.
+const COLD_START_LOOKBACK_MS = 2 * 60 * 60 * 1000;
 
 // Per-run cap on repo back-catalogue fetches, so a busy sweep can't blow the
 // function's time budget.
@@ -84,6 +103,16 @@ async function indexRecord(
       record.description != null ? String(record.description) : null,
       claimed.rows.length > 0
     );
+
+    // Don't store what we'll never show. Measured on real data, an indexed
+    // event averages 3.2 KB and 84% of that is the description — so keeping
+    // the whole network's calendar would cost ~326 MB per 100k events, past
+    // Turso's free tier, almost entirely for rows behind a filter.
+    //
+    // Direct links to a filtered event still resolve: /events/[did]/[rkey]
+    // falls back to reading the record live from its own PDS when there's no
+    // indexed row. The filter decides what we advertise, not what exists.
+    if (!verdict.topical) return false;
 
     await db.execute({
       sql: `INSERT INTO "AtEvents" (uri, cid, did, name, startsAt, endsAt, description, locationJson, urisJson, mode, status, topical, topicalScore, topicalTerms, createdAt, indexedAt)
@@ -288,8 +317,9 @@ async function backfillRepo(db: Client, did: string, collection: string, indexed
       const batch = body.records ?? [];
       for (const rec of batch) {
         try {
-          await indexRecord(db, rec.uri, rec.cid, did, collection, rec.value, indexedAt);
-          n++;
+          // Counts records STORED, not records seen — most of a repo's calendar
+          // is filtered out, and a log claiming otherwise is a lie.
+          if (await indexRecord(db, rec.uri, rec.cid, did, collection, rec.value, indexedAt)) n++;
         } catch (err) {
           console.warn("[jetstream-indexer] backfill index failed", rec.uri, err);
         }
@@ -372,6 +402,12 @@ export default async function handler(): Promise<void> {
         return;
       }
       events.push(msg);
+      if (events.length >= MAX_EVENTS_PER_RUN) {
+        console.warn(`[jetstream-indexer] Hit ${MAX_EVENTS_PER_RUN}-event cap, closing early`);
+        clearTimeout(deadline);
+        ws.close();
+        return;
+      }
       if (msg.time_us) {
         latestCursor = String(msg.time_us);
         // Caught up: latest event is within 10 s of now
@@ -401,6 +437,7 @@ export default async function handler(): Promise<void> {
   let indexed = 0;
   let deleted = 0;
   let skipped = 0;
+  let offTopic = 0;
 
   // DIDs seen publishing calendar events this sweep — candidates for a
   // back-catalogue read once the live pass is done.
@@ -419,6 +456,7 @@ export default async function handler(): Promise<void> {
     try {
       if ((operation === "create" || operation === "update") && record && cid) {
         if (await indexRecord(db, uri, cid, did, collection, record, indexedAt)) indexed++;
+        else if (collection === "community.lexicon.calendar.event") offTopic++;
         else skipped++;
       } else if (operation === "delete") {
         await deleteRecord(db, uri, collection);
@@ -467,6 +505,6 @@ export default async function handler(): Promise<void> {
 
   console.log(
     `[jetstream-indexer] Done — indexed=${indexed} backfilled=${backfilled} ` +
-      `deleted=${deleted} skipped=${skipped} cursor=${latestCursor}`
+      `off-topic=${offTopic} deleted=${deleted} skipped=${skipped} cursor=${latestCursor}`
   );
 }

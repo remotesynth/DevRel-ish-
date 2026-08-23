@@ -48,6 +48,27 @@ Records are built in one place, `src/lib/atproto-records.ts`, and published thro
 `src/lib/gatherings.ts`. Event records carry `uris` (so other apps can link back here),
 `mode`, `status` (so cancellations propagate), `endsAt`, and `rsvpExpected`.
 
+**Indexer cost.** The Jetstream consumer is a Netlify Scheduled Function on
+`*/15 * * * *`. Measured, not estimated:
+
+| | |
+| --- | --- |
+| Steady-state run | **0–9s** — it closes as soon as it reaches live, and 0s when already caught up |
+| Cold start | 2–3 runs of ~20s to drain the 2h lookback, then steady |
+| Hard ceiling | 20s (`MAX_COLLECT_MS`) — Netlify kills scheduled functions at 30s |
+| Compute | ~2,880 runs/mo × ~6s ≈ **5 GB-hours ≈ 50 of the free plan's 300 credits** |
+| Storage | only topical events are stored, so growth tracks what's displayed, not what exists |
+
+Two things keep this from running away: off-topic events are never written (an
+indexed event averages 3.2 KB, 84% of it description — storing the whole
+network's calendar would cost ~326 MB per 100k events for rows nobody sees), and
+`MAX_EVENTS_PER_RUN` caps a single window even if the timeout logic misbehaves.
+Raising the frequency to `*/5` would put worst-case compute at ~480 credits,
+over the free allowance — don't, without checking the maths again.
+
+Nothing here affects gatherings created on DevRel(ish): those are written
+locally and appear immediately. The indexer only fetches *other people's* events.
+
 **Relevance filtering.** `community.lexicon.calendar.event` is shared by the whole
 Atmosphere, so most indexed events aren't for this site — in a real sample of 201
 network events, every one was a wellness or nature event. `src/lib/topical.ts` scores
