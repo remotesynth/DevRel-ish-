@@ -12,8 +12,8 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       <h1>How DevRel(ish) Works</h1>
       <p class="hiw-lead">
         DevRel(ish) is a platform for developer relations professionals and adjacent roles to find and run in-person gatherings around the world.
-        It's built on the open <a href="https://atproto.com" target="_blank" rel="noopener">AT Protocol</a> — the same decentralized standard that powers Bluesky —
-        so your data is portable, your identity travels with you, and events are visible across compatible apps.
+        It's built on the open <a href="https://atproto.com" target="_blank" rel="noopener">AT Protocol</a> — the decentralized standard behind Bluesky and
+        the wider Atmosphere — so your data is portable, your identity travels with you, and events are visible across compatible apps.
       </p>
       <div class="beta-notice">
         <span class="beta-tag">Beta</span>
@@ -38,8 +38,8 @@ import BaseLayout from "../layouts/BaseLayout.astro";
             <p>
               Head to <a href="/groups">devrelish.tech/groups</a> to see all active communities,
               or <a href="/gatherings">devrelish.tech/gatherings</a> to browse upcoming events.
-              You'll also find events from other ATProto-compatible apps like Smoke Signal —
-              everything in the open calendar ecosystem shows up here.
+              You'll also find events from other Atmosphere apps — Smoke Signal, atmo.rsvp, OpenMeet —
+              because they all publish to the same open calendar records. No account needed to browse.
             </p>
           </div>
         </div>
@@ -47,11 +47,13 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         <div class="step">
           <div class="step-num">2</div>
           <div class="step-content">
-            <h3>Sign in with your Bluesky account</h3>
+            <h3>Sign in with any Atmosphere account (optional)</h3>
             <p>
-              DevRel(ish) uses AT Protocol OAuth — if you have a Bluesky account, that's your login.
-              No separate password or account needed. Your handle and identity come from your AT Protocol
-              Personal Data Server (PDS), so they're yours regardless of what apps you use.
+              You don't need an account to browse, RSVP, or follow a group — skip this step entirely if you like.
+              If you do sign in, DevRel(ish) uses AT Protocol OAuth, so any account in the Atmosphere works:
+              Bluesky, a community-run server, or a PDS you host yourself. There's no separate password.
+              Your handle and identity come from your own Personal Data Server (PDS), so they're yours
+              regardless of what apps you use.
             </p>
           </div>
         </div>
@@ -143,10 +145,12 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         <div class="step">
           <div class="step-num">2</div>
           <div class="step-content">
-            <h3>Sign in with your Bluesky account</h3>
+            <h3>Sign in with your Atmosphere account</h3>
             <p>
-              Your Bluesky handle is your organizer login. Use AT Protocol OAuth on the
-              <a href="/auth/login">sign-in page</a> to claim your group and access the dashboard.
+              Organizing is the one thing that does require an account. Your AT Protocol handle is your
+              organizer login — use the <a href="/auth/login">sign-in page</a> to claim your group and
+              access the dashboard. Any provider works; if you don't have an account yet, the sign-in page
+              points you at a few ways to get one.
               Your account is linked by your decentralized identifier (DID), so it works
               even if you change your handle or move to a different PDS.
             </p>
@@ -160,7 +164,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
             <p>
               From the <a href="/dashboard">organizer dashboard</a>, publish your group to AT Protocol.
               This writes a <code>com.devrelish.group</code> record to your PDS, making your group
-              discoverable across the ATProto ecosystem and enabling members to join via Bluesky.
+              discoverable across the Atmosphere and letting members join from their own accounts.
               Gatherings you create are also published as open calendar records that compatible apps can index.
             </p>
           </div>
@@ -233,7 +237,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
             <h3>Add co-organizers</h3>
             <p>
               Share the load by inviting co-organizers via the <a href="/dashboard/team">Team</a> page.
-              Co-organizers sign in with their own Bluesky account and are added as co-organizers on
+              Co-organizers sign in with their own Atmosphere account and are added as co-organizers on
               your group's ATProto record. They have the same dashboard access as the primary organizer.
             </p>
           </div>
@@ -261,8 +265,9 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         <details class="faq-item">
           <summary>What is AT Protocol?</summary>
           <p>
-            AT Protocol (atproto) is an open, decentralized protocol for building social apps — the same
-            standard that powers Bluesky. Your identity is a DID (decentralized identifier) that you control,
+            AT Protocol (atproto) is an open, decentralized protocol for building social apps. The network of
+            apps built on it is often called the <strong>Atmosphere</strong>; Bluesky is the best-known of them,
+            but it's one app among many. Your identity is a DID (decentralized identifier) that you control,
             and your data lives on a Personal Data Server (PDS) that can be self-hosted or provided by a service.
             DevRel(ish) uses ATProto so that your RSVPs, group memberships, and event records belong to
             you — not a walled garden.
@@ -270,23 +275,28 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         </details>
 
         <details class="faq-item">
-          <summary>Do I need a Bluesky account?</summary>
+          <summary>Do I need an account? Does it have to be Bluesky?</summary>
           <p>
-            You need an AT Protocol account to sign in as an organizer or to RSVP and join groups via ATProto.
-            Bluesky is the most common way to get one, but any AT Protocol PDS works.
-            You can still browse groups, view events, RSVP via the traditional form, and follow groups
-            by email without signing in.
+            No, and no. Browsing groups, viewing events, RSVPing via the form, cancelling an RSVP, and
+            following a group by email all work with no account at all. The only thing that requires
+            signing in is <em>organizing</em> a group.
+          </p>
+          <p>
+            And when you do sign in, it doesn't have to be Bluesky. DevRel(ish) accepts any AT Protocol
+            account — Bluesky, a community-run PDS, or one you host yourself. Bluesky is just the most
+            common way to get an account, not a requirement. Signing in also upgrades your RSVP: it gets
+            written to your own PDS, so it's portable and readable by any compatible app.
           </p>
         </details>
 
         <details class="faq-item">
-          <summary>What is Smoke Signal, and how does interop work?</summary>
+          <summary>How does interop with other event apps work?</summary>
           <p>
-            Smoke Signal is another ATProto-based event app that uses the same open
-            <code>community.lexicon.calendar.event</code> and <code>community.lexicon.calendar.rsvp</code> schemas.
-            Because both apps write events to the shared ATProto network using the same format,
-            events created in DevRel(ish) can appear in Smoke Signal and vice versa.
-            This is the practical benefit of open standards — your events aren't siloed.
+            Smoke Signal, atmo.rsvp, and OpenMeet are other Atmosphere event apps, and they use the same
+            open <code>community.lexicon.calendar.event</code> and <code>community.lexicon.calendar.rsvp</code>
+            schemas DevRel(ish) does. Because everyone writes the same shape of record into the same network,
+            events created here show up there and vice versa — no integration, no API keys, no coordination
+            between the projects. This is the practical benefit of open standards: your events aren't siloed.
           </p>
         </details>
 

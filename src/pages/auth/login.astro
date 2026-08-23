@@ -18,7 +18,7 @@ if (Astro.locals.user) {
         <div class="auth-header">
           <div class="auth-logo" aria-hidden="true">◎</div>
           <h1>Welcome back</h1>
-          <p>Sign in with your AT Protocol account to manage your DevRel(ish) group.</p>
+          <p>Sign in with any Atmosphere account to manage your DevRel(ish) group.</p>
         </div>
 
         {errorParam && (
@@ -29,7 +29,7 @@ if (Astro.locals.user) {
 
         <form id="login-form" class="auth-form" novalidate>
           <div class="form-group">
-            <label for="handle">AT Protocol handle</label>
+            <label for="handle">Handle, DID, or server</label>
             <input
               id="handle"
               name="handle"
@@ -37,8 +37,12 @@ if (Astro.locals.user) {
               required
               autocomplete="username"
               autocapitalize="none"
-              placeholder="you.bsky.social or you.example.com"
+              placeholder="you.bsky.social"
             />
+            <span class="form-hint">
+              Any AT Protocol account works — Bluesky, a community-run server, or a PDS you host
+              yourself. You can also enter a DID (<code>did:plc:…</code>) or your server's URL.
+            </span>
           </div>
 
           <button type="submit" id="submit-btn" class="btn btn-primary" style="width: 100%; justify-content: center;">
@@ -46,8 +50,38 @@ if (Astro.locals.user) {
           </button>
         </form>
 
+        <details class="auth-help">
+          <summary>Don't have an Atmosphere account?</summary>
+          <div class="auth-help-body">
+            <p>
+              DevRel(ish) doesn't run its own accounts. You sign in with an AT Protocol
+              identity you own, and it works everywhere else in the Atmosphere too.
+              Three ways to get one:
+            </p>
+            <ul>
+              <li>
+                <a href="https://bsky.app" target="_blank" rel="noopener noreferrer">Bluesky</a>
+                — the quickest route, and the one most people already have.
+              </li>
+              <li>
+                <a href="https://pds.directory" target="_blank" rel="noopener noreferrer">A community-run server</a>
+                — independent PDS hosts, several of which are open for signups.
+              </li>
+              <li>
+                <a href="https://atproto.com/guides/self-hosting" target="_blank" rel="noopener noreferrer">Your own server</a>
+                — self-host a PDS on your own domain.
+              </li>
+            </ul>
+            <p class="auth-help-note">
+              Whichever you pick, come back here and sign in — your account isn't tied to
+              any of these apps, including this one.
+            </p>
+          </div>
+        </details>
+
         <p class="auth-footer">
-          Works with Bluesky, self-hosted PDSes, and any ATProto account.
+          Only organizers need an account. To attend a gathering,{" "}
+          <a href="/gatherings">just RSVP</a> — no sign-in required.
         </p>
         <p class="auth-footer">
           New to DevRel(ish)?{" "}
@@ -145,5 +179,59 @@ if (Astro.locals.user) {
     font-size: var(--size-sm);
     color: var(--color-text-muted);
     max-width: none;
+  }
+
+  .auth-help {
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-warm);
+    margin-bottom: 1.25rem;
+  }
+
+  .auth-help summary {
+    cursor: pointer;
+    padding: 0.625rem 0.875rem;
+    font-size: var(--size-sm);
+    font-weight: 600;
+    color: var(--color-text);
+    list-style: none;
+  }
+
+  .auth-help summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .auth-help summary::before {
+    content: "+";
+    display: inline-block;
+    width: 1rem;
+    font-weight: 700;
+    color: var(--color-primary);
+  }
+
+  .auth-help[open] summary::before {
+    content: "−";
+  }
+
+  .auth-help-body {
+    padding: 0 0.875rem 0.875rem 1.875rem;
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+  }
+
+  .auth-help-body p {
+    max-width: none;
+  }
+
+  .auth-help-body ul {
+    margin: 0.625rem 0;
+    padding-left: 1.125rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  .auth-help-note {
+    font-size: var(--size-xs);
   }
 </style>

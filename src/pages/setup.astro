@@ -57,7 +57,7 @@ if (!alreadyConfigured && setupToken && Astro.request.method === "POST") {
           <div class="state-block">
             <div class="state-icon">✓</div>
             <h1>Already configured</h1>
-            <p>An admin account exists. Sign in with your Bluesky account to access the dashboard.</p>
+            <p>An admin account exists. Sign in with your Atmosphere account to access the dashboard.</p>
             <a href="/auth/login" class="btn btn-primary">Go to login →</a>
           </div>
 
@@ -74,7 +74,7 @@ if (!alreadyConfigured && setupToken && Astro.request.method === "POST") {
             <h1>Admin configured!</h1>
             <p>
               <strong>{result.handle}</strong> now has admin access.
-              Sign in with that Bluesky account to access the admin dashboard.
+              Sign in with that Atmosphere account to access the admin dashboard.
               Remove <code>SETUP_TOKEN</code> from your environment for security.
             </p>
             <a href="/auth/login" class="btn btn-primary">Sign in →</a>
@@ -113,7 +113,9 @@ if (!alreadyConfigured && setupToken && Astro.request.method === "POST") {
                   autocomplete="off"
                 />
                 <span class="form-hint">
-                  Find your DID at <a href="https://bsky.app/profile/your-handle.bsky.social" target="_blank">bsky.app</a> or via <code>https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=yourdomain.bsky.social</code>
+                  Your DID is usually shown in your account settings. You can also resolve it from
+                  any AT Protocol server — <code>https://&lt;your-pds&gt;/xrpc/com.atproto.identity.resolveHandle?handle=&lt;your-handle&gt;</code>
+                  (Bluesky users can use <code>bsky.social</code> as the server).
                 </span>
               </div>
 
