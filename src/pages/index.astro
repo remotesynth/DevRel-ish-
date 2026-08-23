@@ -105,7 +105,7 @@ const categories = [...categoryTally.entries()]
 <BaseLayout title="Local tech groups worth showing up to">
   {/* Positioning paragraph — Ecosystem Index opens with a statement, not a display hero. */}
   <section class="lede reveal" style="--i: 0">
-    <div class="container">
+    <div class="container lede-grid">
       <p class="lede-text">
         Most tech work happens in front of a screen, for people you&rsquo;ll never
         meet. Here are the times it doesn&rsquo;t &mdash; local groups, real rooms,
@@ -314,6 +314,17 @@ const categories = [...categoryTally.entries()]
     padding-bottom: var(--space-lg);
   }
 
+  /* Measure discipline says keep a line 45–75ch. Stacking several blocks at
+     those measures inside a 1180px container just leaves the right half empty,
+     which is what this was doing. Two columns give the width a job and keep
+     both measures short. */
+  .lede-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: var(--space-xl);
+    align-items: start;
+  }
+
   .lede-text {
     font-family: var(--font-display);
     font-variation-settings: var(--display-axes);
@@ -321,7 +332,8 @@ const categories = [...categoryTally.entries()]
     font-size: clamp(1.375rem, 3.2vw, 2rem);
     line-height: 1.32;
     letter-spacing: -0.015em;
-    max-width: 36ch;
+    /* the grid track sets the measure — ~34ch at this size */
+    max-width: none;
     text-wrap: balance;
     overflow-wrap: anywhere;
   }
@@ -336,8 +348,8 @@ const categories = [...categoryTally.entries()]
   }
 
   .lede-note {
-    margin-top: var(--space-md);
-    max-width: 58ch;
+    margin-top: 0.35rem;
+    max-width: none;
     font-size: var(--text-sm);
     color: var(--color-ink-2);
     padding-left: var(--space-sm);
@@ -361,10 +373,17 @@ const categories = [...categoryTally.entries()]
 
   .network-note {
     display: grid;
-    gap: var(--space-2xs);
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    gap: var(--space-2xs) var(--space-lg);
     padding: var(--space-md);
     background: var(--color-sun-wash);
     border-radius: var(--radius-md);
+    align-items: start;
+  }
+
+  /* The footnote runs under both columns rather than becoming a third width. */
+  .network-note-status {
+    grid-column: 1 / -1;
   }
 
   .network-note-lead {
@@ -373,19 +392,22 @@ const categories = [...categoryTally.entries()]
     font-weight: 400;
     font-size: var(--text-lg);
     line-height: 1.4;
-    max-width: 62ch;
+    max-width: none;
   }
 
   .network-note-body {
     font-size: var(--text-sm);
     color: var(--color-ink-2);
-    max-width: 62ch;
+    max-width: none;
   }
 
   .network-note-status {
     font-size: var(--text-xs);
     color: var(--color-muted);
     max-width: none;
+    padding-top: var(--space-2xs);
+    border-top: var(--rule-hair) solid color-mix(in oklch, var(--color-sun) 25%, transparent);
+    margin-top: var(--space-2xs);
   }
 
   .rail-empty {
@@ -481,6 +503,9 @@ const categories = [...categoryTally.entries()]
   /* ── Responsive ───────────────────────────────────────────────────────── */
   @media (max-width: 60rem) {
     .grid-3, .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .lede-grid { grid-template-columns: minmax(0, 1fr); gap: var(--space-md); }
+    .lede-text { max-width: 30ch; }
+    .network-note { grid-template-columns: minmax(0, 1fr); }
     .closing-body { grid-template-columns: minmax(0, 1fr); gap: var(--space-md); }
   }
 

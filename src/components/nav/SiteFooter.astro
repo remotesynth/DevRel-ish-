@@ -24,16 +24,6 @@ const year = new Date().getFullYear();
       </p>
     </div>
 
-    <nav class="close-nav" aria-label="Footer navigation">
-      <a href="/gatherings">Gatherings</a>
-      <a href="/groups">Groups</a>
-      <a href="/groups/register">Start a group</a>
-      <a href="/how-it-works">How it works</a>
-      <a href="/code-of-conduct">Code of conduct</a>
-      <a href="/auth/login">Organizer sign-in</a>
-      <a href="/privacy">Privacy</a>
-    </nav>
-
     <p class="close-ps">
       P.S. &mdash; your groups, events, and RSVPs are
       <span class="ident">community.lexicon.calendar.*</span> records on
@@ -53,13 +43,19 @@ const year = new Date().getFullYear();
     padding-block: var(--space-2xl);
   }
 
+  /* The signoff and the colophon sit side by side; the link row spans both.
+     Stacked, each block wrapped at its own ch-derived width and left the right
+     half of the page empty. */
   .close-inner {
     display: grid;
-    gap: var(--space-lg);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-md) var(--space-xl);
+    align-items: start;
   }
 
   .close-letter {
-    max-width: 46ch;
+    /* the grid track sets the measure — ~40ch at this size */
+    max-width: none;
   }
 
   /* The one warm sentence the whole site is arguing for. */
@@ -88,6 +84,7 @@ const year = new Date().getFullYear();
   }
 
   .close-nav {
+    grid-column: 1 / -1;
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-sm) var(--space-md);
@@ -112,7 +109,7 @@ const year = new Date().getFullYear();
     font-size: var(--text-sm);
     line-height: 1.65;
     color: var(--color-muted);
-    max-width: 68ch;
+    max-width: none;
   }
 
   .close-ps em {
@@ -123,4 +120,20 @@ const year = new Date().getFullYear();
   .close-ps .ident {
     color: var(--color-ink-2);
   }
+
+  @media (max-width: 60rem) {
+    .close-inner {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--space-md);
+    }
+
+    .close-letter {
+      max-width: 34ch;
+    }
+
+    .close-ps {
+      max-width: 62ch;
+    }
+  }
+
 </style>
