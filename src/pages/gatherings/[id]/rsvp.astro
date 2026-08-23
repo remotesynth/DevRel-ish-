@@ -319,15 +319,15 @@ const descriptionHtml = renderMarkdown(meetup.description);
           <!-- Event details -->
           <div class="event-details-card">
             <div class="meetup-detail-row">
-              <span class="detail-icon">📅</span>
+              <span class="detail-label">Date</span>
               <span>{formatDate(meetup.date)}</span>
             </div>
             <div class="meetup-detail-row">
-              <span class="detail-icon">🕐</span>
+              <span class="detail-label">Time</span>
               <span>{formatTime(meetup.time)}</span>
             </div>
             <div class="meetup-detail-row">
-              <span class="detail-icon">📍</span>
+              <span class="detail-label">Where</span>
               <div>
                 <a href={osmUrl(meetup.venue, meetup.address)} class="venue-link" target="_blank" rel="noopener noreferrer">
                   {meetup.venue}
@@ -353,7 +353,7 @@ const descriptionHtml = renderMarkdown(meetup.description);
           <div class="rsvp-action-box">
             {result?.type === "atproto-success" ? (
               <div class="success-state">
-                <div class="success-icon" aria-hidden="true">🦋</div>
+                <div class="success-icon" aria-hidden="true">◎</div>
                 <h2>RSVP'd on ATProto!</h2>
                 <p>Your RSVP was posted to the ATProto network as <strong>@{result.handle}</strong>.</p>
 
@@ -494,7 +494,7 @@ const descriptionHtml = renderMarkdown(meetup.description);
                       </div>
                       <div class="form-group">
                         <label for="company">Company *</label>
-                        <input id="company" name="company" type="text" placeholder="Acme Corp" required />
+                        <input id="company" name="company" type="text" placeholder="Ridgeline Labs" required />
                       </div>
 
                       <p class="privacy-notice">
@@ -536,23 +536,23 @@ const descriptionHtml = renderMarkdown(meetup.description);
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: var(--size-sm);
-    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    color: var(--color-ink-2);
     margin-bottom: 0.875rem;
     flex-wrap: wrap;
   }
-  .breadcrumb a { text-decoration: none; font-weight: 600; color: var(--color-text-muted); }
-  .breadcrumb a:hover { color: var(--color-primary); }
+  .breadcrumb a { text-decoration: none; font-weight: 600; color: var(--color-ink-2); }
+  .breadcrumb a:hover { color: var(--color-accent); }
 
   .event-title {
-    font-size: var(--size-4xl);
+    font-size: var(--text-4xl);
     line-height: 1.15;
     margin-bottom: 0.375rem;
   }
 
   .event-context {
-    font-size: var(--size-sm);
-    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    color: var(--color-ink-2);
     margin: 0;
     max-width: none;
   }
@@ -560,7 +560,7 @@ const descriptionHtml = renderMarkdown(meetup.description);
   /* ── Two-column layout ── */
   .event-layout {
     display: grid;
-    grid-template-columns: 1fr 320px;
+    grid-template-columns: minmax(0, 1fr) 320px;
     gap: 2.5rem;
     align-items: start;
   }
@@ -575,64 +575,64 @@ const descriptionHtml = renderMarkdown(meetup.description);
 
   /* Description prose */
   .event-description {
-    font-size: var(--size-base);
+    font-size: var(--text-base);
     line-height: 1.7;
-    color: var(--color-text);
+    color: var(--color-ink);
   }
   .event-description :global(p) { margin: 0 0 1em; max-width: 68ch; }
   .event-description :global(h2),
-  .event-description :global(h3) { margin: 1.5em 0 0.5em; font-size: var(--size-lg); }
+  .event-description :global(h3) { margin: 1.5em 0 0.5em; font-size: var(--text-lg); }
   .event-description :global(ul),
   .event-description :global(ol) { padding-left: 1.5rem; margin: 0 0 1em; }
   .event-description :global(li) { margin-bottom: 0.25em; }
-  .event-description :global(a) { color: var(--color-primary); }
+  .event-description :global(a) { color: var(--color-accent); }
   .event-description :global(strong) { font-weight: 700; }
 
   /* Speakers & Agenda sections */
   .pub-section {
     margin-top: 2.5rem;
     padding-top: 2rem;
-    border-top: 2px dashed var(--color-border);
+    border-top: var(--rule-hair) solid var(--color-rule);
   }
-  .pub-heading { font-size: var(--size-xl); margin-bottom: 1.25rem; }
+  .pub-heading { font-size: var(--text-xl); margin-bottom: 1.25rem; }
 
   /* Speakers */
   .pub-speakers-list { display: flex; flex-direction: column; gap: 1.25rem; }
   .pub-speaker-card { display: flex; gap: 1rem; align-items: flex-start; }
-  .pub-speaker-photo { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; border: 2px solid var(--color-border); flex-shrink: 0; }
-  .pub-speaker-placeholder { width: 64px; height: 64px; border-radius: 50%; background: var(--color-primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 700; font-family: var(--font-display); flex-shrink: 0; }
+  .pub-speaker-photo { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; border: var(--rule-hair) solid var(--color-rule); flex-shrink: 0; }
+  .pub-speaker-placeholder { width: 64px; height: 64px; border-radius: 50%; background: var(--color-accent); color: var(--color-accent-ink); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 700; font-family: var(--font-display); flex-shrink: 0; }
   .pub-speaker-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.125rem; }
-  .pub-speaker-name { font-weight: 700; font-size: var(--size-base); }
-  .pub-speaker-role { font-size: var(--size-sm); color: var(--color-text-muted); }
-  .pub-speaker-bio { font-size: var(--size-xs); color: var(--color-text-muted); line-height: 1.5; margin: 0.375rem 0 0; max-width: none; padding-top: 0.375rem; border-top: 1px solid var(--color-border); }
+  .pub-speaker-name { font-weight: 700; font-size: var(--text-base); }
+  .pub-speaker-role { font-size: var(--text-sm); color: var(--color-ink-2); }
+  .pub-speaker-bio { font-size: var(--text-xs); color: var(--color-ink-2); line-height: 1.5; margin: 0.375rem 0 0; max-width: none; padding-top: 0.375rem; border-top: var(--rule-hair) solid var(--color-rule); }
 
   /* Agenda */
   .pub-sessions-list { display: flex; flex-direction: column; gap: 0.875rem; }
-  .pub-session-card { background: var(--color-surface); border: 1.5px solid var(--color-border); border-radius: var(--radius-md); padding: 1rem 1.125rem; display: flex; flex-direction: column; gap: 0.5rem; }
+  .pub-session-card { background: var(--color-paper); border: var(--rule-hair) solid var(--color-rule); border-radius: var(--radius-md); padding: 1rem 1.125rem; display: flex; flex-direction: column; gap: 0.5rem; }
   .pub-session-header { display: flex; align-items: baseline; gap: 0.625rem; flex-wrap: wrap; }
-  .pub-session-time { font-size: var(--size-xs); font-weight: 700; color: var(--color-primary); white-space: nowrap; }
-  .pub-session-title { font-weight: 700; font-size: var(--size-base); }
-  .pub-session-abstract { font-size: var(--size-sm); color: var(--color-text-muted); line-height: 1.5; margin: 0; max-width: none; }
-  .pub-session-speakers { display: flex; flex-direction: column; gap: 0.375rem; padding-top: 0.5rem; border-top: 1px dashed var(--color-border); }
+  .pub-session-time { font-size: var(--text-xs); font-weight: 700; color: var(--color-accent); white-space: nowrap; }
+  .pub-session-title { font-weight: 700; font-size: var(--text-base); }
+  .pub-session-abstract { font-size: var(--text-sm); color: var(--color-ink-2); line-height: 1.5; margin: 0; max-width: none; }
+  .pub-session-speakers { display: flex; flex-direction: column; gap: 0.375rem; padding-top: 0.5rem; border-top: var(--rule-hair) dashed var(--color-rule); }
   .pub-session-speaker { display: flex; align-items: center; gap: 0.5rem; }
-  .pub-session-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--color-border); flex-shrink: 0; }
-  .pub-session-avatar-placeholder { width: 28px; height: 28px; border-radius: 50%; background: var(--color-primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; }
-  .pub-session-speaker-name { font-weight: 600; font-size: var(--size-sm); }
-  .pub-session-speaker-meta { font-size: var(--size-xs); color: var(--color-text-muted); }
+  .pub-session-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: var(--rule-hair) solid var(--color-rule); flex-shrink: 0; }
+  .pub-session-avatar-placeholder { width: 28px; height: 28px; border-radius: 50%; background: var(--color-accent); color: var(--color-accent-ink); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; }
+  .pub-session-speaker-name { font-weight: 600; font-size: var(--text-sm); }
+  .pub-session-speaker-meta { font-size: var(--text-xs); color: var(--color-ink-2); }
 
   /* ── Right: action sidebar ── */
   .event-action {
     position: sticky;
-    top: 80px;
+    top: var(--space-lg);
     display: flex;
     flex-direction: column;
     gap: 1rem;
   }
 
   .event-details-card {
-    background: var(--color-surface);
-    border: 2px solid var(--color-border);
-    border-radius: var(--radius-lg);
+    background: var(--color-paper);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-sm);
     padding: 1.125rem 1.25rem;
     display: flex;
     flex-direction: column;
@@ -643,23 +643,23 @@ const descriptionHtml = renderMarkdown(meetup.description);
     display: flex;
     gap: 0.625rem;
     align-items: flex-start;
-    font-size: var(--size-sm);
+    font-size: var(--text-sm);
   }
   .detail-icon { flex-shrink: 0; }
-  .spots-low { color: #b45309; font-weight: 700; }
+  .spots-low { color: var(--color-notice); font-weight: 700; }
 
   .venue-link { color: inherit; font-weight: 600; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 2px; }
-  .venue-link:hover { color: var(--color-primary); text-decoration-style: solid; }
-  .address { color: var(--color-text-muted); font-size: var(--size-xs); margin-top: 0.125rem; }
+  .venue-link:hover { color: var(--color-accent); text-decoration-style: solid; }
+  .address { color: var(--color-ink-2); font-size: var(--text-xs); margin-top: 0.125rem; }
 
-  .hosted-by { display: flex; flex-direction: column; gap: 0.125rem; font-size: var(--size-sm); padding-top: 0.5rem; margin-top: 0.25rem; border-top: 1px dashed var(--color-border); }
-  .hosted-label { color: var(--color-text-muted); font-size: var(--size-xs); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+  .hosted-by { display: flex; flex-direction: column; gap: 0.125rem; font-size: var(--text-sm); padding-top: 0.5rem; margin-top: 0.25rem; border-top: var(--rule-hair) dashed var(--color-rule); }
+  .hosted-label { color: var(--color-ink-2); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
   .hosted-group { font-weight: 700; }
 
   .rsvp-action-box {
-    background: var(--color-surface);
-    border: 2px solid var(--color-border);
-    border-radius: var(--radius-lg);
+    background: var(--color-paper);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-sm);
     padding: 1.25rem;
   }
 
@@ -669,9 +669,9 @@ const descriptionHtml = renderMarkdown(meetup.description);
   }
 
   .atproto-rsvp-label {
-    font-size: var(--size-xs);
+    font-size: var(--text-xs);
     font-weight: 700;
-    color: var(--color-text-muted);
+    color: var(--color-ink-2);
     text-transform: uppercase;
     letter-spacing: 0.04em;
     margin-bottom: 0.5rem;
@@ -679,8 +679,8 @@ const descriptionHtml = renderMarkdown(meetup.description);
   }
 
   .atproto-rsvp-hint {
-    font-size: var(--size-xs);
-    color: var(--color-text-light);
+    font-size: var(--text-xs);
+    color: var(--color-muted);
     margin-top: 0.375rem;
     max-width: none;
   }
@@ -690,8 +690,8 @@ const descriptionHtml = renderMarkdown(meetup.description);
     align-items: center;
     gap: 0.75rem;
     margin-top: 1rem;
-    color: var(--color-text-light);
-    font-size: var(--size-xs);
+    color: var(--color-muted);
+    font-size: var(--text-xs);
     text-transform: uppercase;
     letter-spacing: 0.04em;
     font-weight: 600;
@@ -702,11 +702,11 @@ const descriptionHtml = renderMarkdown(meetup.description);
     content: "";
     flex: 1;
     height: 1px;
-    background: var(--color-border);
+    background: var(--color-rule);
   }
 
   .rsvp-cta-heading {
-    font-size: var(--size-lg);
+    font-size: var(--text-lg);
     margin-bottom: 1rem;
   }
 
@@ -717,10 +717,10 @@ const descriptionHtml = renderMarkdown(meetup.description);
   }
 
   .privacy-notice {
-    font-size: var(--size-xs);
-    color: var(--color-text-muted);
-    background: var(--color-surface-warm);
-    border: 1px solid var(--color-border);
+    font-size: var(--text-xs);
+    color: var(--color-ink-2);
+    background: var(--color-paper-2);
+    border: var(--rule-hair) solid var(--color-rule);
     border-radius: var(--radius-sm);
     padding: 0.5rem 0.75rem;
     line-height: 1.5;
@@ -730,41 +730,41 @@ const descriptionHtml = renderMarkdown(meetup.description);
   /* Success state */
   .success-state { text-align: center; }
   .success-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
-  .success-state h2 { font-size: var(--size-xl); margin-bottom: 0.5rem; color: var(--color-accent-dark); }
-  .success-state p { color: var(--color-text-muted); margin-bottom: 0.375rem; font-size: var(--size-sm); max-width: none; }
-  .success-email { font-size: var(--size-xs) !important; }
+  .success-state h2 { font-size: var(--text-xl); margin-bottom: 0.5rem; color: var(--color-ok); }
+  .success-state p { color: var(--color-ink-2); margin-bottom: 0.375rem; font-size: var(--text-sm); max-width: none; }
+  .success-email { font-size: var(--text-xs) !important; }
 
-  .calendar-section { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px dashed var(--color-border); }
-  .calendar-label { font-size: var(--size-xs); font-weight: 700; color: var(--color-text-muted); margin-bottom: 0.625rem; max-width: none; }
+  .calendar-section { margin-top: 1.25rem; padding-top: 1rem; border-top: var(--rule-hair) dashed var(--color-rule); }
+  .calendar-label { font-size: var(--text-xs); font-weight: 700; color: var(--color-ink-2); margin-bottom: 0.625rem; max-width: none; }
   .calendar-btns { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
   .bsky-share { margin-top: 0.625rem; display: flex; justify-content: center; }
 
   /* Genuine Bluesky action — the share intent posts to Bluesky specifically. */
-  .btn-bsky { background: #0085ff; color: white !important; border: none; display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.4rem 0.875rem; border-radius: var(--radius-full); font-size: var(--size-xs); font-weight: 600; text-decoration: none; transition: background var(--transition); }
+  .btn-bsky { background: #0085ff; color: var(--color-paper) !important; border: none; display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.4rem 0.875rem; border-radius: var(--radius-full); font-size: var(--text-xs); font-weight: 600; text-decoration: none; transition: background var(--dur-micro) var(--ease-out); }
   .btn-bsky:hover { background: #0066cc; }
 
   /* Protocol-level action — writes to whichever PDS the user is on, so it wears
      DevRel(ish)'s colors rather than any one provider's. */
-  .btn-atproto { background: var(--color-primary); color: white; }
-  .btn-atproto:hover { background: var(--color-primary-dark); color: white; }
+  .btn-atproto { background: var(--color-accent); color: var(--color-accent-ink); }
+  .btn-atproto:hover { background: var(--color-accent-deep); color: var(--color-accent-ink); }
   .btn-atproto-mark { font-size: 1em; line-height: 1; opacity: 0.85; }
 
-  .cancel-link-section { margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--color-border); text-align: left; }
-  .cancel-link-label { font-size: var(--size-xs); font-weight: 700; color: var(--color-text-muted); margin-bottom: 0.375rem; max-width: none; }
-  .cancel-link-box { display: flex; align-items: center; gap: 0.5rem; background: var(--color-surface-warm); border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); padding: 0.375rem 0.5rem; flex-wrap: wrap; }
-  .cancel-link-url { font-size: 0.65rem; color: var(--color-text-muted); word-break: break-all; flex: 1; min-width: 0; }
-  .cancel-link-hint { font-size: var(--size-xs); color: var(--color-text-light); margin-top: 0.375rem; max-width: none; }
-  .back-link-success { display: inline-block; margin-top: 1rem; font-size: var(--size-sm); font-weight: 600; color: var(--color-text-muted); text-decoration: none; }
-  .back-link-success:hover { color: var(--color-primary); }
+  .cancel-link-section { margin-top: 1rem; padding-top: 1rem; border-top: var(--rule-hair) dashed var(--color-rule); text-align: left; }
+  .cancel-link-label { font-size: var(--text-xs); font-weight: 700; color: var(--color-ink-2); margin-bottom: 0.375rem; max-width: none; }
+  .cancel-link-box { display: flex; align-items: center; gap: 0.5rem; background: var(--color-paper-2); border: var(--rule-hair) solid var(--color-rule); border-radius: var(--radius-sm); padding: 0.375rem 0.5rem; flex-wrap: wrap; }
+  .cancel-link-url { font-size: 0.65rem; color: var(--color-ink-2); word-break: break-all; flex: 1; min-width: 0; }
+  .cancel-link-hint { font-size: var(--text-xs); color: var(--color-muted); margin-top: 0.375rem; max-width: none; }
+  .back-link-success { display: inline-block; margin-top: 1rem; font-size: var(--text-sm); font-weight: 600; color: var(--color-ink-2); text-decoration: none; }
+  .back-link-success:hover { color: var(--color-accent); }
 
-  .duplicate-cancel-hint { font-size: var(--size-xs); margin-top: 0.5rem; }
-  .duplicate-cancel-hint a { color: var(--color-primary); font-weight: 600; text-decoration: none; }
+  .duplicate-cancel-hint { font-size: var(--text-xs); margin-top: 0.5rem; }
+  .duplicate-cancel-hint a { color: var(--color-accent); font-weight: 600; text-decoration: none; }
   .duplicate-cancel-hint a:hover { text-decoration: underline; }
 
-  .rsvp-note { font-size: var(--size-xs); color: var(--color-text-light); text-align: center; max-width: none; }
-  .cancel-note { font-size: var(--size-xs); color: var(--color-text-light); text-align: center; max-width: none; margin-top: -0.25rem; }
-  .cancel-note a { color: var(--color-text-light); text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 2px; }
-  .cancel-note a:hover { color: var(--color-text-muted); }
+  .rsvp-note { font-size: var(--text-xs); color: var(--color-muted); text-align: center; max-width: none; }
+  .cancel-note { font-size: var(--text-xs); color: var(--color-muted); text-align: center; max-width: none; margin-top: -0.25rem; }
+  .cancel-note a { color: var(--color-muted); text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 2px; }
+  .cancel-note a:hover { color: var(--color-ink-2); }
 
   .hp-field {
     position: absolute;
@@ -776,23 +776,23 @@ const descriptionHtml = renderMarkdown(meetup.description);
   }
 
   .rsvp-no-account {
-    font-size: var(--size-xs);
-    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    color: var(--color-ink-2);
     font-weight: 600;
     margin-bottom: 0.25rem;
     max-width: none;
   }
 
   .form-outcome-note {
-    font-size: var(--size-xs);
-    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    color: var(--color-ink-2);
     margin-top: -0.625rem;
     margin-bottom: 0.875rem;
     max-width: none;
   }
 
   @media (max-width: 768px) {
-    .event-title { font-size: var(--size-3xl); }
+    .event-title { font-size: var(--text-3xl); }
     .event-layout { grid-template-columns: 1fr; gap: 2rem; }
     .event-action { position: static; order: -1; }
   }

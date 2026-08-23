@@ -107,7 +107,7 @@ const isMeetupCanceled = meetup.status === "canceled";
 
 <style>
   .cancel-page {
-    min-height: calc(100vh - 64px - 200px);
+    min-height: 60vh;
     display: flex;
     align-items: center;
     padding: 3rem 0;
@@ -116,9 +116,9 @@ const isMeetupCanceled = meetup.status === "canceled";
   .cancel-card {
     max-width: 440px;
     margin-inline: auto;
-    background: var(--color-surface);
-    border: 2px solid var(--color-border);
-    border-radius: var(--radius-xl);
+    background: var(--color-paper);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-md);
     padding: 2.5rem;
     display: flex;
     flex-direction: column;
@@ -129,25 +129,25 @@ const isMeetupCanceled = meetup.status === "canceled";
 
   .card-icon {
     font-size: 2.5rem;
-    color: var(--color-primary);
+    color: var(--color-accent);
     line-height: 1;
   }
 
-  .warning-icon { color: var(--color-secondary-dark); }
-  .error-icon   { color: var(--color-danger, #dc2626); }
+  .warning-icon { color: var(--color-notice); }
+  .error-icon   { color: var(--color-danger, var(--color-danger)); }
 
-  h1 { font-size: var(--size-2xl); }
+  h1 { font-size: var(--text-2xl); }
 
   p {
-    font-size: var(--size-sm);
-    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    color: var(--color-ink-2);
     max-width: none;
     line-height: 1.6;
   }
 
   .event-summary {
-    background: var(--color-surface-warm);
-    border: 1.5px solid var(--color-border);
+    background: var(--color-paper-2);
+    border: var(--rule-hair) solid var(--color-rule);
     border-radius: var(--radius-md);
     padding: 1rem 1.25rem;
     width: 100%;
@@ -158,27 +158,27 @@ const isMeetupCanceled = meetup.status === "canceled";
 
   .event-title {
     font-weight: 700;
-    font-size: var(--size-base);
-    color: var(--color-text);
+    font-size: var(--text-base);
+    color: var(--color-ink);
     margin: 0;
   }
 
   .event-meta {
-    font-size: var(--size-sm);
-    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    color: var(--color-ink-2);
     margin: 0;
   }
 
   .event-host {
-    font-size: var(--size-xs);
-    color: var(--color-text-light);
+    font-size: var(--text-xs);
+    color: var(--color-muted);
     margin: 0;
     margin-top: 0.25rem;
   }
 
   .confirm-note {
-    font-size: var(--size-xs);
-    color: var(--color-text-light);
+    font-size: var(--text-xs);
+    color: var(--color-muted);
     font-style: italic;
   }
 
@@ -187,25 +187,25 @@ const isMeetupCanceled = meetup.status === "canceled";
   .btn-danger {
     width: 100%;
     justify-content: center;
-    background: #dc2626;
-    color: white;
+    background: var(--color-danger);
+    color: var(--color-accent-ink);
     border: none;
     padding: 0.6rem 1.25rem;
     border-radius: var(--radius-sm);
     font-weight: 700;
-    font-size: var(--size-base);
+    font-size: var(--text-base);
     cursor: pointer;
-    transition: background var(--transition);
+    transition: background var(--dur-micro) var(--ease-out);
   }
 
-  .btn-danger:hover { background: #b91c1c; }
+  .btn-danger:hover { background: var(--color-danger); }
 
   .back-link {
-    font-size: var(--size-sm);
+    font-size: var(--text-sm);
     font-weight: 600;
-    color: var(--color-text-muted);
+    color: var(--color-ink-2);
     text-decoration: none;
   }
 
-  .back-link:hover { color: var(--color-primary); }
+  .back-link:hover { color: var(--color-accent); }
 </style>

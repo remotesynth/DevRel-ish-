@@ -162,18 +162,18 @@ const justDeleted = Astro.url.searchParams.get("deleted") === "1";
   }
 
   .unread-badge {
-    font-size: var(--size-sm);
+    font-size: var(--text-sm);
     font-family: var(--font-body);
     font-weight: 700;
-    background: var(--color-primary);
-    color: white;
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
     border-radius: var(--radius-full);
     padding: 0.125rem 0.625rem;
   }
 
   .page-subtitle {
-    color: var(--color-text-muted);
-    font-size: var(--size-sm);
+    color: var(--color-ink-2);
+    font-size: var(--text-sm);
     max-width: none;
   }
 
@@ -184,20 +184,20 @@ const justDeleted = Astro.url.searchParams.get("deleted") === "1";
   .empty-state {
     text-align: center;
     padding: 3rem 2rem;
-    background: var(--color-surface);
-    border: 2px dashed var(--color-border);
-    border-radius: var(--radius-lg);
+    background: var(--color-paper);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-sm);
   }
 
   .empty-icon {
     font-size: 2.5rem;
-    color: var(--color-text-light);
+    color: var(--color-muted);
     display: block;
     margin-bottom: 0.75rem;
   }
 
   .empty-state p {
-    color: var(--color-text-muted);
+    color: var(--color-ink-2);
     max-width: 44ch;
     margin-inline: auto;
   }
@@ -209,16 +209,16 @@ const justDeleted = Astro.url.searchParams.get("deleted") === "1";
   }
 
   .message-card {
-    background: var(--color-surface);
-    border: 2px solid var(--color-border);
-    border-radius: var(--radius-lg);
+    background: var(--color-paper);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-sm);
     padding: 1.25rem 1.5rem;
-    transition: border-color var(--transition);
+    transition: border-color var(--dur-micro) var(--ease-out);
   }
 
   .message-card.unread {
-    border-color: var(--color-primary);
-    background: color-mix(in srgb, var(--color-primary) 4%, var(--color-surface));
+    border-color: var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 4%, var(--color-paper));
   }
 
   .message-header {
@@ -240,20 +240,20 @@ const justDeleted = Astro.url.searchParams.get("deleted") === "1";
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: var(--color-primary);
+    background: var(--color-accent);
     flex-shrink: 0;
   }
 
   .sender-name {
     display: block;
     font-weight: 700;
-    font-size: var(--size-base);
+    font-size: var(--text-base);
   }
 
   .sender-email {
     display: block;
-    font-size: var(--size-sm);
-    color: var(--color-primary);
+    font-size: var(--text-sm);
+    color: var(--color-accent);
     text-decoration: none;
   }
 
@@ -269,25 +269,25 @@ const justDeleted = Astro.url.searchParams.get("deleted") === "1";
   }
 
   .group-tag {
-    font-size: var(--size-xs);
+    font-size: var(--text-xs);
     font-weight: 700;
-    color: var(--color-text-muted);
-    background: var(--color-surface-warm);
-    border: 1px solid var(--color-border);
+    color: var(--color-ink-2);
+    background: var(--color-paper-2);
+    border: var(--rule-hair) solid var(--color-rule);
     border-radius: var(--radius-full);
     padding: 0.125rem 0.5rem;
   }
 
   .message-date {
-    font-size: var(--size-xs);
-    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    color: var(--color-ink-2);
     white-space: nowrap;
   }
 
   .message-body {
-    font-size: var(--size-base);
+    font-size: var(--text-base);
     line-height: 1.7;
-    color: var(--color-text);
+    color: var(--color-ink);
     white-space: pre-wrap;
     margin-bottom: 1rem;
     max-width: none;
@@ -298,31 +298,31 @@ const justDeleted = Astro.url.searchParams.get("deleted") === "1";
     gap: 0.5rem;
     align-items: center;
     padding-top: 0.75rem;
-    border-top: 1px dashed var(--color-border);
+    border-top: var(--rule-hair) dashed var(--color-rule);
   }
 
   .btn-action {
     background: none;
     border: none;
     padding: 0.25rem 0.5rem;
-    font-size: var(--size-xs);
+    font-size: var(--text-xs);
     font-weight: 700;
-    color: var(--color-text-muted);
+    color: var(--color-ink-2);
     cursor: pointer;
     text-decoration: underline;
     text-decoration-color: transparent;
-    transition: color var(--transition), text-decoration-color var(--transition);
+    transition: color var(--dur-micro) var(--ease-out), text-decoration-color var(--dur-micro) var(--ease-out);
     font-family: inherit;
   }
 
   .btn-action:hover {
-    color: var(--color-primary);
-    text-decoration-color: var(--color-primary);
+    color: var(--color-accent);
+    text-decoration-color: var(--color-accent);
   }
 
   .btn-action-danger:hover {
-    color: #c0392b;
-    text-decoration-color: #c0392b;
+    color: var(--color-danger);
+    text-decoration-color: var(--color-danger);
   }
 
   /* Dialog */
@@ -331,18 +331,18 @@ const justDeleted = Astro.url.searchParams.get("deleted") === "1";
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    border: 2px solid var(--color-border);
-    border-radius: var(--radius-xl);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-md);
     padding: 0;
     max-width: 400px;
     width: calc(100% - 2rem);
-    box-shadow: var(--shadow-lg);
-    background: var(--color-surface);
+    box-shadow: var(--shadow-panel);
+    background: var(--color-paper);
     margin: 0;
   }
 
   .confirm-dialog::backdrop {
-    background: rgba(44, 24, 16, 0.45);
+    background: var(--color-scrim);
     backdrop-filter: blur(2px);
   }
 
@@ -356,13 +356,13 @@ const justDeleted = Astro.url.searchParams.get("deleted") === "1";
   }
 
   .confirm-dialog h3 {
-    font-size: var(--size-xl);
+    font-size: var(--text-xl);
     margin: 0;
   }
 
   .confirm-dialog p {
-    font-size: var(--size-sm);
-    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    color: var(--color-ink-2);
     margin: 0;
   }
 

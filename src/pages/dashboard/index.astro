@@ -52,7 +52,7 @@ if (group) {
 <DashboardLayout title="Dashboard">
   <div class="dash-page">
     <div class="dash-page-header">
-      <h1>Hello, {user.displayName?.split(" ")[0] ?? user.handle}! 👋</h1>
+      <h1>Hello, {user.displayName?.split(" ")[0] ?? user.handle}</h1>
     </div>
 
     {justJoined && (
@@ -86,7 +86,7 @@ if (group) {
             <a href="/groups/register" class="btn btn-primary" style="margin-top: 0.5rem;">
               Start a group →
             </a>
-            <p style="margin-top: 1rem; font-size: var(--size-sm); color: var(--color-text-muted);">
+            <p style="margin-top: 1rem; font-size: var(--text-sm); color: var(--color-ink-2);">
               Already have a group? Ask the group admin to send you a co-organizer invite.
             </p>
           </div>
@@ -97,7 +97,6 @@ if (group) {
             <div>
               <h2 class="group-title">{group.name}</h2>
               <p class="group-location">
-                📍{" "}
                 {group.region ? `${group.city}, ${group.region}` : `${group.city}, ${group.country}`}
               </p>
             </div>
@@ -150,7 +149,7 @@ if (group) {
                     </div>
                     <div class="meetup-row-info">
                       <span class="meetup-row-title">{m.title}</span>
-                      <span class="meetup-row-venue">📍 {m.venue}</span>
+                      <span class="meetup-row-venue">{m.venue}</span>
                     </div>
                     <div class="meetup-row-actions">
                       <a href={`/dashboard/gatherings/${m.id}/attendees`} class="btn btn-ghost btn-sm">
@@ -180,7 +179,7 @@ if (group) {
   }
 
   .dash-page-header h1 {
-    font-size: var(--size-3xl);
+    font-size: var(--text-3xl);
   }
 
   /* No group state */
@@ -192,27 +191,27 @@ if (group) {
   .no-group-card {
     max-width: 480px;
     text-align: center;
-    background: var(--color-surface);
-    border: 2px solid var(--color-border);
-    border-radius: var(--radius-xl);
+    background: var(--color-paper);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-md);
     padding: 2.5rem;
   }
 
   .state-icon {
     font-size: 3rem;
-    color: var(--color-primary);
+    color: var(--color-accent);
     opacity: 0.4;
     margin-bottom: 1rem;
   }
 
   .no-group-card h2 {
     margin-bottom: 0.75rem;
-    font-size: var(--size-xl);
+    font-size: var(--text-xl);
   }
 
   .no-group-card p {
-    color: var(--color-text-muted);
-    font-size: var(--size-sm);
+    color: var(--color-ink-2);
+    font-size: var(--text-sm);
     margin-bottom: 0.75rem;
     max-width: none;
   }
@@ -226,16 +225,16 @@ if (group) {
     flex-wrap: wrap;
     margin-bottom: 1.5rem;
     padding-bottom: 1.25rem;
-    border-bottom: 2px dashed var(--color-border);
+    border-bottom: var(--rule-hair) solid var(--color-rule);
   }
 
   .group-title {
-    font-size: var(--size-2xl);
+    font-size: var(--text-2xl);
   }
 
   .group-location {
-    font-size: var(--size-sm);
-    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    color: var(--color-ink-2);
     margin-top: 0.25rem;
     max-width: none;
   }
@@ -248,45 +247,45 @@ if (group) {
   }
 
   .stat-card {
-    background: var(--color-surface);
-    border: 2px solid var(--color-border);
-    border-radius: var(--radius-lg);
+    background: var(--color-paper);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-sm);
     padding: 1.25rem;
     text-align: center;
   }
 
   .stat-card-cta {
-    background: var(--color-surface-warm);
-    border-color: var(--color-primary);
+    background: var(--color-paper-2);
+    border-color: var(--color-accent);
     text-decoration: none;
-    transition: transform var(--transition), box-shadow var(--transition);
+    transition: transform var(--dur-micro) var(--ease-out), box-shadow var(--dur-micro) var(--ease-out);
     display: block;
   }
 
   .stat-card-cta:hover {
     transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-lift);
   }
 
   .stat-value {
     font-family: var(--font-display);
-    font-size: var(--size-4xl);
-    color: var(--color-primary);
+    font-size: var(--text-4xl);
+    color: var(--color-accent);
     line-height: 1;
     margin-bottom: 0.375rem;
   }
 
   .stat-cta-icon {
-    font-size: var(--size-4xl);
-    color: var(--color-primary);
+    font-size: var(--text-4xl);
+    color: var(--color-accent);
     font-family: var(--font-display);
     line-height: 1;
     margin-bottom: 0.375rem;
   }
 
   .stat-label {
-    font-size: var(--size-sm);
-    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    color: var(--color-ink-2);
     font-weight: 600;
   }
 
@@ -299,11 +298,11 @@ if (group) {
   }
 
   .section-row h3 {
-    font-size: var(--size-lg);
+    font-size: var(--text-lg);
   }
 
   .link-sm {
-    font-size: var(--size-sm);
+    font-size: var(--text-sm);
     font-weight: 600;
   }
 
@@ -317,8 +316,8 @@ if (group) {
     display: flex;
     align-items: center;
     gap: 1rem;
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
+    background: var(--color-paper);
+    border: var(--rule-hair) solid var(--color-rule);
     border-radius: var(--radius-md);
     padding: 0.875rem 1rem;
     flex-wrap: wrap;
@@ -328,17 +327,17 @@ if (group) {
     display: flex;
     flex-direction: column;
     align-items: center;
-    background: var(--color-primary);
-    color: white;
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
     border-radius: var(--radius-sm);
     padding: 0.25rem 0.5rem;
     min-width: 40px;
-    font-size: var(--size-xs);
+    font-size: var(--text-xs);
     flex-shrink: 0;
   }
 
   .meetup-date-mini strong {
-    font-size: var(--size-lg);
+    font-size: var(--text-lg);
     line-height: 1;
     font-family: var(--font-display);
   }
@@ -352,12 +351,12 @@ if (group) {
 
   .meetup-row-title {
     font-weight: 700;
-    font-size: var(--size-sm);
+    font-size: var(--text-sm);
   }
 
   .meetup-row-venue {
-    font-size: var(--size-xs);
-    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    color: var(--color-ink-2);
   }
 
   .meetup-row-actions {
@@ -371,8 +370,8 @@ if (group) {
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    background: color-mix(in srgb, #0085ff 8%, var(--color-surface));
-    border: 1px solid #0085ff44;
+    background: color-mix(in srgb, var(--color-accent) 8%, var(--color-paper));
+    border: var(--rule-hair) solid var(--color-accent-wash);
     border-radius: var(--radius-md);
     padding: 0.875rem 1rem;
     margin-bottom: 1.5rem;
@@ -383,14 +382,14 @@ if (group) {
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
-    font-size: var(--size-sm);
+    font-size: var(--text-sm);
   }
 
   .atproto-nudge-text strong {
-    color: var(--color-text);
+    color: var(--color-ink);
   }
 
   .atproto-nudge-text span {
-    color: var(--color-text-muted);
+    color: var(--color-ink-2);
   }
 </style>

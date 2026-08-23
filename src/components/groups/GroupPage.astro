@@ -67,7 +67,7 @@ const ogDescription = (() => {
             {getCategoryLabel(group.category) ?? group.category}
           </a>
         )}
-        {location && <span class="group-location">📍 {location}</span>}
+        {location && <span class="group-location">{location}</span>}
         {tagList.map(tag => (
           <a href={`/groups?tag=${encodeURIComponent(tag)}`} class="tag-chip">{tag}</a>
         ))}
@@ -83,7 +83,7 @@ const ogDescription = (() => {
         <div class="social-links">
           {group.website && (
             <a href={group.website} class="social-link" target="_blank" rel="noopener noreferrer">
-              🌐 Website
+              Website
             </a>
           )}
           {group.handle && (
@@ -198,8 +198,8 @@ const ogDescription = (() => {
 <style>
   .group-hero {
     padding: 3rem 0 2rem;
-    background: var(--color-surface-warm);
-    border-bottom: 2px solid var(--color-border);
+    background: var(--color-paper-2);
+    border-bottom: var(--rule-hair) solid var(--color-rule);
   }
 
   .group-meta-row {
@@ -211,20 +211,21 @@ const ogDescription = (() => {
   }
 
   .back-link {
-    font-size: var(--size-sm);
+    font-size: var(--text-sm);
     font-weight: 600;
     text-decoration: none;
-    color: var(--color-text-muted);
+    color: var(--color-ink-2);
   }
 
-  .back-link:hover { color: var(--color-primary); }
+  .back-link:hover { color: var(--color-accent); }
 
   h1 { margin-bottom: 0.375rem; }
 
   .group-tagline {
-    font-size: var(--size-lg);
-    color: var(--color-text-muted);
-    font-style: italic;
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: 400;
+    color: var(--color-ink-2);
     margin-bottom: 0.75rem;
     max-width: none;
   }
@@ -238,56 +239,56 @@ const ogDescription = (() => {
   }
 
   .group-location {
-    font-size: var(--size-sm);
-    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    color: var(--color-ink-2);
   }
 
   .group-stat {
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
-    font-size: var(--size-xs);
+    font-size: var(--text-xs);
     font-weight: 600;
-    color: var(--color-accent-dark);
-    background: color-mix(in oklch, var(--color-accent) 12%, var(--color-bg));
-    border: 1px solid color-mix(in oklch, var(--color-accent) 32%, var(--color-bg));
+    color: var(--color-ok);
+    background: var(--color-ok-wash);
+    border: var(--rule-hair) solid var(--color-ok-wash);
     border-radius: var(--radius-full);
     padding: 0.15rem 0.6rem;
   }
 
   .category-chip {
-    font-size: var(--size-xs);
+    font-size: var(--text-xs);
     font-weight: 700;
-    background: rgba(124, 58, 237, 0.08);
-    color: #7c3aed;
-    border: 1px solid rgba(124, 58, 237, 0.2);
+    background: var(--color-accent-wash);
+    color: var(--color-accent);
+    border: var(--rule-hair) solid var(--color-accent);
     border-radius: var(--radius-full);
     padding: 0.15rem 0.6rem;
     text-decoration: none;
-    transition: background var(--transition), border-color var(--transition);
+    transition: background var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out);
   }
 
   .category-chip:hover {
-    background: rgba(124, 58, 237, 0.15);
-    border-color: rgba(124, 58, 237, 0.4);
+    background: var(--color-accent-wash);
+    border-color: var(--color-accent);
   }
 
   .tag-chip {
-    font-size: var(--size-xs);
+    font-size: var(--text-xs);
     font-weight: 600;
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
+    background: var(--color-paper);
+    border: var(--rule-hair) solid var(--color-rule);
     border-radius: var(--radius-full);
     padding: 0.15rem 0.6rem;
-    color: var(--color-text-muted);
+    color: var(--color-ink-2);
     text-decoration: none;
-    transition: color var(--transition), border-color var(--transition), background var(--transition);
+    transition: color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out), background var(--dur-micro) var(--ease-out);
   }
 
   .tag-chip:hover {
-    color: var(--color-primary);
-    border-color: var(--color-primary);
-    background: rgba(232, 112, 74, 0.06);
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+    background: var(--color-accent-wash);
   }
 
   .social-links {
@@ -298,28 +299,28 @@ const ogDescription = (() => {
   }
 
   .social-link {
-    font-size: var(--size-xs);
+    font-size: var(--text-xs);
     font-weight: 600;
-    color: var(--color-text-muted);
+    color: var(--color-ink-2);
     text-decoration: none;
-    border: 1px solid var(--color-border);
+    border: var(--rule-hair) solid var(--color-rule);
     border-radius: var(--radius-full);
     padding: 0.2rem 0.7rem;
-    transition: color var(--transition), border-color var(--transition);
+    transition: color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out);
   }
 
   .social-link:hover {
-    color: var(--color-primary);
-    border-color: var(--color-primary);
+    color: var(--color-accent);
+    border-color: var(--color-accent);
   }
 
   .closed-notice {
     display: inline-block;
-    font-size: var(--size-sm);
+    font-size: var(--text-sm);
     font-weight: 600;
-    color: #374151;
-    background: #f3f4f6;
-    border: 1.5px solid #d1d5db;
+    color: var(--color-ink-2);
+    background: var(--color-paper-3);
+    border: var(--rule-hair) solid var(--color-rule);
     border-radius: var(--radius-md);
     padding: 0.5rem 0.875rem;
     margin-bottom: 1rem;
@@ -327,8 +328,8 @@ const ogDescription = (() => {
   }
 
   .group-desc {
-    font-size: var(--size-lg);
-    color: var(--color-text-muted);
+    font-size: var(--text-lg);
+    color: var(--color-ink-2);
     line-height: 1.7;
     max-width: 64ch;
     margin-bottom: 1rem;
@@ -337,7 +338,7 @@ const ogDescription = (() => {
   .group-desc :global(p) { margin-bottom: 0.75rem; }
   .group-desc :global(p:last-child) { margin-bottom: 0; }
   .group-desc :global(h1), .group-desc :global(h2), .group-desc :global(h3) {
-    color: var(--color-text);
+    color: var(--color-ink);
     margin: 1rem 0 0.375rem;
   }
   .group-desc :global(ul), .group-desc :global(ol) {
@@ -345,19 +346,19 @@ const ogDescription = (() => {
     margin-bottom: 0.75rem;
   }
   .group-desc :global(li) { margin-bottom: 0.25rem; }
-  .group-desc :global(strong) { color: var(--color-text); }
-  .group-desc :global(a) { color: var(--color-primary); }
+  .group-desc :global(strong) { color: var(--color-ink); }
+  .group-desc :global(a) { color: var(--color-accent); }
   .group-desc :global(code) {
     font-family: var(--font-mono, monospace);
     font-size: 0.875em;
-    background: var(--color-surface);
+    background: var(--color-paper);
     padding: 0.1em 0.3em;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
   }
   .group-desc :global(blockquote) {
-    border-left: 3px solid var(--color-border-strong);
+    border-left: var(--rule-thick) solid var(--color-rule-strong);
     padding-left: 1rem;
-    color: var(--color-text-light);
+    color: var(--color-muted);
     font-style: italic;
     margin: 0.75rem 0;
   }
@@ -376,9 +377,9 @@ const ogDescription = (() => {
     display: inline-flex;
     align-items: center;
     gap: 0.375rem;
-    font-size: var(--size-sm);
+    font-size: var(--text-sm);
     font-weight: 700;
-    color: var(--color-accent-dark);
+    color: var(--color-ok);
   }
 
   .at-mark {
@@ -388,27 +389,27 @@ const ogDescription = (() => {
 
   .contact-link {
     display: inline-block;
-    font-size: var(--size-sm);
+    font-size: var(--text-sm);
     font-weight: 600;
-    color: var(--color-text-muted);
+    color: var(--color-ink-2);
     text-decoration: none;
-    border: 1.5px solid var(--color-border);
+    border: var(--rule-hair) solid var(--color-rule);
     border-radius: var(--radius-full);
     padding: 0.375rem 0.875rem;
-    transition: color var(--transition), border-color var(--transition), background var(--transition);
+    transition: color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out), background var(--dur-micro) var(--ease-out);
   }
 
   .contact-link:hover {
-    color: var(--color-primary);
-    border-color: var(--color-primary);
-    background: rgba(232, 112, 74, 0.06);
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+    background: var(--color-accent-wash);
   }
 
   /* Follow section */
   .follow-section {
     padding: 1.25rem 0;
-    border-bottom: 2px solid var(--color-border);
-    background: var(--color-surface);
+    border-bottom: var(--rule-hair) solid var(--color-rule);
+    background: var(--color-paper);
   }
 
   .follow-card {
@@ -426,12 +427,12 @@ const ogDescription = (() => {
   }
 
   .follow-text strong {
-    font-size: var(--size-base);
+    font-size: var(--text-base);
   }
 
   .follow-text span {
-    font-size: var(--size-sm);
-    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    color: var(--color-ink-2);
   }
 
   .follow-actions {
@@ -448,29 +449,29 @@ const ogDescription = (() => {
   }
 
   .follow-input {
-    font-size: var(--size-sm);
+    font-size: var(--text-sm);
     padding: 0.45rem 0.75rem;
-    border: 1.5px solid var(--color-border);
+    border: var(--rule-hair) solid var(--color-rule);
     border-radius: var(--radius-sm);
-    background: var(--color-surface-warm);
-    color: var(--color-text);
+    background: var(--color-paper-2);
+    color: var(--color-ink);
     min-width: 220px;
   }
 
   .follow-input:focus {
     outline: none;
-    border-color: var(--color-primary);
+    border-color: var(--color-accent);
   }
 
   .rss-link {
-    font-size: var(--size-xs);
+    font-size: var(--text-xs);
     font-weight: 600;
-    color: var(--color-text-light);
+    color: var(--color-muted);
     text-decoration: none;
     white-space: nowrap;
   }
 
-  .rss-link:hover { color: var(--color-primary); }
+  .rss-link:hover { color: var(--color-accent); }
 
   /* Gatherings section */
   .meetups-section {
@@ -489,21 +490,21 @@ const ogDescription = (() => {
   .empty-meetups {
     text-align: center;
     padding: 3rem 2rem;
-    background: var(--color-surface);
-    border: 2px dashed var(--color-border);
-    border-radius: var(--radius-lg);
+    background: var(--color-paper);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-sm);
     max-width: 400px;
   }
 
   .empty-icon {
     font-size: 3rem;
-    color: var(--color-primary);
+    color: var(--color-accent);
     opacity: 0.3;
     margin-bottom: 0.75rem;
   }
 
   .empty-meetups p {
-    color: var(--color-text-muted);
+    color: var(--color-ink-2);
     max-width: none;
   }
 </style>

@@ -278,16 +278,16 @@ const lastUpdated = 'April 2026';
 <style>
   .policy-hero {
     padding: 3rem 0 2rem;
-    background: var(--color-surface-warm);
-    border-bottom: 2px solid var(--color-border);
+    background: var(--color-paper-2);
+    border-bottom: var(--rule-hair) solid var(--color-rule);
   }
 
   .eyebrow {
     display: inline-block;
-    font-size: var(--size-sm);
+    font-size: var(--text-sm);
     font-weight: 700;
-    color: var(--color-primary);
-    background: rgba(232, 112, 74, 0.1);
+    color: var(--color-accent);
+    background: var(--color-accent-wash);
     padding: 0.25rem 0.875rem;
     border-radius: var(--radius-full);
     margin-bottom: 0.75rem;
@@ -298,8 +298,8 @@ const lastUpdated = 'April 2026';
   }
 
   .policy-hero p {
-    color: var(--color-text-muted);
-    font-size: var(--size-lg);
+    color: var(--color-ink-2);
+    font-size: var(--text-lg);
   }
 
   .policy-body {
@@ -316,19 +316,19 @@ const lastUpdated = 'April 2026';
   /* Table of contents */
   .policy-toc {
     position: sticky;
-    top: 88px;
-    background: var(--color-surface);
-    border: 2px solid var(--color-border);
-    border-radius: var(--radius-lg);
+    top: var(--space-lg);
+    background: var(--color-paper);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-sm);
     padding: 1.25rem;
   }
 
   .toc-heading {
-    font-size: var(--size-xs);
+    font-size: var(--text-xs);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--color-text-muted);
+    color: var(--color-ink-2);
     margin-bottom: 0.75rem;
     max-width: none;
   }
@@ -341,21 +341,21 @@ const lastUpdated = 'April 2026';
   }
 
   .policy-toc a {
-    font-size: var(--size-sm);
+    font-size: var(--text-sm);
     font-weight: 600;
     text-decoration: none;
-    color: var(--color-text-muted);
+    color: var(--color-ink-2);
     display: block;
     padding: 0.25rem 0.5rem;
     border-radius: var(--radius-sm);
     transition:
-      color var(--transition),
-      background var(--transition);
+      color var(--dur-micro) var(--ease-out),
+      background var(--dur-micro) var(--ease-out);
   }
 
   .policy-toc a:hover {
-    color: var(--color-primary);
-    background: var(--color-surface-warm);
+    color: var(--color-accent);
+    background: var(--color-paper-2);
   }
 
   /* Content */
@@ -367,7 +367,7 @@ const lastUpdated = 'April 2026';
 
   .policy-section {
     padding: 2rem 0;
-    border-bottom: 1px dashed var(--color-border);
+    border-bottom: var(--rule-hair) dashed var(--color-rule);
   }
 
   .policy-section:last-child {
@@ -375,21 +375,21 @@ const lastUpdated = 'April 2026';
   }
 
   .policy-section h2 {
-    font-size: var(--size-2xl);
+    font-size: var(--text-2xl);
     margin-bottom: 1rem;
-    color: var(--color-text);
+    color: var(--color-ink);
   }
 
   .policy-section h3 {
-    font-size: var(--size-base);
+    font-size: var(--text-base);
     margin-top: 1.25rem;
     margin-bottom: 0.5rem;
-    color: var(--color-text);
+    color: var(--color-ink);
   }
 
   .policy-section p {
-    color: var(--color-text-muted);
-    font-size: var(--size-base);
+    color: var(--color-ink-2);
+    font-size: var(--text-base);
     margin-bottom: 0.75rem;
     max-width: 68ch;
   }
@@ -404,8 +404,8 @@ const lastUpdated = 'April 2026';
   }
 
   .policy-section ul li {
-    color: var(--color-text-muted);
-    font-size: var(--size-base);
+    color: var(--color-ink-2);
+    font-size: var(--text-base);
     padding-left: 1.25rem;
     position: relative;
   }
@@ -414,17 +414,17 @@ const lastUpdated = 'April 2026';
     content: '–';
     position: absolute;
     left: 0;
-    color: var(--color-primary);
+    color: var(--color-accent);
   }
 
   /* Highlight box for organizer rules */
   .policy-section-highlight {
-    background: var(--color-surface);
-    border: 2px solid var(--color-border);
-    border-radius: var(--radius-xl);
+    background: var(--color-paper);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-md);
     padding: 2rem;
     margin: 1rem 0;
-    border-bottom: 2px solid var(--color-border) !important;
+    border-bottom: var(--rule-hair) solid var(--color-rule) !important;
   }
 
   .rules-list {
@@ -433,20 +433,20 @@ const lastUpdated = 'April 2026';
 
   .rules-allowed li::before {
     content: '✓';
-    color: var(--color-accent-dark);
+    color: var(--color-ok);
     font-weight: 700;
   }
 
   .rules-prohibited li::before {
     content: '✗';
-    color: #c0392b;
+    color: var(--color-danger);
     font-weight: 700;
   }
 
   .rules-note {
-    font-size: var(--size-sm) !important;
-    background: var(--color-surface-warm);
-    border: 1px solid var(--color-border);
+    font-size: var(--text-sm) !important;
+    background: var(--color-paper-2);
+    border: var(--rule-hair) solid var(--color-rule);
     border-radius: var(--radius-sm);
     padding: 0.75rem 1rem;
     margin-top: 1rem !important;

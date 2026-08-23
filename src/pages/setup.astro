@@ -141,36 +141,36 @@ if (!alreadyConfigured && setupToken && Astro.request.method === "POST") {
   .setup-card {
     max-width: 480px;
     margin-inline: auto;
-    background: var(--color-surface);
-    border: 2px solid var(--color-border);
-    border-radius: var(--radius-xl);
+    background: var(--color-paper);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-md);
     padding: 2.5rem;
   }
 
   .setup-logo {
     font-family: var(--font-display);
-    font-size: var(--size-2xl);
-    color: var(--color-primary);
+    font-size: var(--text-2xl);
+    color: var(--color-accent);
     text-align: center;
     margin-bottom: 1.75rem;
   }
 
   .logo-ish {
-    color: var(--color-text-muted);
+    color: var(--color-ink-2);
     font-size: 0.85em;
   }
 
   h1 {
-    font-size: var(--size-2xl);
+    font-size: var(--text-2xl);
     margin-bottom: 0.375rem;
     text-align: center;
   }
 
   .setup-subtitle {
-    color: var(--color-text-muted);
+    color: var(--color-ink-2);
     text-align: center;
     margin-bottom: 1.75rem;
-    font-size: var(--size-base);
+    font-size: var(--text-base);
   }
 
   .setup-form {
@@ -188,14 +188,14 @@ if (!alreadyConfigured && setupToken && Astro.request.method === "POST") {
   }
 
   .state-block p {
-    color: var(--color-text-muted);
-    font-size: var(--size-sm);
+    color: var(--color-ink-2);
+    font-size: var(--text-sm);
     max-width: 36ch;
   }
 
   .state-block code {
-    background: var(--color-surface-warm);
-    border: 1px solid var(--color-border);
+    background: var(--color-paper-2);
+    border: var(--rule-hair) solid var(--color-rule);
     border-radius: var(--radius-sm);
     padding: 0.1rem 0.4rem;
     font-size: 0.9em;
@@ -203,12 +203,12 @@ if (!alreadyConfigured && setupToken && Astro.request.method === "POST") {
 
   .state-icon {
     font-size: 2.5rem;
-    color: var(--color-accent);
+    color: var(--color-ok);
     font-family: var(--font-display);
     line-height: 1;
   }
 
   .state-icon.muted {
-    color: var(--color-text-light);
+    color: var(--color-muted);
   }
 </style>

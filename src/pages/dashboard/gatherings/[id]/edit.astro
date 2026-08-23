@@ -199,20 +199,20 @@ if (Astro.request.method === "POST") {
   }
 
   .back-link {
-    font-size: var(--size-sm);
+    font-size: var(--text-sm);
     font-weight: 600;
     text-decoration: none;
-    color: var(--color-text-muted);
+    color: var(--color-ink-2);
     display: block;
     margin-bottom: 0.75rem;
   }
 
   .back-link:hover {
-    color: var(--color-primary);
+    color: var(--color-accent);
   }
 
   .page-header h1 {
-    font-size: var(--size-3xl);
+    font-size: var(--text-3xl);
   }
 
   .form-wrap {
@@ -225,9 +225,9 @@ if (Astro.request.method === "POST") {
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
-    background: var(--color-surface);
-    border: 2px solid var(--color-border);
-    border-radius: var(--radius-lg);
+    background: var(--color-paper);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-sm);
     padding: 1.75rem;
     max-width: 600px;
   }

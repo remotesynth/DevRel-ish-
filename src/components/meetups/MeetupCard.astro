@@ -42,7 +42,7 @@ const descHtml = renderMarkdown(description);
         {isCanceled && <span class="badge-canceled">Cancelled</span>}
       </h3>
       <p class="meetup-time">
-        🕐 {formatTime(time)} &bull; 📍 <a href={osmUrl(venue, address)} class="venue-link" target="_blank" rel="noopener noreferrer">{venue}</a>
+        {formatTime(time)} &bull; <a href={osmUrl(venue, address)} class="venue-link" target="_blank" rel="noopener noreferrer">{venue}</a>
         {eventContext && <span class="event-context"> · {eventContext}</span>}
         {!eventContext && city && <span class="event-context"> · {country ? `${city}, ${country}` : city}</span>}
       </p>
@@ -92,8 +92,8 @@ const descHtml = renderMarkdown(description);
     display: flex;
     flex-direction: column;
     align-items: center;
-    background: var(--color-primary);
-    color: white;
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
     border-radius: var(--radius-sm);
     padding: 0.375rem 0.75rem;
     min-width: 52px;
@@ -102,11 +102,11 @@ const descHtml = renderMarkdown(description);
   }
 
   .meetup-date-block.date-canceled {
-    background: var(--color-text-light);
+    background: var(--color-muted);
   }
 
   .date-month {
-    font-size: var(--size-xs);
+    font-size: var(--text-xs);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     font-weight: 700;
@@ -114,7 +114,7 @@ const descHtml = renderMarkdown(description);
 
   .date-day {
     font-family: var(--font-display);
-    font-size: var(--size-2xl);
+    font-size: var(--text-2xl);
   }
 
   .meetup-info {
@@ -122,13 +122,13 @@ const descHtml = renderMarkdown(description);
   }
 
   .meetup-title {
-    font-size: var(--size-lg);
+    font-size: var(--text-lg);
     line-height: 1.3;
   }
 
   .meetup-time {
-    font-size: var(--size-sm);
-    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    color: var(--color-ink-2);
     margin-top: 0.25rem;
     max-width: none;
   }
@@ -141,17 +141,17 @@ const descHtml = renderMarkdown(description);
   }
 
   .venue-link:hover {
-    color: var(--color-primary);
+    color: var(--color-accent);
     text-decoration-style: solid;
   }
 
   .event-context {
-    color: var(--color-text-light);
+    color: var(--color-muted);
   }
 
   .meetup-desc {
-    font-size: var(--size-sm);
-    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    color: var(--color-ink-2);
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
@@ -162,7 +162,7 @@ const descHtml = renderMarkdown(description);
   .meetup-desc :global(p + p) { margin-top: 0.375rem; }
   .meetup-desc :global(ul),
   .meetup-desc :global(ol) { padding-left: 1.25rem; margin: 0; }
-  .meetup-desc :global(strong) { color: var(--color-text); }
+  .meetup-desc :global(strong) { color: var(--color-ink); }
 
   .meetup-footer {
     display: flex;
@@ -170,27 +170,27 @@ const descHtml = renderMarkdown(description);
     justify-content: space-between;
     gap: 0.5rem;
     padding-top: 0.5rem;
-    border-top: 1px dashed var(--color-border);
+    border-top: var(--rule-hair) dashed var(--color-rule);
   }
 
   .spots-left {
-    font-size: var(--size-sm);
-    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    color: var(--color-ink-2);
   }
 
   .spots-left strong {
-    color: var(--color-accent-dark);
+    color: var(--color-ok);
   }
 
   .badge-canceled {
     display: inline-block;
-    font-size: var(--size-xs);
+    font-size: var(--text-xs);
     font-weight: 700;
     font-family: var(--font-body);
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    background: #fee2e2;
-    color: #991b1b;
+    background: var(--color-danger-wash);
+    color: var(--color-danger);
     border-radius: var(--radius-full);
     padding: 0.1rem 0.5rem;
     margin-left: 0.5rem;
@@ -198,8 +198,8 @@ const descHtml = renderMarkdown(description);
   }
 
   .canceled-note {
-    font-size: var(--size-sm);
-    color: #991b1b;
+    font-size: var(--text-sm);
+    color: var(--color-danger);
     font-weight: 600;
   }
 </style>

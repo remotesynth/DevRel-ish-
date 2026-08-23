@@ -105,7 +105,7 @@ if (Astro.request.method === "POST") {
 
 <style>
   .cancel-page {
-    min-height: calc(100vh - 64px - 200px);
+    min-height: 60vh;
     display: flex;
     align-items: center;
     padding: 3rem 0;
@@ -114,9 +114,9 @@ if (Astro.request.method === "POST") {
   .cancel-card {
     max-width: 440px;
     margin-inline: auto;
-    background: var(--color-surface);
-    border: 2px solid var(--color-border);
-    border-radius: var(--radius-xl);
+    background: var(--color-paper);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-md);
     padding: 2.5rem;
     display: flex;
     flex-direction: column;
@@ -127,22 +127,22 @@ if (Astro.request.method === "POST") {
 
   .card-icon {
     font-size: 2.5rem;
-    color: var(--color-primary);
+    color: var(--color-accent);
     line-height: 1;
   }
 
-  h1 { font-size: var(--size-2xl); }
+  h1 { font-size: var(--text-2xl); }
 
   p {
-    font-size: var(--size-sm);
-    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    color: var(--color-ink-2);
     max-width: none;
     line-height: 1.6;
   }
 
   .hint {
-    font-size: var(--size-xs);
-    color: var(--color-text-light);
+    font-size: var(--text-xs);
+    color: var(--color-muted);
   }
 
   .recover-form {
@@ -155,12 +155,12 @@ if (Astro.request.method === "POST") {
   }
 
   .back-link {
-    font-size: var(--size-sm);
+    font-size: var(--text-sm);
     font-weight: 600;
-    color: var(--color-text-muted);
+    color: var(--color-ink-2);
     text-decoration: none;
     margin-top: 0.25rem;
   }
 
-  .back-link:hover { color: var(--color-primary); }
+  .back-link:hover { color: var(--color-accent); }
 </style>

@@ -282,7 +282,7 @@ if (Astro.request.method === "POST") {
     flex-wrap: wrap;
   }
 
-  .page-header h1 { font-size: var(--size-3xl); }
+  .page-header h1 { font-size: var(--text-3xl); }
 
   .alert { margin-bottom: 1.25rem; }
 
@@ -293,9 +293,9 @@ if (Astro.request.method === "POST") {
   }
 
   .form-card {
-    background: var(--color-surface);
-    border: 2px solid var(--color-border);
-    border-radius: var(--radius-lg);
+    background: var(--color-paper);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-sm);
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
@@ -303,21 +303,21 @@ if (Astro.request.method === "POST") {
   }
 
   .form-card h3 {
-    font-size: var(--size-lg);
+    font-size: var(--text-lg);
     padding-bottom: 0.625rem;
-    border-bottom: 1px dashed var(--color-border);
+    border-bottom: var(--rule-hair) dashed var(--color-rule);
   }
 
   .optional-label {
-    font-size: var(--size-sm);
+    font-size: var(--text-sm);
     font-weight: 400;
-    color: var(--color-text-light);
+    color: var(--color-muted);
     font-family: var(--font-body);
   }
 
   .card-desc {
-    font-size: var(--size-sm);
-    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    color: var(--color-ink-2);
     margin: 0;
     max-width: none;
   }
@@ -329,31 +329,31 @@ if (Astro.request.method === "POST") {
   }
 
   .input-disabled {
-    background: var(--color-surface-warm) !important;
-    color: var(--color-text-muted) !important;
+    background: var(--color-paper-2) !important;
+    color: var(--color-ink-2) !important;
     cursor: not-allowed;
   }
 
   .slug-input-wrap {
     display: flex;
     align-items: center;
-    border: 2px solid var(--color-border);
+    border: var(--rule-hair) solid var(--color-rule);
     border-radius: var(--radius-sm);
     overflow: hidden;
-    background: var(--color-surface);
-    transition: border-color var(--transition);
+    background: var(--color-paper);
+    transition: border-color var(--dur-micro) var(--ease-out);
   }
 
   .slug-input-wrap:focus-within {
-    border-color: var(--color-primary);
+    border-color: var(--color-accent);
   }
 
   .slug-prefix {
     padding: 0.5rem 0.75rem;
-    background: var(--color-surface-warm);
-    border-right: 2px solid var(--color-border);
-    font-size: var(--size-sm);
-    color: var(--color-text-muted);
+    background: var(--color-paper-2);
+    border-right: var(--rule-hair) solid var(--color-rule);
+    font-size: var(--text-sm);
+    color: var(--color-ink-2);
     white-space: nowrap;
     flex-shrink: 0;
   }

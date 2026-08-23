@@ -1,0 +1,118 @@
+/* Hallmark · tokens · theme: custom · vibe: "community zine, warm, crafted, unvarnished"
+ * paper: oklch(95% 0.016 62) · accent: oklch(52% 0.16 34)
+ * display: Fraunces · body: Source Serif 4 · outlier: JetBrains Mono
+ * axes: light / roman-serif / chromatic-terracotta
+ *
+ * Every colour here is verified against the paper for WCAG AA at its intended
+ * size. Nothing in the app may declare a colour or a font-family outside this
+ * file — if a value is missing, add it here and reference it by name.
+ */
+
+:root {
+  /* ── Paper · three elevation steps, all tinted warm ─────────────────────── */
+  --color-paper: oklch(95% 0.016 62);      /* #f7ece4 — the page */
+  --color-paper-2: oklch(92% 0.018 62);    /* #eee2d9 — raised bands */
+  --color-paper-3: oklch(88% 0.018 62);    /* #e1d5cc — pressed / inset */
+
+  /* ── Ink ─────────────────────────────────────────────────────────────────── */
+  --color-ink: oklch(22% 0.014 55);        /* 14.96:1 on paper */
+  --color-ink-2: oklch(42% 0.014 55);      /*  7.32:1 — secondary prose */
+  --color-muted: oklch(50% 0.012 55);      /*  5.19:1 — metadata, captions */
+
+  /* ── Rules · hairlines are the divider language, not card borders ────────── */
+  --color-rule: oklch(80% 0.016 62);       /* decorative hairline */
+  --color-rule-2: oklch(86% 0.014 62);     /* faintest, inside dense blocks */
+  --color-rule-strong: oklch(60% 0.016 62);/* 3.41:1 — form + UI boundaries */
+
+  /* ── Accent · terracotta. One hue. Budget: under 5% of any viewport ─────── */
+  --color-accent: oklch(52% 0.16 34);      /* 5.13:1 both directions */
+  --color-accent-deep: oklch(42% 0.15 34); /* hover / pressed */
+  --color-accent-wash: oklch(93% 0.035 34);/* tint band; accent text reads 4.79:1 */
+  --color-accent-ink: oklch(97% 0.012 62); /* text on an accent fill */
+  --color-focus: oklch(52% 0.20 34);
+
+  /* ── State · functional signals, not palette accents ─────────────────────── */
+  --color-ok: oklch(45% 0.11 150);
+  --color-ok-wash: oklch(93% 0.030 150);
+  --color-danger: oklch(47% 0.17 25);
+  --color-danger-wash: oklch(93% 0.035 25);
+  --color-notice: oklch(46% 0.10 75);
+  --color-notice-wash: oklch(93% 0.040 80);
+  --color-info: oklch(47% 0.10 240);
+  --color-info-wash: oklch(93% 0.028 240);
+
+  /* ── Type · three families, at the 2+1 ceiling ───────────────────────────── */
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --font-body: "Source Serif 4", ui-serif, Georgia, serif;
+  /* Outlier register: machine-readable identifiers only — handles, DIDs,
+     at:// URIs, dates, counts. One role, applied consistently. */
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Major third (1.25) through the UI range, then a real display tier. */
+  --text-2xs: 0.6875rem;
+  --text-xs: 0.8125rem;
+  --text-sm: 0.9375rem;
+  --text-base: 1.0625rem;   /* serif body wants a touch more than 16px */
+  --text-lg: 1.1875rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.125rem;
+  --text-4xl: 2.75rem;
+  --text-display-s: clamp(2.25rem, 5vw, 3.25rem);
+  --text-display: clamp(2.75rem, 8vw, 5.5rem);
+
+  --leading-display: 0.98;
+  --leading-tight: 1.15;
+  --leading-body: 1.6;
+
+  /* ── Space · 4pt scale ───────────────────────────────────────────────────── */
+  --space-3xs: 0.25rem;
+  --space-2xs: 0.5rem;
+  --space-xs: 0.75rem;
+  --space-sm: 1rem;
+  --space-md: 1.5rem;
+  --space-lg: 2rem;
+  --space-xl: 3rem;
+  --space-2xl: 4rem;
+  --space-3xl: 6rem;
+  --space-4xl: 8rem;
+
+  /* ── Rules · print weights, not one uniform 2px ──────────────────────────── */
+  --rule-hair: 1px;
+  --rule-thin: 1.5px;
+  --rule-thick: 3px;
+
+  /* ── Radius · this is print. Corners are nearly square. ──────────────────── */
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 5px;
+  --radius-full: 9999px;
+
+  /* ── Depth · a zine has ink and paper, not drop shadows. Used sparingly. ─── */
+  --shadow-raise: 0 1px 0 oklch(80% 0.016 62);
+  --shadow-lift: 0 2px 0 oklch(72% 0.020 62);
+  --shadow-panel: 0 6px 24px oklch(22% 0.014 55 / 0.10);
+  --color-scrim: oklch(22% 0.014 55 / 0.45); /* dialog backdrop — an overlay modifier */
+
+  /* ── Motion ──────────────────────────────────────────────────────────────── */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms;
+  --dur-short: 220ms;
+  --dur-long: 420ms;
+
+  /* ── Layout ──────────────────────────────────────────────────────────────── */
+  --measure: 68ch;
+  --content-width: 1180px;
+  --content-narrow: 720px;
+  --page-gutter: clamp(1rem, 4vw, 2.5rem);
+
+  /* ── Z-scale · six named levels, no 9999 ─────────────────────────────────── */
+  --z-base: 1;
+  --z-raised: 10;
+  --z-sticky: 20;
+  --z-header: 30;
+  --z-overlay: 40;
+  --z-modal: 50;
+}

@@ -64,7 +64,7 @@ const sessions = sessionsRaw.map(({ createdAt: _c, ...s }) => ({
       <div>
         <h1>Speakers &amp; Agenda</h1>
         <p class="meetup-meta">
-          {meetup.title} &bull; 📅 {formatDate(meetup.date)}
+          {meetup.title} &bull; {formatDate(meetup.date)}
         </p>
       </div>
       <a href={`/gatherings/${meetup.id}/rsvp`} class="btn btn-ghost btn-sm" target="_blank" rel="noopener">
@@ -87,14 +87,14 @@ const sessions = sessionsRaw.map(({ createdAt: _c, ...s }) => ({
   .page-header { margin-bottom: 1.75rem; }
 
   .back-link {
-    font-size: var(--size-sm);
+    font-size: var(--text-sm);
     font-weight: 600;
     text-decoration: none;
-    color: var(--color-text-muted);
+    color: var(--color-ink-2);
     display: block;
     margin-bottom: 0.75rem;
   }
-  .back-link:hover { color: var(--color-primary); }
+  .back-link:hover { color: var(--color-accent); }
 
   .header-row {
     display: flex;
@@ -104,11 +104,11 @@ const sessions = sessionsRaw.map(({ createdAt: _c, ...s }) => ({
     flex-wrap: wrap;
   }
 
-  h1 { font-size: var(--size-3xl); margin-bottom: 0.25rem; }
+  h1 { font-size: var(--text-3xl); margin-bottom: 0.25rem; }
 
   .meetup-meta {
-    font-size: var(--size-sm);
-    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    color: var(--color-ink-2);
     max-width: none;
   }
 
@@ -121,27 +121,27 @@ const sessions = sessionsRaw.map(({ createdAt: _c, ...s }) => ({
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    background: var(--color-surface);
-    border: 2px solid var(--color-border);
-    border-radius: var(--radius-lg);
+    background: var(--color-paper);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-sm);
     padding: 1.5rem;
   }
 
   :global(.sm-section-heading) {
-    font-size: var(--size-lg);
+    font-size: var(--text-lg);
     margin: 0 0 0.25rem;
     padding-bottom: 0.75rem;
-    border-bottom: 1px dashed var(--color-border);
+    border-bottom: var(--rule-hair) dashed var(--color-rule);
   }
 
   :global(.sm-empty-state) {
     padding: 1.25rem;
-    background: var(--color-surface-warm);
-    border: 2px dashed var(--color-border);
+    background: var(--color-paper-2);
+    border: var(--rule-hair) solid var(--color-rule);
     border-radius: var(--radius-md);
     text-align: center;
   }
-  :global(.sm-empty-state p) { color: var(--color-text-muted); margin: 0; max-width: none; font-size: var(--size-sm); }
+  :global(.sm-empty-state p) { color: var(--color-ink-2); margin: 0; max-width: none; font-size: var(--text-sm); }
 
   /* Speaker list */
   :global(.sm-speaker-list),
@@ -153,16 +153,16 @@ const sessions = sessionsRaw.map(({ createdAt: _c, ...s }) => ({
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    border: 1.5px solid var(--color-border);
+    border: var(--rule-hair) solid var(--color-rule);
     border-radius: var(--radius-md);
     padding: 0.75rem 1rem;
-    background: var(--color-bg);
+    background: var(--color-paper);
     flex-wrap: wrap;
   }
   :global(.sm-speaker-card.is-editing),
   :global(.sm-session-card.is-editing) {
-    border-color: var(--color-primary);
-    background: var(--color-surface-warm);
+    border-color: var(--color-accent);
+    background: var(--color-paper-2);
   }
 
   :global(.sm-card-body) { display: flex; align-items: center; gap: 0.75rem; flex: 1; min-width: 0; }
@@ -171,77 +171,77 @@ const sessions = sessionsRaw.map(({ createdAt: _c, ...s }) => ({
     width: 48px; height: 48px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid var(--color-border);
+    border: var(--rule-hair) solid var(--color-rule);
     flex-shrink: 0;
   }
   :global(.sm-avatar-placeholder) {
     width: 48px; height: 48px;
     border-radius: 50%;
-    background: var(--color-primary);
-    color: white;
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
     display: flex; align-items: center; justify-content: center;
     font-size: 1.25rem; font-weight: 700; font-family: var(--font-display);
     flex-shrink: 0;
   }
 
   :global(.sm-card-info) { display: flex; flex-direction: column; gap: 0.125rem; min-width: 0; }
-  :global(.sm-card-name) { font-weight: 700; font-size: var(--size-sm); }
-  :global(.sm-card-meta) { font-size: var(--size-xs); color: var(--color-text-muted); }
+  :global(.sm-card-name) { font-weight: 700; font-size: var(--text-sm); }
+  :global(.sm-card-meta) { font-size: var(--text-xs); color: var(--color-ink-2); }
 
   /* Session card */
   :global(.sm-session-info) { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.25rem; }
   :global(.sm-session-title-row) { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; }
-  :global(.sm-session-time) { font-size: var(--size-xs); font-weight: 700; color: var(--color-primary); white-space: nowrap; }
-  :global(.sm-session-title) { font-weight: 700; font-size: var(--size-sm); }
+  :global(.sm-session-time) { font-size: var(--text-xs); font-weight: 700; color: var(--color-accent); white-space: nowrap; }
+  :global(.sm-session-title) { font-weight: 700; font-size: var(--text-sm); }
   :global(.sm-session-speakers) { display: flex; flex-wrap: wrap; gap: 0.375rem; margin-top: 0.25rem; }
   :global(.sm-session-speaker-chip) {
     display: inline-flex; align-items: center; gap: 0.25rem;
-    background: var(--color-surface-warm);
-    border: 1px solid var(--color-border);
+    background: var(--color-paper-2);
+    border: var(--rule-hair) solid var(--color-rule);
     border-radius: var(--radius-full);
     padding: 0.125rem 0.5rem;
-    font-size: var(--size-xs);
+    font-size: var(--text-xs);
     font-weight: 600;
   }
   :global(.sm-chip-avatar) { width: 16px; height: 16px; border-radius: 50%; object-fit: cover; }
 
   /* Actions */
   :global(.sm-card-actions) { display: flex; gap: 0.375rem; align-items: center; flex-shrink: 0; }
-  :global(.sm-delete-confirm) { display: flex; align-items: center; gap: 0.5rem; font-size: var(--size-xs); color: var(--color-text-muted); font-weight: 600; }
-  :global(.btn-xs) { padding: 0.2rem 0.5rem; font-size: var(--size-xs); }
+  :global(.sm-delete-confirm) { display: flex; align-items: center; gap: 0.5rem; font-size: var(--text-xs); color: var(--color-ink-2); font-weight: 600; }
+  :global(.btn-xs) { padding: 0.2rem 0.5rem; font-size: var(--text-xs); }
 
   :global(.sm-btn-remove) {
     background: none; border: none;
     padding: 0.25rem 0.375rem;
-    font-size: var(--size-xs); font-weight: 700;
-    color: var(--color-text-muted);
+    font-size: var(--text-xs); font-weight: 700;
+    color: var(--color-ink-2);
     cursor: pointer;
     text-decoration: underline; text-decoration-color: transparent;
     transition: color 0.15s, text-decoration-color 0.15s;
     font-family: inherit; white-space: nowrap;
   }
-  :global(.sm-btn-remove:hover) { color: #c0392b; text-decoration-color: #c0392b; }
+  :global(.sm-btn-remove:hover) { color: var(--color-danger); text-decoration-color: var(--color-danger); }
 
   :global(.sm-add-btn) { align-self: flex-start; }
 
   /* Form */
   :global(.sm-form-wrap) {
-    background: var(--color-surface-warm);
-    border: 1.5px solid var(--color-border);
+    background: var(--color-paper-2);
+    border: var(--rule-hair) solid var(--color-rule);
     border-radius: var(--radius-md);
     padding: 1.25rem;
     margin-top: 0.25rem;
   }
-  :global(.sm-form-heading) { font-size: var(--size-base); font-weight: 700; margin-bottom: 1rem; }
+  :global(.sm-form-heading) { font-size: var(--text-base); font-weight: 700; margin-bottom: 1rem; }
   :global(.sm-form) { display: flex; flex-direction: column; gap: 1rem; }
   :global(.sm-narrow) { max-width: 180px; }
 
   :global(.sm-image-area) { display: flex; align-items: flex-start; gap: 1rem; }
-  :global(.sm-image-preview) { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; border: 2px solid var(--color-border); flex-shrink: 0; }
+  :global(.sm-image-preview) { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; border: var(--rule-hair) solid var(--color-rule); flex-shrink: 0; }
   :global(.sm-image-controls) { display: flex; flex-direction: column; gap: 0.375rem; align-items: flex-start; }
   :global(.sm-upload-label) { cursor: pointer; }
   :global(.sm-file-hidden) { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; clip: rect(0,0,0,0); border: 0; padding: 0; }
-  :global(.sm-btn-remove-image) { background: none; border: none; font-size: var(--size-xs); color: #c0392b; cursor: pointer; font-family: inherit; text-decoration: underline; text-underline-offset: 2px; padding: 0; }
+  :global(.sm-btn-remove-image) { background: none; border: none; font-size: var(--text-xs); color: var(--color-danger); cursor: pointer; font-family: inherit; text-decoration: underline; text-underline-offset: 2px; padding: 0; }
 
   /* Speaker checkboxes in session form */
   :global(.sm-speaker-checkboxes) { display: flex; flex-direction: column; gap: 0.5rem; }
@@ -250,29 +250,29 @@ const sessions = sessionsRaw.map(({ createdAt: _c, ...s }) => ({
     cursor: pointer;
     padding: 0.375rem 0.5rem;
     border-radius: var(--radius-sm);
-    border: 1.5px solid var(--color-border);
-    background: var(--color-bg);
-    font-size: var(--size-sm);
+    border: var(--rule-hair) solid var(--color-rule);
+    background: var(--color-paper);
+    font-size: var(--text-sm);
     user-select: none;
   }
   :global(.sm-speaker-checkbox-row:has(input:checked)) {
-    border-color: var(--color-primary);
-    background: var(--color-surface-warm);
+    border-color: var(--color-accent);
+    background: var(--color-paper-2);
   }
-  :global(.sm-speaker-checkbox-row input[type="checkbox"]) { flex-shrink: 0; width: 16px; height: 16px; accent-color: var(--color-primary); cursor: pointer; }
+  :global(.sm-speaker-checkbox-row input[type="checkbox"]) { flex-shrink: 0; width: 16px; height: 16px; accent-color: var(--color-accent); cursor: pointer; }
   :global(.sm-checkbox-avatar) { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
   :global(.sm-checkbox-name) { font-weight: 600; flex: 1; }
-  :global(.sm-checkbox-meta) { font-size: var(--size-xs); color: var(--color-text-muted); }
+  :global(.sm-checkbox-meta) { font-size: var(--text-xs); color: var(--color-ink-2); }
 
   :global(.form-actions) {
     display: flex; gap: 0.875rem; align-items: center;
     padding-top: 0.5rem;
-    border-top: 1px dashed var(--color-border);
+    border-top: var(--rule-hair) dashed var(--color-rule);
     margin-top: 0.25rem;
   }
 
-  :global(.alert) { padding: 0.75rem 1rem; border-radius: var(--radius-sm); font-size: var(--size-sm); font-weight: 600; }
-  :global(.alert-error) { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+  :global(.alert) { padding: 0.75rem 1rem; border-radius: var(--radius-sm); font-size: var(--text-sm); font-weight: 600; }
+  :global(.alert-error) { background: var(--color-danger-wash); color: var(--color-danger); border: var(--rule-hair) solid var(--color-danger-wash); }
 
   @media (max-width: 480px) {
     :global(.sm-narrow) { max-width: 100%; }

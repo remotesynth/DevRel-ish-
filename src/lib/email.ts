@@ -26,7 +26,7 @@ export async function sendFollowConfirmation({
       <p>${greeting}</p>
       <p>You asked to follow <strong>${groupName}</strong> on ${SITE_NAME}. Click the button below to confirm and start receiving updates when new gatherings are posted.</p>
       <p style="margin: 1.5rem 0;">
-        <a href="${confirmUrl}" style="background:#7c3aed;color:#fff;padding:0.6rem 1.25rem;border-radius:6px;text-decoration:none;font-weight:600;">Confirm subscription →</a>
+        <a href="${confirmUrl}" style="background:var(--color-accent);color:var(--color-paper);padding:0.6rem 1.25rem;border-radius:6px;text-decoration:none;font-weight:600;">Confirm subscription →</a>
       </p>
       <p style="font-size:0.85em;color:#666;">If you didn't request this, you can safely ignore this email. The link expires in 48 hours.</p>
       <p style="font-size:0.85em;color:#666;">Don't want these emails? <a href="${unsubscribeUrl}">Unsubscribe</a>.</p>
@@ -73,13 +73,13 @@ export async function sendGatheringNotification({
         html: `
           <p>${greeting}</p>
           <p><strong>${group.name}</strong> has posted a new gathering:</p>
-          <table style="margin:1rem 0;border-left:3px solid #7c3aed;padding-left:1rem;border-collapse:collapse;">
+          <table style="margin:1rem 0;border-left: var(--rule-thick) solid var(--color-accent);padding-left:1rem;border-collapse:collapse;">
             <tr><td style="font-size:1.1em;font-weight:700;padding-bottom:0.25rem;">${gathering.title}</td></tr>
             <tr><td style="color:#555;">${dateStr} · ${gathering.time}</td></tr>
             <tr><td style="color:#555;">${gathering.venue}${locationLine ? ` · ${locationLine}` : ""}</td></tr>
           </table>
           <p style="margin: 1.5rem 0;">
-            <a href="${rsvpUrl}" style="background:#7c3aed;color:#fff;padding:0.6rem 1.25rem;border-radius:6px;text-decoration:none;font-weight:600;">RSVP →</a>
+            <a href="${rsvpUrl}" style="background:var(--color-accent);color:var(--color-paper);padding:0.6rem 1.25rem;border-radius:6px;text-decoration:none;font-weight:600;">RSVP →</a>
           </p>
           <p style="font-size:0.85em;color:#666;">You're receiving this because you follow ${group.name} on ${SITE_NAME}. <a href="${unsubscribeUrl}">Unsubscribe</a>.</p>
         `,
@@ -107,7 +107,7 @@ export async function sendApprovalNotice({
       <p>Great news — <strong>${groupName}</strong> has been approved and is now live on ${SITE_NAME}!</p>
       <p>Click the link below to set up your organiser account and start scheduling gatherings. This link is valid for 7 days.</p>
       <p style="margin: 1.5rem 0;">
-        <a href="${inviteUrl}" style="background:#7c3aed;color:#fff;padding:0.6rem 1.25rem;border-radius:6px;text-decoration:none;font-weight:600;">Set up your account →</a>
+        <a href="${inviteUrl}" style="background:var(--color-accent);color:var(--color-paper);padding:0.6rem 1.25rem;border-radius:6px;text-decoration:none;font-weight:600;">Set up your account →</a>
       </p>
       <p style="font-size:0.85em;color:#666;">If you didn't apply to start a group on ${SITE_NAME}, please ignore this email.</p>
     `,
@@ -134,7 +134,7 @@ export async function sendContactMessageAlert({
           <p>Hi ${name},</p>
           <p>Someone sent a message to <strong>${groupName}</strong> via the contact form on ${SITE_NAME}.</p>
           <p style="margin: 1.5rem 0;">
-            <a href="${dashboardUrl}" style="background:#7c3aed;color:#fff;padding:0.6rem 1.25rem;border-radius:6px;text-decoration:none;font-weight:600;">View message →</a>
+            <a href="${dashboardUrl}" style="background:var(--color-accent);color:var(--color-paper);padding:0.6rem 1.25rem;border-radius:6px;text-decoration:none;font-weight:600;">View message →</a>
           </p>
           <p style="font-size:0.85em;color:#666;">For security, the message content is only visible in your dashboard — it is not included in this email.</p>
         `,
@@ -165,7 +165,7 @@ export async function sendRsvpCancelLink({
       <p>Hi ${name},</p>
       <p>You requested a link to cancel your RSVP for <strong>${eventTitle}</strong>, hosted by <strong>${groupName}</strong>.</p>
       <p style="margin: 1.5rem 0;">
-        <a href="${cancelUrl}" style="background:#e8704a;color:#fff;padding:0.6rem 1.25rem;border-radius:6px;text-decoration:none;font-weight:600;">Cancel my RSVP →</a>
+        <a href="${cancelUrl}" style="background:#e8704a;color:var(--color-paper);padding:0.6rem 1.25rem;border-radius:6px;text-decoration:none;font-weight:600;">Cancel my RSVP →</a>
       </p>
       <p style="font-size:0.85em;color:#666;">This link will cancel your RSVP immediately when clicked. If you didn't request this, you can safely ignore this email — your spot is still reserved.</p>
     `,
@@ -197,7 +197,7 @@ export async function sendCancellationNotice({
         html: `
           <p>Hi ${name},</p>
           <p>We're sorry to let you know that the following gathering has been cancelled:</p>
-          <table style="margin:1rem 0;border-left:3px solid #e8704a;padding-left:1rem;border-collapse:collapse;">
+          <table style="margin:1rem 0;border-left: var(--rule-thick) solid #e8704a;padding-left:1rem;border-collapse:collapse;">
             <tr><td style="font-size:1.1em;font-weight:700;padding-bottom:0.25rem;">${gathering.title}</td></tr>
             <tr><td style="color:#555;">${dateStr} · ${gathering.venue}</td></tr>
             <tr><td style="color:#555;">Organised by ${groupName}</td></tr>
