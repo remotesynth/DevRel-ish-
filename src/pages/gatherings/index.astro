@@ -88,7 +88,9 @@ const externalEvents = !hasFilters
       .from(AtEvents)
       .leftJoin(AtEventMeta, eq(AtEventMeta.eventUri, AtEvents.uri))
       .leftJoin(AtGroups, eq(AtGroups.uri, AtEventMeta.groupUri))
-      .where(gte(AtEvents.startsAt, todayIso))
+      // Only events that are actually about tech — the calendar lexicon is
+      // shared by the whole Atmosphere.
+      .where(and(gte(AtEvents.startsAt, todayIso), eq(AtEvents.topical, true)))
       .orderBy(asc(AtEvents.startsAt))
       .limit(30)
       .then((rows) => {

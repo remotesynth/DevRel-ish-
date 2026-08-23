@@ -1,4 +1,5 @@
 import { createClient, type Client } from "@libsql/client";
+import { classifyEvent } from "../../src/lib/topical";
 
 // Runs every 5 minutes via Netlify Scheduled Functions
 export const config = {
@@ -72,14 +73,28 @@ async function indexRecord(
   if (!WANTED_COLLECTIONS.includes(collection)) return false;
 
   if (collection === "community.lexicon.calendar.event") {
+    // A group here may have claimed this event, which settles relevance
+    // regardless of what the title says.
+    const claimed = await db.execute({
+      sql: `SELECT 1 FROM "AtEventMeta" WHERE eventUri = ? LIMIT 1`,
+      args: [uri],
+    });
+    const verdict = classifyEvent(
+      record.name != null ? String(record.name) : null,
+      record.description != null ? String(record.description) : null,
+      claimed.rows.length > 0
+    );
+
     await db.execute({
-      sql: `INSERT INTO "AtEvents" (uri, cid, did, name, startsAt, endsAt, description, locationJson, urisJson, mode, status, createdAt, indexedAt)
-            VALUES (:uri, :cid, :did, :name, :startsAt, :endsAt, :description, :locationJson, :urisJson, :mode, :status, :createdAt, :indexedAt)
+      sql: `INSERT INTO "AtEvents" (uri, cid, did, name, startsAt, endsAt, description, locationJson, urisJson, mode, status, topical, topicalScore, topicalTerms, createdAt, indexedAt)
+            VALUES (:uri, :cid, :did, :name, :startsAt, :endsAt, :description, :locationJson, :urisJson, :mode, :status, :topical, :topicalScore, :topicalTerms, :createdAt, :indexedAt)
             ON CONFLICT (uri) DO UPDATE SET
               cid = excluded.cid, name = excluded.name, startsAt = excluded.startsAt,
               endsAt = excluded.endsAt, description = excluded.description,
               locationJson = excluded.locationJson, urisJson = excluded.urisJson,
               mode = excluded.mode, status = excluded.status,
+              topical = excluded.topical, topicalScore = excluded.topicalScore,
+              topicalTerms = excluded.topicalTerms,
               indexedAt = excluded.indexedAt`,
       args: {
         uri, cid, did,
@@ -91,6 +106,9 @@ async function indexRecord(
         urisJson: record.uris != null ? JSON.stringify(record.uris) : null,
         mode: record.mode != null ? String(record.mode) : null,
         status: record.status != null ? String(record.status) : null,
+        topical: verdict.topical ? 1 : 0,
+        topicalScore: verdict.score,
+        topicalTerms: verdict.terms.length ? verdict.terms.join(", ") : null,
         createdAt: String(record.createdAt ?? indexedAt),
         indexedAt,
       },

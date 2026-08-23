@@ -48,6 +48,16 @@ Records are built in one place, `src/lib/atproto-records.ts`, and published thro
 `src/lib/gatherings.ts`. Event records carry `uris` (so other apps can link back here),
 `mode`, `status` (so cancellations propagate), `endsAt`, and `rsvpExpected`.
 
+**Relevance filtering.** `community.lexicon.calendar.event` is shared by the whole
+Atmosphere, so most indexed events aren't for this site — in a real sample of 201
+network events, every one was a wellness or nature event. `src/lib/topical.ts` scores
+title and description against a tech vocabulary at index time and stores the verdict on
+`AtEvents` (`topical`, `topicalScore`, `topicalTerms`). Listings filter on the flag;
+a direct link to an event still resolves. Events claimed by a DevRel(ish) group bypass
+the filter entirely. After editing the vocabulary, run
+`node scripts/reclassify-events.mjs` (dry run; `--apply` to write) to update rows that
+were already indexed.
+
 Reading the other direction: `src/lib/atproto-repo.ts` does unauthenticated
 `getRecord`/`listRecords` against any repo, and `src/lib/at-events.ts` holds the display
 helpers for records we didn't write. Adoption relies on the fact that every calendar app

@@ -171,6 +171,12 @@ const AtEvents = defineTable({
     locationJson: column.text({ optional: true }), // JSON-serialized locations array
     urisJson: column.text({ optional: true }),     // JSON-serialized uris array — how we link back to the source app
     mode: column.text({ optional: true }),         // #inperson | #virtual | #hybrid
+    // The calendar lexicon is shared by the whole Atmosphere, so most indexed
+    // events aren't for this site. Verdict stored rather than recomputed, and
+    // the matched terms kept so a wrong call can be diagnosed.
+    topical: column.boolean({ default: false }),
+    topicalScore: column.number({ default: 0 }),
+    topicalTerms: column.text({ optional: true }),
     status: column.text({ optional: true }),       // #scheduled | #cancelled | ...
     createdAt: column.text(),
     indexedAt: column.text(),
