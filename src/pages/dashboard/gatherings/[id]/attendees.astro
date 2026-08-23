@@ -1,8 +1,10 @@
 ---
 import DashboardLayout from "../../../../layouts/DashboardLayout.astro";
-import { db, Groups, Meetups, RSVPs } from "astro:db";
+import { db, Groups, Meetups, RSVPs, AtRsvps } from "astro:db";
 import { eq, and, asc } from "astro:db";
 import { formatDate, formatTime } from "../../../../lib/utils";
+import { isGoing } from "../../../../lib/at-events";
+import { resolveHandleFromDid } from "../../../../lib/atproto-identity";
 
 if (!Astro.locals.user) return Astro.redirect("/auth/login");
 const user = Astro.locals.user;
@@ -29,6 +31,29 @@ const attendees = await db
   .where(eq(RSVPs.meetupId, id))
   .orderBy(asc(RSVPs.createdAt));
 
+// Attendees who RSVP'd from another Atmosphere app. Their RSVP record lives in
+// their own repo and carries no email — a DID and a handle is all we get, and
+// all we should be showing.
+const networkRows = meetup.atEventUri
+  ? (await db
+      .select({ did: AtRsvps.did, status: AtRsvps.status, createdAt: AtRsvps.createdAt })
+      .from(AtRsvps)
+      .where(eq(AtRsvps.eventUri, meetup.atEventUri))
+    ).filter((r) => isGoing(r.status))
+  : [];
+
+const networkAttendees = await Promise.all(
+  networkRows
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+    .map(async (r) => ({
+      did: r.did,
+      handle: await resolveHandleFromDid(r.did).catch(() => r.did),
+      createdAt: r.createdAt,
+    }))
+);
+
+const totalAttendees = attendees.length + networkAttendees.length;
+
 const justRemoved = Astro.url.searchParams.get("removed") === "1";
 ---
 
@@ -42,7 +67,7 @@ const justRemoved = Astro.url.searchParams.get("removed") === "1";
           📅 {formatDate(meetup.date)} at {formatTime(meetup.time)} &bull; 📍 {meetup.venue}
         </p>
       </div>
-      {attendees.length > 0 && (
+      {totalAttendees > 0 && (
         <a
           href={`/api/gatherings/${id}/attendees.csv`}
           download
@@ -66,7 +91,7 @@ const justRemoved = Astro.url.searchParams.get("removed") === "1";
 
   <div class="attendee-stats">
     <div class="stat">
-      <span class="stat-num">{attendees.length}</span>
+      <span class="stat-num">{totalAttendees}</span>
       <span class="stat-label">RSVPs</span>
     </div>
     <div class="stat">
@@ -74,19 +99,23 @@ const justRemoved = Astro.url.searchParams.get("removed") === "1";
       <span class="stat-label">Capacity</span>
     </div>
     <div class="stat">
-      <span class="stat-num">{Math.max(0, meetup.capacity - attendees.length)}</span>
+      <span class="stat-num">{Math.max(0, meetup.capacity - totalAttendees)}</span>
       <span class="stat-label">Spots left</span>
     </div>
   </div>
 
   {
-    attendees.length === 0 ? (
+    totalAttendees === 0 ? (
       <div class="empty-state">
         <p>No RSVPs yet. Share the gathering link to start getting sign-ups!</p>
         <div class="share-link">
           <code>{`/gatherings/${meetup.id}/rsvp`}</code>
         </div>
       </div>
+    ) : attendees.length === 0 ? (
+      <p class="table-note">
+        No form sign-ups yet — every RSVP for this gathering arrived from the network.
+      </p>
     ) : (
       <div class="attendees-table-wrap">
         <table class="attendees-table">
@@ -135,6 +164,51 @@ const justRemoved = Astro.url.searchParams.get("removed") === "1";
       </div>
     )
   }
+
+  {networkAttendees.length > 0 && (
+    <div class="network-attendees">
+      <h2 class="network-heading">
+        <span class="at-mark" aria-hidden="true">◎</span>
+        From the network
+        <span class="network-count">{networkAttendees.length}</span>
+      </h2>
+      <p class="network-desc">
+        People who RSVP'd to this event from another Atmosphere app. Their RSVP lives in
+        their own account, so there's no email address to collect — reach them at their handle.
+      </p>
+      <div class="attendees-table-wrap">
+        <table class="attendees-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Handle</th>
+              <th>RSVP'd</th>
+            </tr>
+          </thead>
+          <tbody>
+            {networkAttendees.map((a, i) => (
+              <tr>
+                <td class="row-num">{i + 1}</td>
+                <td class="attendee-name">
+                  <a href={`https://bsky.app/profile/${a.did}`} target="_blank" rel="noopener noreferrer">
+                    @{a.handle}
+                  </a>
+                </td>
+                <td class="rsvp-date">
+                  {(() => {
+                    const d = new Date(a.createdAt);
+                    return isNaN(d.getTime())
+                      ? "—"
+                      : new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(d);
+                  })()}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )}
 
   <!-- Confirmation dialogs, one per attendee -->
   {attendees.map((a) => (
@@ -427,4 +501,45 @@ const justRemoved = Astro.url.searchParams.get("removed") === "1";
   .dialog-actions form {
     display: contents;
   }
+
+  .table-note {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+  }
+
+  .network-attendees {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 2px dashed var(--color-border);
+  }
+
+  .network-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: var(--size-xl);
+    margin-bottom: 0.375rem;
+  }
+
+  .network-heading .at-mark {
+    color: var(--color-accent-dark);
+    line-height: 1;
+  }
+
+  .network-count {
+    font-family: var(--font-body);
+    font-size: var(--size-xs);
+    font-weight: 700;
+    color: var(--color-accent-dark);
+    background: color-mix(in oklch, var(--color-accent) 14%, var(--color-bg));
+    border-radius: var(--radius-full);
+    padding: 0.1rem 0.5rem;
+  }
+
+  .network-desc {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+    margin-bottom: 1rem;
+  }
+
 </style>

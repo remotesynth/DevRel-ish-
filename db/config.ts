@@ -49,6 +49,7 @@ const Meetups = defineTable({
     atEventCid: column.text({ optional: true }), // CID of the event record
     atMetaUri: column.text({ optional: true }),  // at:// URI of com.devrelish.event.meta
     atMetaCid: column.text({ optional: true }),  // CID of the meta record
+    adopted: column.boolean({ default: false }), // event record came from another app; we don't own it
     createdAt: column.date({ default: new Date() }),
   },
 });
@@ -156,7 +157,9 @@ const AtEvents = defineTable({
     endsAt: column.text({ optional: true }),
     description: column.text({ optional: true }),
     locationJson: column.text({ optional: true }), // JSON-serialized locations array
-    status: column.text({ optional: true }),
+    urisJson: column.text({ optional: true }),     // JSON-serialized uris array — how we link back to the source app
+    mode: column.text({ optional: true }),         // #inperson | #virtual | #hybrid
+    status: column.text({ optional: true }),       // #scheduled | #cancelled | ...
     createdAt: column.text(),
     indexedAt: column.text(),
   },

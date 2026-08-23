@@ -1,13 +1,14 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import BlueskyThreadPanel from "../../../components/BlueskyThreadPanel";
-import { db, Meetups, RSVPs, Groups, GatheringSpeakers, GatheringSessions, GatheringSessionSpeakers, count, eq, and } from "astro:db";
+import { db, Meetups, RSVPs, AtRsvps, Groups, GatheringSpeakers, GatheringSessions, GatheringSessionSpeakers, count, eq, and } from "astro:db";
 import { asc, inArray } from "astro:db";
 import { formatDate, formatTime, spotsLeft, generateId, googleCalendarUrl, osmUrl, groupUrl } from "../../../lib/utils";
 import { renderMarkdown } from "../../../lib/markdown";
 import { createHash } from "node:crypto";
 import { getPdsSession, pdsCreate } from "../../../lib/atproto-pds";
 import { RSVP_NSID, RsvpStatus } from "../../../lib/atproto-records";
+import { isGoing } from "../../../lib/at-events";
 
 const { id } = Astro.params;
 
@@ -90,12 +91,20 @@ if (Astro.request.method === "POST") {
     } else if (meetup.date < new Date()) {
       result = { type: "error", message: "This gathering has already passed." };
     } else {
-      // Re-fetch fresh RSVP count inside the POST handler
+      // Re-fetch fresh RSVP count inside the POST handler. Must include network
+      // RSVPs, or form sign-ups can overshoot a capacity they already filled.
       const [countResult] = await db
         .select({ val: count() })
         .from(RSVPs)
         .where(eq(RSVPs.meetupId, id));
-      const currentCount = countResult?.val ?? 0;
+      const networkGoing = meetup.atEventUri
+        ? (await db
+            .select({ status: AtRsvps.status })
+            .from(AtRsvps)
+            .where(eq(AtRsvps.eventUri, meetup.atEventUri))
+          ).filter((r) => isGoing(r.status)).length
+        : 0;
+      const currentCount = (countResult?.val ?? 0) + networkGoing;
 
       if (currentCount >= meetup.capacity) {
         result = { type: "full" };
@@ -191,7 +200,21 @@ const [rsvpResult] = await db
   .from(RSVPs)
   .where(eq(RSVPs.meetupId, id));
 
-const rsvpCount = rsvpResult?.val ?? 0;
+const formRsvpCount = rsvpResult?.val ?? 0;
+
+// RSVPs that arrived from elsewhere on the network — someone who found this
+// event through another Atmosphere app and responded there. They're real
+// attendees, so they count toward the headcount and the capacity.
+const networkRsvps = meetup.atEventUri
+  ? (await db
+      .select({ did: AtRsvps.did, status: AtRsvps.status })
+      .from(AtRsvps)
+      .where(eq(AtRsvps.eventUri, meetup.atEventUri))
+    ).filter((r) => isGoing(r.status))
+  : [];
+
+const networkRsvpCount = networkRsvps.length;
+const rsvpCount = formRsvpCount + networkRsvpCount;
 const spots = spotsLeft(meetup.capacity, rsvpCount);
 const isFull = spots === 0;
 

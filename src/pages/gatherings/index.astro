@@ -2,6 +2,7 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import GatheringCard from "../../components/meetups/GatheringCard.astro";
 import AtEventCard from "../../components/meetups/AtEventCard.astro";
+import { isCancelled } from "../../lib/at-events";
 import { db, Groups, Meetups, RSVPs, AtEvents, AtEventMeta, AtGroups, count, eq, and, gte, asc, inArray } from "astro:db";
 import { CATEGORIES, getCategoryLabel } from "../../lib/categories";
 
@@ -80,6 +81,8 @@ const externalEvents = !hasFilters
         name: AtEvents.name,
         startsAt: AtEvents.startsAt,
         locationJson: AtEvents.locationJson,
+        urisJson: AtEvents.urisJson,
+        status: AtEvents.status,
         groupName: AtGroups.name,
       })
       .from(AtEvents)
@@ -93,6 +96,7 @@ const externalEvents = !hasFilters
         return rows.filter((e) => {
           if (seen.has(e.uri)) return false;
           seen.add(e.uri);
+          if (isCancelled(e.status)) return false;   // don't advertise a cancelled event as upcoming
           return !localAtEventUriSet.has(e.uri);
         });
       })
@@ -288,6 +292,8 @@ function clearUrl() {
               name={e.name}
               startsAt={e.startsAt}
               locationJson={e.locationJson ?? null}
+              urisJson={e.urisJson ?? null}
+              status={e.status ?? null}
               groupName={e.groupName ?? null}
             />
           ))}

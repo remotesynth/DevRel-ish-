@@ -63,12 +63,13 @@ async function indexRecord(
 ): Promise<void> {
   if (collection === "community.lexicon.calendar.event") {
     await db.execute({
-      sql: `INSERT INTO "AtEvents" (uri, cid, did, name, startsAt, endsAt, description, locationJson, status, createdAt, indexedAt)
-            VALUES (:uri, :cid, :did, :name, :startsAt, :endsAt, :description, :locationJson, :status, :createdAt, :indexedAt)
+      sql: `INSERT INTO "AtEvents" (uri, cid, did, name, startsAt, endsAt, description, locationJson, urisJson, mode, status, createdAt, indexedAt)
+            VALUES (:uri, :cid, :did, :name, :startsAt, :endsAt, :description, :locationJson, :urisJson, :mode, :status, :createdAt, :indexedAt)
             ON CONFLICT (uri) DO UPDATE SET
               cid = excluded.cid, name = excluded.name, startsAt = excluded.startsAt,
               endsAt = excluded.endsAt, description = excluded.description,
-              locationJson = excluded.locationJson, status = excluded.status,
+              locationJson = excluded.locationJson, urisJson = excluded.urisJson,
+              mode = excluded.mode, status = excluded.status,
               indexedAt = excluded.indexedAt`,
       args: {
         uri, cid, did,
@@ -77,6 +78,8 @@ async function indexRecord(
         endsAt: record.endsAt != null ? String(record.endsAt) : null,
         description: record.description != null ? String(record.description) : null,
         locationJson: record.locations != null ? JSON.stringify(record.locations) : null,
+        urisJson: record.uris != null ? JSON.stringify(record.uris) : null,
+        mode: record.mode != null ? String(record.mode) : null,
         status: record.status != null ? String(record.status) : null,
         createdAt: String(record.createdAt ?? indexedAt),
         indexedAt,

@@ -3,6 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import GroupCard from '../components/groups/GroupCard.astro';
 import GatheringCardCompact from '../components/meetups/GatheringCardCompact.astro';
 import AtEventCard from '../components/meetups/AtEventCard.astro';
+import { isCancelled } from '../lib/at-events';
 import {
   db,
   Groups,
@@ -70,6 +71,8 @@ const rawExternalEvents = await db
     name: AtEvents.name,
     startsAt: AtEvents.startsAt,
     locationJson: AtEvents.locationJson,
+    urisJson: AtEvents.urisJson,
+    status: AtEvents.status,
     groupName: AtGroups.name,
   })
   .from(AtEvents)
@@ -80,7 +83,12 @@ const rawExternalEvents = await db
   .limit(10);
 const seen = new Set<string>();
 const externalEvents = rawExternalEvents
-  .filter((e) => { if (seen.has(e.uri)) return false; seen.add(e.uri); return !localAtEventUriSet.has(e.uri); })
+  .filter((e) => {
+    if (seen.has(e.uri)) return false;
+    seen.add(e.uri);
+    if (isCancelled(e.status)) return false;   // don't advertise a cancelled event as upcoming
+    return !localAtEventUriSet.has(e.uri);
+  })
   .slice(0, 3);
 
 const featuredGroupIds = featuredGroups.map((g) => g.id);
@@ -233,6 +241,8 @@ const upcomingCounts: Record<string, number> = Object.fromEntries(upcomingRows.m
               name={e.name}
               startsAt={e.startsAt}
               locationJson={e.locationJson ?? null}
+              urisJson={e.urisJson ?? null}
+              status={e.status ?? null}
               groupName={e.groupName ?? null}
             />
           ))}

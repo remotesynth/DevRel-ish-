@@ -48,6 +48,13 @@ Records are built in one place, `src/lib/atproto-records.ts`, and published thro
 `src/lib/gatherings.ts`. Event records carry `uris` (so other apps can link back here),
 `mode`, `status` (so cancellations propagate), `endsAt`, and `rsvpExpected`.
 
+Reading the other direction: `src/lib/atproto-repo.ts` does unauthenticated
+`getRecord`/`listRecords` against any repo, and `src/lib/at-events.ts` holds the display
+helpers for records we didn't write. Adoption relies on the fact that every calendar app
+writes `community.lexicon.calendar.event` into *the user's own repo* — so listing that one
+collection surfaces their events no matter which app created them. Adopted events keep
+their original at:// URI and are never overwritten (`Meetups.adopted` guards `syncGathering`).
+
 ---
 
 ### Database (`db/`)
@@ -90,6 +97,9 @@ Records are built in one place, `src/lib/atproto-records.ts`, and published thro
 | `/oauth/client-metadata.json` | ATProto OAuth client metadata endpoint (required in production) |
 | `/api/auth/login` | `POST` — resolves handle → returns ATProto authorization URL |
 | `/api/auth/callback` | `GET` — exchanges OAuth code, fetches profile, sets session cookie |
+| `/events/[did]/[rkey]` | Read-only page for a calendar event elsewhere in the Atmosphere. Uses the index, falling back to a live read from the owning PDS |
+| `/dashboard/gatherings/adopt` | Bring events you already have on Smoke Signal / atmo.rsvp / OpenMeet into your group |
+| `/api/import/atproto-events` | `GET` lists calendar events in the organizer's repo; `POST` adopts them |
 | `/dashboard/*` | Group organizer views (group edit, gathering management, attendees, speakers & agenda) |
 | `/admin/*` | Admin views — list all groups, close/reopen groups that violate the code of conduct |
 | `/setup` | First-run admin setup — grants admin role to an ATProto DID |

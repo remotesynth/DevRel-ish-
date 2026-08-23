@@ -34,6 +34,7 @@ const justCreated = Astro.url.searchParams.get("created") === "1";
   <div class="page-header">
     <h1>Gatherings</h1>
     <div class="header-actions">
+      <a href="/dashboard/gatherings/adopt" class="btn btn-ghost btn-sm">Bring existing events</a>
       <a href="/dashboard/gatherings/import" class="btn btn-ghost btn-sm">Import from Meetup</a>
       <a href="/dashboard/gatherings/new" class="btn btn-primary">+ New gathering</a>
     </div>

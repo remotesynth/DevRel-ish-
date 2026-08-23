@@ -1,66 +1,53 @@
 ---
+import { atEventPath, formatPlace, isCancelled, parseUris, sourceAppName } from "../../lib/at-events";
+
 interface Props {
   uri: string;
   did: string;
   name: string;
   startsAt: string;
   locationJson: string | null;
+  urisJson?: string | null;
+  status?: string | null;
   groupName: string | null;
 }
 
-const { uri: _uri, did: _did, name, startsAt, locationJson, groupName } = Astro.props;
+const { uri, name, startsAt, locationJson, urisJson = null, status = null, groupName } = Astro.props;
 
 const startDate = new Date(startsAt);
-const formattedDate = new Intl.DateTimeFormat("en-US", {
-  weekday: "short",
-  month: "short",
-  day: "numeric",
-}).format(startDate);
-const formattedTime = new Intl.DateTimeFormat("en-US", {
-  hour: "numeric",
-  minute: "2-digit",
-  hour12: true,
-}).format(startDate);
+const valid = !isNaN(startDate.getTime());
+const formattedDate = valid
+  ? new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric" }).format(startDate)
+  : "Date TBC";
+const formattedTime = valid
+  ? new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", hour12: true }).format(startDate)
+  : "";
 
-const rawLocations: Array<Record<string, unknown>> = locationJson
-  ? (() => { try { return JSON.parse(locationJson); } catch { return []; } })()
-  : [];
+const placeDisplay = formatPlace(locationJson);
+const uris = parseUris(urisJson);
+const cancelled = isCancelled(status);
 
-// Parse location fields by $type — different community lexicon location types use different field names.
-// community.lexicon.location.address uses "locality" for city; .geo/.fsq/.hthree have only "name".
-function extractLocationDisplay(loc: Record<string, unknown>) {
-  const name = typeof loc.name === "string" ? loc.name : undefined;
-  const city = typeof loc.locality === "string" ? loc.locality
-    : typeof loc.city === "string" ? loc.city
-    : undefined;
-  const country = typeof loc.country === "string" ? loc.country : undefined;
-  return { name, city, country };
-}
-
-const primaryLoc = rawLocations[0] ? extractLocationDisplay(rawLocations[0]) : null;
-const venue = primaryLoc?.name;
-const locationCity = primaryLoc?.city;
-const locationCountry = primaryLoc?.country;
-const placeDisplay = [venue, locationCity, locationCountry].filter(Boolean).join(", ");
-
-const attribution = groupName ?? "ATProto community";
+// Every network event now has a page here — previously these cards were a dead
+// end with no link at all.
+const href = atEventPath(uri);
+const attribution = groupName ?? sourceAppName(uris) ?? "the Atmosphere";
 ---
 
-<article class="at-event-card">
+<a class:list={["at-event-card", { cancelled }]} href={href ?? "#"} aria-disabled={href ? undefined : "true"}>
   <div class="at-event-header">
     <span class="at-badge">
-      <svg width="10" height="9" viewBox="0 0 360 320" fill="currentColor" aria-hidden="true">
-        <path d="M180 142c-16.3-31.7-60.7-90.8-102-120C38 2 15.3 1 7.5 1 1 1 0 8.3 0 14.8v11.3c0 27.3 14.7 96.2 62.3 119.4C99.3 163.8 148.7 164 180 164c31.3 0 80.7-.2 117.7-18.5C345.3 122.3 360 53.4 360 26.1V14.8C360 8.3 359 1 352.5 1c-7.8 0-30.5 1-70.5 21C240.7 51.2 196.3 110.3 180 142z"/>
-        <path d="M180 178c-16.3 31.7-60.7 90.8-102 120-40 20-62.7 21-70.5 21C1 319 0 311.7 0 305.2v-11.3c0-27.3 14.7-96.2 62.3-119.4C99.3 156.2 148.7 156 180 156c31.3 0 80.7.2 117.7 18.5C345.3 197.7 360 266.6 360 293.9v11.3c0 6.5-1 13.8-7.5 13.8-7.8 0-30.5-1-70.5-21-41.3-29.2-85.7-88.3-102-120z"/>
-      </svg>
+      <span class="at-badge-mark" aria-hidden="true">◎</span>
       Via ATProto
     </span>
-    <div class="at-event-date">{formattedDate} · {formattedTime}</div>
+    <div class="at-event-date">
+      {formattedDate}{formattedTime && ` · ${formattedTime}`}
+    </div>
   </div>
   <h3 class="at-event-title">{name}</h3>
+  {cancelled && <p class="at-event-cancelled">Cancelled</p>}
   {placeDisplay && <p class="at-event-location">📍 {placeDisplay}</p>}
   <p class="at-event-attribution">By {attribution}</p>
-</article>
+</a>
 
 <style>
   .at-event-card {
@@ -71,6 +58,34 @@ const attribution = groupName ?? "ATProto community";
     display: flex;
     flex-direction: column;
     gap: 0.375rem;
+    text-decoration: none;
+    color: inherit;
+    transition:
+      transform var(--transition),
+      box-shadow var(--transition),
+      border-color var(--transition);
+  }
+
+  .at-event-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-border-strong);
+    color: inherit;
+  }
+
+  .at-event-card.cancelled .at-event-title {
+    text-decoration: line-through;
+    opacity: 0.7;
+  }
+
+  .at-event-cancelled {
+    font-size: var(--size-xs);
+    font-weight: 700;
+    color: oklch(45% 0.18 25);
+    margin: 0;
+    max-width: none;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
   }
 
   .at-event-header {
@@ -88,11 +103,15 @@ const attribution = groupName ?? "ATProto community";
     gap: 0.3rem;
     font-size: var(--size-xs);
     font-weight: 700;
-    color: #0085ff;
-    background: rgba(0, 133, 255, 0.08);
-    border: 1px solid rgba(0, 133, 255, 0.2);
+    color: var(--color-accent-dark);
+    background: color-mix(in oklch, var(--color-accent) 12%, var(--color-bg));
+    border: 1px solid color-mix(in oklch, var(--color-accent) 30%, var(--color-bg));
     border-radius: var(--radius-full);
     padding: 0.1rem 0.5rem;
+  }
+
+  .at-badge-mark {
+    line-height: 1;
   }
 
   .at-event-date {

@@ -1,6 +1,8 @@
 import type { APIRoute } from "astro";
-import { db, Meetups, Groups, RSVPs } from "astro:db";
+import { db, Meetups, Groups, RSVPs, AtRsvps } from "astro:db";
 import { eq, and, asc } from "astro:db";
+import { isGoing } from "../../../../lib/at-events";
+import { resolveHandleFromDid } from "../../../../lib/atproto-identity";
 
 export const prerender = false;
 
@@ -31,14 +33,46 @@ export const GET: APIRoute = async ({ params, locals }) => {
     .where(eq(RSVPs.meetupId, id))
     .orderBy(asc(RSVPs.createdAt));
 
+  // RSVPs that came in from other Atmosphere apps. Those records live in the
+  // responder's own repo and carry no email, job title, or company — so the CSV
+  // gets a Source column and blank cells rather than invented values.
+  const networkRows = meetup.atEventUri
+    ? (await db
+        .select({ did: AtRsvps.did, status: AtRsvps.status, createdAt: AtRsvps.createdAt })
+        .from(AtRsvps)
+        .where(eq(AtRsvps.eventUri, meetup.atEventUri))
+      ).filter((r) => isGoing(r.status))
+    : [];
+
+  const networkAttendees = await Promise.all(
+    networkRows
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+      .map(async (r) => ({
+        handle: await resolveHandleFromDid(r.did).catch(() => r.did),
+        did: r.did,
+        createdAt: r.createdAt,
+      }))
+  );
+
   const rows = [
-    ["Name", "Email", "Job Title", "Company", "RSVP Date"],
+    ["Name", "Email", "Job Title", "Company", "RSVP Date", "Source", "ATProto DID"],
     ...attendees.map((a) => [
       a.name,
       a.email,
       a.jobTitle,
       a.company,
       a.createdAt.toISOString().split("T")[0],
+      "DevRel(ish) form",
+      "",
+    ]),
+    ...networkAttendees.map((a) => [
+      `@${a.handle}`,
+      "",
+      "",
+      "",
+      a.createdAt.split("T")[0],
+      "ATProto network",
+      a.did,
     ]),
   ];
 

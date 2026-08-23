@@ -125,6 +125,12 @@ export async function syncGathering(
   if (!meetup.atEventUri) return false;
   if (meetup.atEventUri.split("/")[2] !== did) return false;
 
+  // An adopted event's record is authored and maintained by another app.
+  // `putRecord` replaces a record wholesale and `eventRecordFor` builds it from
+  // only the fields we know, so syncing would silently drop whatever that app
+  // stores there. Leave it alone.
+  if (meetup.adopted) return false;
+
   const session = await getPdsSession(did);
   if (!session) return false;
 
@@ -151,7 +157,8 @@ export async function syncGathering(
 /**
  * Publish if the gathering has never reached the network, otherwise update.
  * Lets callers stop caring which case they're in — including gatherings created
- * before the dashboard wrote to the PDS at all.
+ * before the dashboard wrote to the PDS at all. Adopted events fall through to
+ * `syncGathering`, which declines to touch them.
  */
 export async function publishOrSyncGathering(
   did: string,

@@ -1,0 +1,293 @@
+---
+/**
+ * Read-only page for a calendar event that lives somewhere else in the
+ * Atmosphere. These used to render as cards with no link — a visible event you
+ * could not act on. Now every one has a page, whether or not our indexer has
+ * seen it yet.
+ *
+ * URL shape mirrors the ecosystem convention (`/{did}/{rkey}`), so an at:// URI
+ * maps to a page mechanically.
+ */
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { db, AtEvents, AtRsvps, AtEventMeta, AtGroups, Meetups, count, eq } from "astro:db";
+import { formatAtUri, getRecord } from "../../../lib/atproto-repo";
+import { EVENT_NSID } from "../../../lib/atproto-records";
+import { isCancelled, parseLocations, parseUris, sourceAppName } from "../../../lib/at-events";
+import { resolveHandleFromDid } from "../../../lib/atproto-identity";
+import { renderMarkdown } from "../../../lib/markdown";
+
+// Links here use the bare DID, but tolerate a percent-encoded one — Astro leaves
+// route params encoded, so an encoded link would otherwise silently 404.
+const { did: rawDid, rkey: rawRkey } = Astro.params;
+if (!rawDid || !rawRkey) return Astro.redirect("/gatherings");
+const did = safeDecode(rawDid);
+const rkey = safeDecode(rawRkey);
+
+function safeDecode(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+const uri = formatAtUri({ did, collection: EVENT_NSID, rkey });
+
+// If this event was created here, its own page is the canonical one.
+const [localMeetup] = await db.select({ id: Meetups.id }).from(Meetups).where(eq(Meetups.atEventUri, uri));
+if (localMeetup) return Astro.redirect(`/gatherings/${localMeetup.id}/rsvp`, 301);
+
+// Prefer the index; fall back to reading the record straight from its own PDS.
+// The indexer only sees records created after it started, so anything older is
+// only reachable this way.
+const [indexed] = await db.select().from(AtEvents).where(eq(AtEvents.uri, uri));
+
+let event: {
+  name: string;
+  description: string | null;
+  startsAt: string;
+  endsAt: string | null;
+  locationJson: string | null;
+  urisJson: string | null;
+  status: string | null;
+} | null = indexed
+  ? {
+      name: indexed.name,
+      description: indexed.description,
+      startsAt: indexed.startsAt,
+      endsAt: indexed.endsAt,
+      locationJson: indexed.locationJson,
+      urisJson: indexed.urisJson,
+      status: indexed.status,
+    }
+  : null;
+
+let liveFetched = false;
+if (!event) {
+  const record = await getRecord<Record<string, unknown>>(uri);
+  if (record) {
+    liveFetched = true;
+    const v = record.value;
+    const str = (x: unknown) => (typeof x === "string" ? x : null);
+    event = {
+      name: str(v.name) ?? "Untitled event",
+      description: str(v.description),
+      startsAt: str(v.startsAt) ?? "",
+      endsAt: str(v.endsAt),
+      locationJson: v.locations != null ? JSON.stringify(v.locations) : null,
+      urisJson: v.uris != null ? JSON.stringify(v.uris) : null,
+      status: str(v.status),
+    };
+  }
+}
+
+if (!event) return Astro.redirect("/404");
+
+// A DevRel(ish) group may have claimed this event via com.devrelish.event.meta.
+const [meta] = await db
+  .select({ groupName: AtGroups.name })
+  .from(AtEventMeta)
+  .leftJoin(AtGroups, eq(AtGroups.uri, AtEventMeta.groupUri))
+  .where(eq(AtEventMeta.eventUri, uri));
+
+const [rsvpRow] = await db
+  .select({ val: count() })
+  .from(AtRsvps)
+  .where(eq(AtRsvps.eventUri, uri));
+const rsvpCount = rsvpRow?.val ?? 0;
+
+const locations = parseLocations(event.locationJson);
+const uris = parseUris(event.urisJson);
+const cancelled = isCancelled(event.status);
+const source = sourceAppName(uris);
+const organizerHandle = await resolveHandleFromDid(did).catch(() => did);
+
+const start = new Date(event.startsAt);
+const startValid = !isNaN(start.getTime());
+const end = event.endsAt ? new Date(event.endsAt) : null;
+const endValid = end !== null && !isNaN(end.getTime());
+const isPast = startValid && start < new Date();
+
+const fmtDate = new Intl.DateTimeFormat("en-US", {
+  weekday: "long", month: "long", day: "numeric", year: "numeric",
+});
+const fmtTime = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+
+const placeLines = locations.map((l) => [l.name, l.city, l.country].filter(Boolean).join(", ")).filter(Boolean);
+const primaryLink = uris[0] ?? null;
+---
+
+<BaseLayout
+  title={event.name}
+  description={(event.description ?? "").slice(0, 200) || `An event on the AT Protocol network.`}
+>
+  <section class="at-detail">
+    <div class="container">
+      <a href="/gatherings" class="back-link">← All gatherings</a>
+
+      <div class="at-detail-badges">
+        <span class="at-badge"><span aria-hidden="true">◎</span> From the Atmosphere</span>
+        {cancelled && <span class="badge badge-rejected">Cancelled</span>}
+        {isPast && !cancelled && <span class="badge badge-closed">Past</span>}
+      </div>
+
+      <h1>{event.name}</h1>
+
+      <div class="at-facts">
+        {startValid && (
+          <div class="at-fact">
+            <span class="at-fact-label">When</span>
+            <span>
+              {fmtDate.format(start)} · {fmtTime.format(start)}
+              {endValid && ` – ${fmtTime.format(end!)}`}
+            </span>
+          </div>
+        )}
+        {placeLines.length > 0 && (
+          <div class="at-fact">
+            <span class="at-fact-label">Where</span>
+            <span>{placeLines.join(" · ")}</span>
+          </div>
+        )}
+        <div class="at-fact">
+          <span class="at-fact-label">Organizer</span>
+          <span>@{organizerHandle}{meta?.groupName ? ` · ${meta.groupName}` : ""}</span>
+        </div>
+        {rsvpCount > 0 && (
+          <div class="at-fact">
+            <span class="at-fact-label">RSVPs</span>
+            <span>{rsvpCount} on the network</span>
+          </div>
+        )}
+      </div>
+
+      {event.description && (
+        <div class="at-description prose" set:html={renderMarkdown(event.description)} />
+      )}
+
+      <div class="at-actions">
+        {primaryLink ? (
+          <a href={primaryLink.uri} class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+            {primaryLink.name ?? (source ? `RSVP on ${source}` : "RSVP on the organizer's site")} ↗
+          </a>
+        ) : (
+          <p class="at-no-link">
+            This event's record doesn't include a link, so there's nowhere to RSVP from here.
+            {source && ` It looks like it came from ${source}.`}
+          </p>
+        )}
+        {uris.slice(1).map((u) => (
+          <a href={u.uri} class="btn btn-ghost btn-sm" target="_blank" rel="noopener noreferrer">
+            {u.name ?? new URL(u.uri).hostname} ↗
+          </a>
+        ))}
+      </div>
+
+      <p class="at-provenance">
+        DevRel(ish) didn't create this event — it's a
+        <code>community.lexicon.calendar.event</code> record on
+        <strong>@{organizerHandle}</strong>'s own PDS, shown here because
+        DevRel(ish) reads the same open schema{source ? ` as ${source}` : ""}.
+        {liveFetched && " Read live from the source, not from our index."}
+      </p>
+      <p class="at-uri"><code>{uri}</code></p>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .at-detail { padding: 2.5rem 0 3.5rem; }
+
+  .back-link {
+    display: inline-block;
+    font-size: var(--size-sm);
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    margin-bottom: 1.25rem;
+  }
+  .back-link:hover { color: var(--color-primary); }
+
+  .at-detail-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .at-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: var(--size-xs);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-accent-dark);
+    background: color-mix(in oklch, var(--color-accent) 12%, var(--color-bg));
+    border: 1px solid color-mix(in oklch, var(--color-accent) 30%, var(--color-bg));
+    border-radius: var(--radius-full);
+    padding: 0.2rem 0.625rem;
+  }
+
+  h1 { margin-bottom: 1.25rem; }
+
+  .at-facts {
+    display: grid;
+    gap: 0.625rem;
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+    max-width: 640px;
+  }
+
+  .at-fact {
+    display: grid;
+    grid-template-columns: 6.5rem 1fr;
+    gap: 0.75rem;
+    font-size: var(--size-sm);
+    align-items: baseline;
+  }
+
+  .at-fact-label {
+    font-weight: 700;
+    font-size: var(--size-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted);
+  }
+
+  .at-description { margin-bottom: 1.75rem; }
+
+  .at-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.625rem;
+    margin-bottom: 2rem;
+  }
+
+  .at-no-link {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+  }
+
+  .at-provenance {
+    font-size: var(--size-sm);
+    color: var(--color-text-muted);
+    border-top: 2px dashed var(--color-border);
+    padding-top: 1.25rem;
+  }
+
+  .at-uri {
+    font-size: var(--size-xs);
+    color: var(--color-text-light);
+    word-break: break-all;
+  }
+
+  @media (max-width: 560px) {
+    .at-fact { grid-template-columns: 1fr; gap: 0.15rem; }
+  }
+</style>
