@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { db, Groups, eq } from "astro:db";
 import { getPdsSession, pdsCreate } from "../../../lib/atproto-pds";
+import { buildAddress } from "../../../lib/atproto-records";
 
 export const prerender = false;
 
@@ -19,21 +20,21 @@ export const POST: APIRoute = async ({ locals, redirect }) => {
   if (!session) return redirect("/auth/login");
 
   try {
-    const locationEntry = group.city || group.country
-      ? {
-          location: {
-            $type: "community.lexicon.location.address",
-            ...(group.city ? { city: group.city } : {}),
-            ...(group.region ? { state: group.region } : {}),
-            ...(group.country ? { country: group.country } : {}),
-          },
-        }
-      : {};
+    const address = buildAddress({
+      locality: group.city,
+      region: group.region,
+      country: group.country,
+    });
+    const locationEntry = address ? { location: address } : {};
 
     const result = await pdsCreate(session, "com.devrelish.group", {
       name: group.name,
       description: group.description,
       ...(group.category ? { category: group.category } : {}),
+      ...(group.website ? { website: group.website } : {}),
+      ...(group.handle ? { handle: group.handle } : {}),
+      ...(group.handleDid ? { did: group.handleDid } : {}),
+      ...(group.linkedinUrl ? { linkedinUrl: group.linkedinUrl } : {}),
       ...locationEntry,
       createdAt: group.createdAt.toISOString(),
     });

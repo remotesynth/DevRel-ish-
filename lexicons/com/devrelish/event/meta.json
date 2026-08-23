@@ -88,9 +88,14 @@
                     "format": "uri",
                     "description": "URL to the speaker's photo."
                 },
-                "blueskyHandle": {
+                "handle": {
                     "type": "string",
-                    "description": "Speaker's Bluesky handle (without the @)."
+                    "description": "Speaker's AT Protocol handle, without the @. Any provider, not just Bluesky."
+                },
+                "did": {
+                    "type": "string",
+                    "format": "did",
+                    "description": "The DID the speaker's handle resolved to, when known."
                 }
             }
         },

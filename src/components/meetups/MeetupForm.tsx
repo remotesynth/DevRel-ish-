@@ -8,6 +8,7 @@ interface Props {
     description: string;
     date: string;
     time: string;
+    endTime: string;
     venue: string;
     address: string;
     capacity: number;
@@ -19,6 +20,7 @@ type FormData = {
   description: string;
   date: string;
   time: string;
+  endTime: string;
   venue: string;
   address: string;
   capacity: number;
@@ -29,6 +31,7 @@ const defaultForm: FormData = {
   description: "",
   date: "",
   time: "18:00",
+  endTime: "",
   venue: "",
   address: "",
   capacity: 30,
@@ -135,7 +138,7 @@ export default function MeetupForm({ mode, meetupId, initial }: Props) {
           />
         </div>
         <div className="form-group">
-          <label htmlFor="time">Time *</label>
+          <label htmlFor="time">Start time *</label>
           <input
             id="time"
             type="time"
@@ -143,6 +146,18 @@ export default function MeetupForm({ mode, meetupId, initial }: Props) {
             onChange={update("time")}
             required
           />
+        </div>
+        <div className="form-group">
+          <label htmlFor="endTime">End time</label>
+          <input
+            id="endTime"
+            type="time"
+            value={form.endTime}
+            onChange={update("endTime")}
+          />
+          <span className="form-hint">
+            Optional, but calendar apps across the Atmosphere show your event better with one.
+          </span>
         </div>
       </div>
 

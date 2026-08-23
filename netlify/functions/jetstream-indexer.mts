@@ -107,12 +107,12 @@ async function indexRecord(
 
   if (collection === "com.devrelish.group") {
     await db.execute({
-      sql: `INSERT INTO "AtGroups" (uri, cid, did, name, description, locationJson, category, tags, website, blueskyHandle, linkedinUrl, coOrganizers, createdAt, indexedAt)
-            VALUES (:uri, :cid, :did, :name, :description, :locationJson, :category, :tags, :website, :blueskyHandle, :linkedinUrl, :coOrganizers, :createdAt, :indexedAt)
+      sql: `INSERT INTO "AtGroups" (uri, cid, did, name, description, locationJson, category, tags, website, handle, handleDid, linkedinUrl, coOrganizers, createdAt, indexedAt)
+            VALUES (:uri, :cid, :did, :name, :description, :locationJson, :category, :tags, :website, :handle, :handleDid, :linkedinUrl, :coOrganizers, :createdAt, :indexedAt)
             ON CONFLICT (uri) DO UPDATE SET
               cid = excluded.cid, name = excluded.name, description = excluded.description,
               locationJson = excluded.locationJson, category = excluded.category,
-              tags = excluded.tags, website = excluded.website, blueskyHandle = excluded.blueskyHandle,
+              tags = excluded.tags, website = excluded.website, handle = excluded.handle, handleDid = excluded.handleDid,
               linkedinUrl = excluded.linkedinUrl, coOrganizers = excluded.coOrganizers,
               indexedAt = excluded.indexedAt`,
       args: {
@@ -123,7 +123,8 @@ async function indexRecord(
         category: record.category != null ? String(record.category) : null,
         tags: record.tags != null ? JSON.stringify(record.tags) : null,
         website: record.website != null ? String(record.website) : null,
-        blueskyHandle: record.blueskyHandle != null ? String(record.blueskyHandle) : null,
+        handle: record.handle != null ? String(record.handle) : null,
+        handleDid: record.did != null ? String(record.did) : null,
         linkedinUrl: record.linkedinUrl != null ? String(record.linkedinUrl) : null,
         coOrganizers: record.coOrganizers != null ? JSON.stringify(record.coOrganizers) : null,
         createdAt: String(record.createdAt ?? indexedAt),

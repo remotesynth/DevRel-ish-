@@ -2,6 +2,7 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { db, AppUser, Groups, GroupInvites, AtGroups, eq } from "astro:db";
 import { getPdsSession, pdsPut } from "../../lib/atproto-pds";
+import { buildAddress } from "../../lib/atproto-records";
 
 const { token } = Astro.params;
 if (!token) return Astro.redirect("/");
@@ -51,14 +52,14 @@ if (isValid && user && Astro.request.method === "POST") {
           await pdsPut(organizerSession, group!.atUri, {
             name: group!.name,
             description: group!.description,
-            ...(group!.city || group!.country
-              ? { location: {
-                  $type: "community.lexicon.location.address",
-                  ...(group!.city ? { city: group!.city } : {}),
-                  ...(group!.region ? { state: group!.region } : {}),
-                  ...(group!.country ? { country: group!.country } : {}),
-                }}
-              : {}),
+            ...(() => {
+              const address = buildAddress({
+                locality: group!.city,
+                region: group!.region,
+                country: group!.country,
+              });
+              return address ? { location: address } : {};
+            })(),
             ...(group!.category ? { category: group!.category } : {}),
             coOrganizers,
             createdAt: group!.createdAt.toISOString(),

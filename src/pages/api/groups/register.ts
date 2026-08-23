@@ -4,6 +4,7 @@ import { generateId, slugify } from "../../../lib/utils";
 import { eq } from "astro:db";
 import { CATEGORIES } from "../../../lib/categories";
 import { getPdsSession, pdsCreate } from "../../../lib/atproto-pds";
+import { buildAddress } from "../../../lib/atproto-records";
 
 export const prerender = false;
 
@@ -83,16 +84,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const groupId = generateId();
 
   try {
-    const locationEntry = (city?.trim() || country?.trim())
-      ? {
-          location: {
-            $type: "community.lexicon.location.address",
-            ...(city?.trim() ? { city: city.trim() } : {}),
-            ...(region?.trim() ? { state: region.trim() } : {}),
-            ...(country?.trim() ? { country: country.trim() } : {}),
-          },
-        }
-      : {};
+    // `country` is the only required field of the address type, so an address
+    // without one is invalid — buildAddress returns null and we omit the field.
+    const address = buildAddress({
+      locality: city as string | undefined,
+      region: region as string | undefined,
+      country: country as string | undefined,
+    });
+    const locationEntry = address ? { location: address } : {};
 
     const pdsResult = await pdsCreate(session, "com.devrelish.group", {
       name: name.trim(),

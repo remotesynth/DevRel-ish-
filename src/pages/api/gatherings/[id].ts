@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { db, Meetups, Groups, RSVPs, eq, and } from "astro:db";
-import { getPdsSession, pdsPut, pdsDelete } from "../../../lib/atproto-pds";
+import { getPdsSession, pdsDelete } from "../../../lib/atproto-pds";
+import { syncGathering } from "../../../lib/gatherings";
 
 export const prerender = false;
 
@@ -18,10 +19,6 @@ async function getOwnedMeetup(meetupId: string, userId: string) {
   return meetup ?? null;
 }
 
-function buildStartsAt(date: Date, timeStr: string): string {
-  const dateStr = date.toISOString().split("T")[0];
-  return `${dateStr}T${timeStr}:00.000Z`;
-}
 
 export const PUT: APIRoute = async ({ params, request, locals }) => {
   if (!locals.user) return json({ error: "Unauthorized." }, 401);
@@ -36,7 +33,7 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
     return json({ error: "Invalid request body." }, 400);
   }
 
-  const { title, description, date, time, venue, address, capacity } = body as Record<string, unknown>;
+  const { title, description, date, time, endTime, venue, address, capacity } = body as Record<string, unknown>;
 
   const updates: Partial<typeof meetup> = {};
 
@@ -65,6 +62,11 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
     if (!t) return json({ error: "Time cannot be empty." }, 400);
     updates.time = t;
   }
+  if (endTime !== undefined) {
+    const e = endTime ? String(endTime).trim() : "";
+    if (e && !/^\d{2}:\d{2}$/.test(e)) return json({ error: "Invalid end time." }, 400);
+    updates.endTime = e || null;
+  }
   if (venue !== undefined) {
     const v = String(venue).trim();
     if (!v) return json({ error: "Venue cannot be empty." }, 400);
@@ -83,53 +85,10 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
 
   await db.update(Meetups).set(updates).where(eq(Meetups.id, meetup.id));
 
-  // Update PDS records if they exist (best-effort)
-  if (meetup.atEventUri) {
-    const session = await getPdsSession(locals.user.did);
-    if (session) {
-      try {
-        const finalTitle   = (updates.title ?? meetup.title);
-        const finalDesc    = (updates.description ?? meetup.description);
-        const finalDate    = (updates.date ?? meetup.date);
-        const finalTime    = (updates.time ?? meetup.time);
-        const finalVenue   = (updates.venue ?? meetup.venue);
-        const finalAddress = (updates.address ?? meetup.address);
-
-        const eventResult = await pdsPut(session, meetup.atEventUri, {
-          name: finalTitle,
-          startsAt: buildStartsAt(finalDate, finalTime),
-          description: finalDesc,
-          locations: [{
-            $type: "community.lexicon.location.address",
-            name: finalVenue,
-            ...(finalAddress ? { street: finalAddress } : {}),
-          }],
-          createdAt: meetup.createdAt.toISOString(),
-        });
-        await db.update(Meetups)
-          .set({ atEventCid: eventResult.cid })
-          .where(eq(Meetups.id, meetup.id));
-
-        // Update meta record if capacity changed and meta exists
-        if (updates.capacity !== undefined && meetup.atMetaUri) {
-          const [group] = await db.select().from(Groups).where(eq(Groups.managerId, locals.user.id));
-          if (group?.atUri && group?.atCid) {
-            const metaResult = await pdsPut(session, meetup.atMetaUri, {
-              event: { uri: eventResult.uri, cid: eventResult.cid },
-              group: { uri: group.atUri, cid: group.atCid },
-              capacity: updates.capacity,
-              createdAt: meetup.createdAt.toISOString(),
-            });
-            await db.update(Meetups)
-              .set({ atMetaCid: metaResult.cid })
-              .where(eq(Meetups.id, meetup.id));
-          }
-        }
-      } catch (err) {
-        console.error("[gatherings/update] PDS write failed:", err);
-      }
-    }
-  }
+  // Push the edit to the network so other apps don't keep showing a stale event.
+  const [updated] = await db.select().from(Meetups).where(eq(Meetups.id, meetup.id));
+  const [ownerGroup] = await db.select().from(Groups).where(eq(Groups.id, meetup.groupId));
+  if (updated && ownerGroup) await syncGathering(locals.user.did, updated, ownerGroup);
 
   return json({ ok: true });
 };

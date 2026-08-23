@@ -53,9 +53,14 @@
                         "format": "uri",
                         "description": "The group's website URL."
                     },
-                    "blueskyHandle": {
+                    "handle": {
                         "type": "string",
-                        "description": "The group's Bluesky handle (without the @)."
+                        "description": "The group's AT Protocol handle, without the @ (e.g. 'yourgroup.example.com'). Any provider, not just Bluesky."
+                    },
+                    "did": {
+                        "type": "string",
+                        "format": "did",
+                        "description": "The DID the group's handle resolved to, when known. Stable across handle changes."
                     },
                     "linkedinUrl": {
                         "type": "string",

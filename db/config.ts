@@ -15,7 +15,8 @@ const Groups = defineTable({
     tags: column.text({ optional: true }),
     category: column.text({ optional: true }),
     website: column.text({ optional: true }),
-    blueskyHandle: column.text({ optional: true }),
+    handle: column.text({ optional: true }),      // the group's own ATProto handle, no @
+    handleDid: column.text({ optional: true }),   // DID that handle resolved to, if verified
     linkedinUrl: column.text({ optional: true }),
     description: column.text(),
     contactEmail: column.text(),
@@ -35,6 +36,7 @@ const Meetups = defineTable({
     description: column.text(),
     date: column.date(),
     time: column.text(),
+    endTime: column.text({ optional: true }),  // "HH:MM", local to the venue
     venue: column.text(),
     address: column.text({ optional: true }),
     city: column.text({ optional: true }),
@@ -185,7 +187,8 @@ const AtGroups = defineTable({
     category: column.text({ optional: true }),
     tags: column.text({ optional: true }),  // JSON array
     website: column.text({ optional: true }),
-    blueskyHandle: column.text({ optional: true }),
+    handle: column.text({ optional: true }),      // the group's own ATProto handle, no @
+    handleDid: column.text({ optional: true }),   // DID that handle resolved to, if verified
     linkedinUrl: column.text({ optional: true }),
     coOrganizers: column.text({ optional: true }), // JSON array of DIDs
     createdAt: column.text(),

@@ -1,31 +1,9 @@
 import type { APIRoute } from "astro";
 import { getOAuthClient } from "../../../lib/atproto-oauth";
 import { createSession, upsertUser, SESSION_COOKIE } from "../../../lib/session";
+import { resolveHandleFromDid } from "../../../lib/atproto-identity";
 
 export const prerender = false;
-
-async function resolveHandleFromDid(did: string): Promise<string> {
-  let didDocUrl: string;
-
-  if (did.startsWith("did:plc:")) {
-    didDocUrl = `https://plc.directory/${did}`;
-  } else if (did.startsWith("did:web:")) {
-    // did:web:example.com → https://example.com/.well-known/did.json
-    // did:web:example.com:path → https://example.com/path/did.json
-    const suffix = did.slice("did:web:".length).replaceAll(":", "/");
-    didDocUrl = `https://${suffix}/.well-known/did.json`;
-  } else {
-    return did;
-  }
-
-  const res = await fetch(didDocUrl, { signal: AbortSignal.timeout(5000) });
-  if (!res.ok) return did;
-
-  const doc = await res.json();
-  const aka: string = doc.alsoKnownAs?.[0] ?? "";
-  // alsoKnownAs entries use the "at://" prefix: "at://alice.example.com"
-  return aka.startsWith("at://") ? aka.slice("at://".length) : did;
-}
 
 export const GET: APIRoute = async ({ url, redirect }) => {
   const params = url.searchParams;
@@ -42,8 +20,7 @@ export const GET: APIRoute = async ({ url, redirect }) => {
 
     const did = session.did;
 
-    // Resolve handle from the DID document — works for any ATProto PDS,
-    // not just Bluesky. did:plc → PLC directory; did:web → .well-known/did.json
+    // Resolve handle from the DID document — works for any ATProto PDS.
     let handle: string = did;
     try {
       handle = await resolveHandleFromDid(did);

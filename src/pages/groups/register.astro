@@ -5,6 +5,7 @@ import { eq } from "astro:db";
 import { generateId, slugify } from "../../lib/utils";
 import { CATEGORIES, getCategoryLabel } from "../../lib/categories";
 import { getPdsSession, pdsCreate } from "../../lib/atproto-pds";
+import { buildAddress } from "../../lib/atproto-records";
 
 if (!Astro.locals.user) {
   return Astro.redirect("/auth/login?redirect=/groups/register");
@@ -81,16 +82,12 @@ if (Astro.request.method === "POST") {
         const groupId = generateId();
 
         try {
-          const locationEntry = (vals.city || vals.country)
-            ? {
-                location: {
-                  $type: "community.lexicon.location.address",
-                  ...(vals.city ? { city: vals.city } : {}),
-                  ...(vals.region ? { state: vals.region } : {}),
-                  ...(vals.country ? { country: vals.country } : {}),
-                },
-              }
-            : {};
+          const address = buildAddress({
+            locality: vals.city,
+            region: vals.region,
+            country: vals.country,
+          });
+          const locationEntry = address ? { location: address } : {};
 
           const pdsResult = await pdsCreate(session, "com.devrelish.group", {
             name: vals.name,

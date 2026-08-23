@@ -3,6 +3,7 @@ import { db, RSVPs, Meetups, Groups, eq, and, count } from "astro:db";
 import { createHash } from "node:crypto";
 import { generateId } from "../../../lib/utils";
 import { getPdsSession, pdsCreate } from "../../../lib/atproto-pds";
+import { RSVP_NSID, RsvpStatus } from "../../../lib/atproto-records";
 
 export const prerender = false;
 
@@ -83,9 +84,9 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
         .update(meetup.atEventUri!)
         .digest("hex")
         .slice(0, 13);
-      pdsCreate(session, "community.lexicon.calendar.rsvp", {
+      pdsCreate(session, RSVP_NSID, {
         subject: { uri: meetup.atEventUri, cid: meetup.atEventCid },
-        status: "community.lexicon.calendar.rsvp#going",
+        status: RsvpStatus.going,
         createdAt: new Date().toISOString(),
       }, rsvpRkey).catch(err => console.warn("[rsvp] ATProto RSVP failed (non-fatal):", err));
     }

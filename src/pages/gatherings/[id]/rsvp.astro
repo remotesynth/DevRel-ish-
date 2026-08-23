@@ -7,6 +7,7 @@ import { formatDate, formatTime, spotsLeft, generateId, googleCalendarUrl, osmUr
 import { renderMarkdown } from "../../../lib/markdown";
 import { createHash } from "node:crypto";
 import { getPdsSession, pdsCreate } from "../../../lib/atproto-pds";
+import { RSVP_NSID, RsvpStatus } from "../../../lib/atproto-records";
 
 const { id } = Astro.params;
 
@@ -52,9 +53,9 @@ if (Astro.request.method === "POST") {
           .update(meetup.atEventUri!)
           .digest("hex")
           .slice(0, 13);
-        await pdsCreate(session, "community.lexicon.calendar.rsvp", {
+        await pdsCreate(session, RSVP_NSID, {
           subject: { uri: meetup.atEventUri, cid: meetup.atEventCid },
-          status: "community.lexicon.calendar.rsvp#going",
+          status: RsvpStatus.going,
           createdAt: new Date().toISOString(),
         }, rsvpRkey);
         result = { type: "atproto-success", handle: Astro.locals.user.handle };
@@ -130,8 +131,8 @@ if (Astro.request.method === "POST") {
 // Bluesky share intent
 const bskyShareUrl = (() => {
   const eventUrl = `${Astro.url.origin}/gatherings/${id}/rsvp`;
-  const withHandle = group.blueskyHandle
-    ? ` with @${group.blueskyHandle.replace(/^@/, "")}`
+  const withHandle = group.handle
+    ? ` with @${group.handle.replace(/^@/, "")}`
     : "";
   const hashtags = group.tags
     ? group.tags

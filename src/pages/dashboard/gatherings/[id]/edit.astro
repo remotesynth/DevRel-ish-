@@ -1,5 +1,6 @@
 ---
 import DashboardLayout from "../../../../layouts/DashboardLayout.astro";
+import { publishOrSyncGathering } from "../../../../lib/gatherings";
 import { db, Groups, Meetups } from "astro:db";
 import { eq, and } from "astro:db";
 
@@ -31,6 +32,7 @@ let vals = {
   description: meetup.description,
   date: meetup.date.toISOString().split("T")[0],
   time: meetup.time,
+  endTime: meetup.endTime ?? "",
   venue: meetup.venue,
   address: meetup.address ?? "",
   city: meetup.city ?? "",
@@ -48,6 +50,7 @@ if (Astro.request.method === "POST") {
     description: form.get("description")?.toString().trim() ?? "",
     date: form.get("date")?.toString() ?? "",
     time: form.get("time")?.toString() ?? "",
+    endTime: form.get("endTime")?.toString() ?? "",
     venue: form.get("venue")?.toString().trim() ?? "",
     address: form.get("address")?.toString().trim() ?? "",
     city: form.get("city")?.toString().trim() ?? "",
@@ -76,6 +79,7 @@ if (Astro.request.method === "POST") {
         description: vals.description,
         date: meetupDate,
         time: vals.time,
+        endTime: vals.endTime || null,
         venue: vals.venue,
         address: vals.address || null,
         city: vals.city || null,
@@ -85,6 +89,12 @@ if (Astro.request.method === "POST") {
         capacity: cap,
       })
       .where(eq(Meetups.id, id));
+
+    // Push the edit to the network. Without this, other apps keep showing the
+    // stale version of an event people are relying on.
+    const [updated] = await db.select().from(Meetups).where(eq(Meetups.id, id));
+    const [ownerGroup] = await db.select().from(Groups).where(eq(Groups.id, meetup.groupId));
+    if (updated && ownerGroup) await publishOrSyncGathering(user.did, updated, ownerGroup);
 
     result = { type: "success" };
   }
@@ -126,8 +136,13 @@ if (Astro.request.method === "POST") {
           <input id="date" name="date" type="date" value={vals.date} required />
         </div>
         <div class="form-group">
-          <label for="time">Time *</label>
+          <label for="time">Start time *</label>
           <input id="time" name="time" type="time" value={vals.time} required />
+        </div>
+        <div class="form-group">
+          <label for="endTime">End time</label>
+          <input id="endTime" name="endTime" type="time" value={vals.endTime} />
+          <span class="form-hint">Optional — but calendar apps across the Atmosphere render your event better with one.</span>
         </div>
       </div>
 

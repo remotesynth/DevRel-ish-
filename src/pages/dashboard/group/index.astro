@@ -4,6 +4,8 @@ import { db, Groups } from "astro:db";
 import { eq } from "astro:db";
 import { CATEGORIES } from "../../../lib/categories";
 import { groupUrl } from "../../../lib/utils";
+import { HANDLE_RE, resolveHandleToDid } from "../../../lib/atproto-identity";
+import { getPdsSession } from "../../../lib/atproto-pds";
 
 if (!Astro.locals.user) return Astro.redirect("/auth/login");
 const user = Astro.locals.user;
@@ -36,7 +38,7 @@ if (Astro.request.method === "POST") {
   const country = form.get("country")?.toString().trim() ?? "";
   const website = form.get("website")?.toString().trim() ?? "";
   // Strip leading @ — ATProto handles are bare hostnames
-  const blueskyHandle = (form.get("blueskyHandle")?.toString().trim() ?? "").replace(/^@+/, "");
+  const handleInput = (form.get("handle")?.toString().trim() ?? "").replace(/^@+/, "").toLowerCase();
   const linkedinUrl = form.get("linkedinUrl")?.toString().trim() ?? "";
   const customSlugRaw = form.get("customSlug")?.toString().trim().toLowerCase() ?? "";
 
@@ -64,29 +66,25 @@ if (Astro.request.method === "POST") {
     }
   }
 
-  // ATProto handle validation
-  // Valid handle: 2+ dot-separated segments, each: letters/numbers/hyphens, no leading/trailing hyphen
-  const atHandleRe = /^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,63}$/;
-  let normalizedHandle = blueskyHandle || null;
-  const handleChanged = blueskyHandle !== (group.blueskyHandle ?? "");
-  if (blueskyHandle && handleChanged) {
-    if (!atHandleRe.test(blueskyHandle)) {
-      errorMsg = "Bluesky handle must be a valid domain-style handle (e.g. yourgroup.bsky.social).";
+  // ATProto handle validation, provider-neutral: resolved via the handle's own
+  // domain, falling back to the organizer's own PDS. Never via a Bluesky endpoint.
+  let normalizedHandle = handleInput || null;
+  let normalizedHandleDid = group.handleDid ?? null;
+  const handleChanged = handleInput !== (group.handle ?? "");
+
+  if (handleChanged) normalizedHandleDid = null;
+
+  if (handleInput && handleChanged) {
+    if (!HANDLE_RE.test(handleInput)) {
+      errorMsg = "Handle must be a domain-style ATProto handle (e.g. yourgroup.example.com).";
     } else {
-      // Attempt live resolution via public ATProto API
-      try {
-        const res = await fetch(
-          `https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(blueskyHandle)}`,
-          { signal: AbortSignal.timeout(4000) }
-        );
-        if (res.ok) {
-          const { did } = await res.json() as { did: string };
-          successMsg = `Group details updated! Handle @${blueskyHandle} verified ✓ (${did})`;
-        } else {
-          handleWarning = `Handle "@${blueskyHandle}" could not be verified — double-check it's correct. It has been saved as entered.`;
-        }
-      } catch {
-        handleWarning = `Handle verification timed out. "@${blueskyHandle}" has been saved but could not be confirmed.`;
+      const pdsSession = await getPdsSession(user.did);
+      const resolved = await resolveHandleToDid(handleInput, pdsSession);
+      if (resolved) {
+        normalizedHandleDid = resolved;
+        successMsg = `Group details updated! Handle @${handleInput} verified ✓ (${resolved})`;
+      } else {
+        handleWarning = `Handle "@${handleInput}" could not be verified — double-check it's correct. It has been saved as entered.`;
       }
     }
   }
@@ -114,7 +112,8 @@ if (Astro.request.method === "POST") {
         region: region || null,
         country: country || null,
         website: website || null,
-        blueskyHandle: normalizedHandle,
+        handle: normalizedHandle,
+        handleDid: normalizedHandleDid,
         linkedinUrl: linkedinUrl || null,
         customSlug: customSlugValue,
       })
@@ -252,9 +251,13 @@ if (Astro.request.method === "POST") {
       </div>
 
       <div class="form-group">
-        <label for="blueskyHandle">Bluesky handle</label>
-        <input id="blueskyHandle" name="blueskyHandle" type="text" value={group.blueskyHandle ?? ""} placeholder="yourgroup.bsky.social" />
-        <span class="form-hint">Enter without the @ — e.g. <code>yourgroup.bsky.social</code> or a custom domain handle.</span>
+        <label for="handle">ATProto handle</label>
+        <input id="handle" name="handle" type="text" value={group.handle ?? ""} placeholder="yourgroup.example.com" />
+        <span class="form-hint">
+          Your group's own account on any AT Protocol service, without the @ — a custom domain
+          like <code>yourgroup.example.com</code> or a provider handle like <code>yourgroup.bsky.social</code>.
+          We'll verify it against the handle's own domain.
+        </span>
       </div>
 
       <div class="form-group">
