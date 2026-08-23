@@ -109,10 +109,20 @@ their original at:// URI and are never overwritten (`Meetups.adopted` guards `sy
 
 ### Design
 
-- Warm palette (terracotta, sunny yellow, fresh green)
-- Bricolage Grotesque display font + Figtree body font
-- Full responsive CSS with custom properties — no CSS framework
-- Direction and anti-references documented in `.impeccable.md`
+Custom Hallmark theme — vibe *"community zine, warm, crafted, unvarnished"*, editorial genre,
+macrostructure **Ecosystem Index**, nav **N6 newspaper masthead**, footer **Ft4 dense colophon**.
+
+- **`src/styles/tokens.css` is the single source of truth.** Every colour and every
+  `font-family` in the app must reference a token by name. If a value is missing, add it there
+  first — inline hex / `oklch()` / `rgb()` values are how the last design drifted.
+- Warm palette anchored on terracotta `oklch(52% 0.16 34)`, paper `oklch(95% 0.016 62)`,
+  neutrals tinted toward the anchor. Every pair verified for WCAG AA at its intended size.
+- Fraunces (display) + Source Serif 4 (body) + JetBrains Mono. The mono is an *outlier
+  register* with one job: machine-readable identifiers — handles, DIDs, `at://` URIs, counts.
+- Print corners (2–5px), three rule weights, hairlines rather than card borders.
+- One orchestrated page-load entrance, with a `prefers-reduced-motion` path.
+- The full stamp — genre, macrostructure, theme, axes, nav/footer archetypes — is the comment
+  block at the top of `src/styles/global.css`. `.hallmark/log.json` records it for future runs.
 
 ---
 
