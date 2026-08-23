@@ -290,7 +290,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
           </p>
         </details>
 
-        <details class="faq-item">
+        <details class="faq-item" id="network">
           <summary>How does interop with other event apps work?</summary>
           <p>
             Smoke Signal, atmo.rsvp, and OpenMeet are other Atmosphere event apps, and they use the same
@@ -298,6 +298,27 @@ import BaseLayout from "../layouts/BaseLayout.astro";
             schemas DevRel(ish) does. Because everyone writes the same shape of record into the same network,
             events created here show up there and vice versa — no integration, no API keys, no coordination
             between the projects. This is the practical benefit of open standards: your events aren't siloed.
+          </p>
+        </details>
+
+        <details class="faq-item">
+          <summary>Why don't I see every event from the network?</summary>
+          <p>
+            Because that calendar schema belongs to the whole Atmosphere, not to tech. The same record type
+            carries book clubs, yoga classes, sound baths, and community potlucks — all real events, none of
+            them what you came here for. So DevRel(ish) shows the ones that are about technology and leaves
+            the rest to the apps they belong on.
+          </p>
+          <p>
+            The filter reads the event's title and description and looks for signals — a language, a
+            framework, a community name, a practice. It's deliberately simple so it can be checked and
+            corrected, rather than clever and inscrutable. An event a group here has claimed as its own
+            skips the check entirely; the organizer has already said what it is.
+          </p>
+          <p>
+            It will occasionally be wrong. If a tech event isn't showing up, or something that clearly isn't
+            one is, <a href="/code-of-conduct#reporting">tell us</a> and we'll fix the vocabulary. Nothing is
+            deleted either way — a direct link to any event on the network still opens here.
           </p>
         </details>
 
