@@ -17,6 +17,14 @@ const WANTED_COLLECTIONS = [
 // Stop collecting after this many ms — well within the 5-min interval
 const MAX_COLLECT_MS = 45_000;
 
+// How far back a first run replays. Jetstream keeps a rolling window; asking for
+// more than it holds simply starts at the oldest it has.
+const COLD_START_LOOKBACK_MS = 24 * 60 * 60 * 1000;
+
+// Per-run cap on repo back-catalogue fetches, so a busy sweep can't blow the
+// function's time budget.
+const MAX_BACKFILL_REPOS = 8;
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface CommitEvent {
@@ -60,7 +68,9 @@ async function indexRecord(
   collection: string,
   record: Record<string, unknown>,
   indexedAt: string
-): Promise<void> {
+): Promise<boolean> {
+  if (!WANTED_COLLECTIONS.includes(collection)) return false;
+
   if (collection === "community.lexicon.calendar.event") {
     await db.execute({
       sql: `INSERT INTO "AtEvents" (uri, cid, did, name, startsAt, endsAt, description, locationJson, urisJson, mode, status, createdAt, indexedAt)
@@ -85,7 +95,7 @@ async function indexRecord(
         indexedAt,
       },
     });
-    return;
+    return true;
   }
 
   if (collection === "community.lexicon.calendar.rsvp") {
@@ -105,7 +115,7 @@ async function indexRecord(
         indexedAt,
       },
     });
-    return;
+    return true;
   }
 
   if (collection === "com.devrelish.group") {
@@ -134,7 +144,7 @@ async function indexRecord(
         indexedAt,
       },
     });
-    return;
+    return true;
   }
 
   if (collection === "com.devrelish.event.meta") {
@@ -160,7 +170,7 @@ async function indexRecord(
         indexedAt,
       },
     });
-    return;
+    return true;
   }
 
   if (collection === "com.devrelish.membership") {
@@ -179,7 +189,10 @@ async function indexRecord(
         indexedAt,
       },
     });
+    return true;
   }
+
+  return false;
 }
 
 async function deleteRecord(
@@ -202,6 +215,77 @@ async function deleteRecord(
   });
 }
 
+// ── Repo back-catalogue ───────────────────────────────────────────────────────
+//
+// Jetstream is forward-only: it tells us about records as they're written, so an
+// event created last month is invisible no matter how long we listen. When we
+// first see a DID publishing calendar events we therefore read its whole
+// collection straight from its PDS. Unauthenticated, public reads.
+//
+// This compounds: every new organizer the firehose reveals brings their back
+// catalogue with them.
+
+async function resolvePds(did: string): Promise<string | null> {
+  const url = did.startsWith("did:plc:")
+    ? `https://plc.directory/${did}`
+    : did.startsWith("did:web:")
+      ? `https://${did.slice("did:web:".length).replaceAll(":", "/")}/.well-known/did.json`
+      : null;
+  if (!url) return null;
+
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(5_000) });
+    if (!res.ok) return null;
+    const doc = (await res.json()) as { service?: Array<{ id?: string; serviceEndpoint?: string }> };
+    const pds = doc.service?.find((sv) => String(sv.id).endsWith("#atproto_pds"))?.serviceEndpoint;
+    return typeof pds === "string" ? pds.replace(/\/$/, "") : null;
+  } catch {
+    return null;
+  }
+}
+
+async function backfillRepo(db: Client, did: string, collection: string, indexedAt: string): Promise<number> {
+  const pds = await resolvePds(did);
+  if (!pds) return 0;
+
+  let cursor: string | undefined;
+  let n = 0;
+
+  try {
+    // Two pages is plenty for a meetup organizer's history and keeps the
+    // per-run cost predictable.
+    for (let page = 0; page < 2; page++) {
+      const qs = new URLSearchParams({ repo: did, collection, limit: "100" });
+      if (cursor) qs.set("cursor", cursor);
+
+      const res = await fetch(`${pds}/xrpc/com.atproto.repo.listRecords?${qs}`, {
+        signal: AbortSignal.timeout(8_000),
+      });
+      if (!res.ok) break;
+
+      const body = (await res.json()) as {
+        records?: Array<{ uri: string; cid: string; value: Record<string, unknown> }>;
+        cursor?: string;
+      };
+      const batch = body.records ?? [];
+      for (const rec of batch) {
+        try {
+          await indexRecord(db, rec.uri, rec.cid, did, collection, rec.value, indexedAt);
+          n++;
+        } catch (err) {
+          console.warn("[jetstream-indexer] backfill index failed", rec.uri, err);
+        }
+      }
+      if (!body.cursor || batch.length === 0) break;
+      cursor = body.cursor;
+    }
+  } catch (err) {
+    console.warn("[jetstream-indexer] backfill failed for", did, err);
+  }
+
+  return n;
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────────
 
 export default async function handler(): Promise<void> {
@@ -215,23 +299,40 @@ export default async function handler(): Promise<void> {
 
   const db = createClient({ url: dbUrl, authToken: dbToken });
 
-  // Load last cursor
+  // Load last cursor.
+  //
+  // On a cold start there isn't one, and connecting with no cursor makes
+  // Jetstream stream from *now* — so a freshly deployed site sees an empty
+  // network until somebody, somewhere, happens to publish. Jetstream accepts a
+  // past cursor and replays from it, so the first run reaches back through its
+  // retention window instead. That's the difference between the network rail
+  // being populated at launch and being empty for a day.
   const cursorResult = await db.execute(
     `SELECT cursor FROM "JetstreamCursor" WHERE id = 'default'`
   );
-  const cursor = cursorResult.rows[0]?.[0] as string | undefined;
+  const stored = cursorResult.rows[0]?.[0] as string | undefined;
+  const coldStart = !stored;
+  const cursor =
+    stored ?? String((Date.now() - COLD_START_LOOKBACK_MS) * 1_000);
 
   // Build subscription URL
   const params = new URLSearchParams();
   for (const col of WANTED_COLLECTIONS) {
-    params.append("wantedCollections[]", col);
+    // No brackets. `wantedCollections[]` is silently ignored by Jetstream, which
+    // then streams the ENTIRE firehose — measured at ~2,000 events per 6s, of
+    // which essentially none are calendar records. The bracketed spelling meant
+    // this function was pulling the whole network every 5 minutes and throwing
+    // 99.9% of it away.
+    params.append("wantedCollections", col);
   }
   if (cursor) {
     params.set("cursor", cursor);
   }
 
   const wsUrl = `${JETSTREAM_URL}?${params}`;
-  console.log(`[jetstream-indexer] Connecting, cursor=${cursor ?? "none"}`);
+  console.log(
+    `[jetstream-indexer] Connecting, cursor=${cursor}${coldStart ? " (cold start — replaying backlog)" : ""}`
+  );
 
   // Phase 1: collect events until caught up or timeout
   const events: JetstreamEvent[] = [];
@@ -281,6 +382,11 @@ export default async function handler(): Promise<void> {
   const indexedAt = nowIso();
   let indexed = 0;
   let deleted = 0;
+  let skipped = 0;
+
+  // DIDs seen publishing calendar events this sweep — candidates for a
+  // back-catalogue read once the live pass is done.
+  const eventAuthors = new Set<string>();
 
   for (const msg of events) {
     if (msg.kind !== "commit") continue;
@@ -288,10 +394,14 @@ export default async function handler(): Promise<void> {
     const { operation, collection, rkey, record, cid } = commit;
     const uri = atUri(did, collection, rkey);
 
+    if (collection === "community.lexicon.calendar.event" && operation !== "delete") {
+      eventAuthors.add(did);
+    }
+
     try {
       if ((operation === "create" || operation === "update") && record && cid) {
-        await indexRecord(db, uri, cid, did, collection, record, indexedAt);
-        indexed++;
+        if (await indexRecord(db, uri, cid, did, collection, record, indexedAt)) indexed++;
+        else skipped++;
       } else if (operation === "delete") {
         await deleteRecord(db, uri, collection);
         deleted++;
@@ -301,7 +411,34 @@ export default async function handler(): Promise<void> {
     }
   }
 
-  // Phase 3: persist cursor
+  // Phase 3: back-catalogue. Read the full calendar collection of authors we
+  // haven't seen before, so their existing events show up rather than only
+  // whatever they post from now on.
+  let backfilled = 0;
+  const fresh: string[] = [];
+  for (const did of eventAuthors) {
+    const seen = await db.execute({
+      sql: `SELECT 1 FROM "BackfilledRepos" WHERE did = ? LIMIT 1`,
+      args: [did],
+    });
+    if (seen.rows.length === 0) fresh.push(did);
+    if (fresh.length >= MAX_BACKFILL_REPOS) break;
+  }
+
+  for (const did of fresh) {
+    const n = await backfillRepo(db, did, "community.lexicon.calendar.event", indexedAt);
+    backfilled += n;
+    await db.execute({
+      sql: `INSERT INTO "BackfilledRepos" (did, records, backfilledAt) VALUES (?, ?, ?)
+            ON CONFLICT (did) DO UPDATE SET records = excluded.records, backfilledAt = excluded.backfilledAt`,
+      args: [did, n, indexedAt],
+    });
+  }
+  if (fresh.length) {
+    console.log(`[jetstream-indexer] Backfilled ${backfilled} records from ${fresh.length} new repo(s)`);
+  }
+
+  // Phase 4: persist cursor
   if (latestCursor) {
     await db.execute({
       sql: `INSERT INTO "JetstreamCursor" (id, cursor, updatedAt) VALUES (?, ?, ?)
@@ -311,6 +448,7 @@ export default async function handler(): Promise<void> {
   }
 
   console.log(
-    `[jetstream-indexer] Done — indexed=${indexed} deleted=${deleted} cursor=${latestCursor}`
+    `[jetstream-indexer] Done — indexed=${indexed} backfilled=${backfilled} ` +
+      `deleted=${deleted} skipped=${skipped} cursor=${latestCursor}`
   );
 }

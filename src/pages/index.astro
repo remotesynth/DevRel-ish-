@@ -153,32 +153,58 @@ const categories = [...categoryTally.entries()]
     </div>
   </section>
 
-  {/* Rail 2 — the rest of the network */}
-  {externalEvents.length > 0 && (
-    <section class="band reveal" style="--i: 2">
-      <div class="container">
-        <div class="rail">
-          <h2 class="rail-title">Elsewhere in the Atmosphere</h2>
-          <span class="rail-meta ident">community.lexicon.calendar.event</span>
-          <a href="/gatherings" class="rail-more">Browse the network &rarr;</a>
-        </div>
-        <p class="rail-lede">
-          Put up by people using other apps &mdash; Smoke Signal, atmo.rsvp, OpenMeet
-          &mdash; and visible here because we all speak the same schema. Nobody had to
-          integrate with anybody. Go anyway.
-        </p>
-        <div class="grid-3">
-          {externalEvents.map((e) => (
-            <AtEventCard
-              uri={e.uri} did={e.did} name={e.name} startsAt={e.startsAt}
-              locationJson={e.locationJson ?? null} urisJson={e.urisJson ?? null}
-              status={e.status ?? null} groupName={e.groupName ?? null}
-            />
-          ))}
-        </div>
+  {/* Rail 2 — the rest of the network. Always renders: this rail IS the
+      interoperability argument, and it makes that argument whether or not
+      the indexer has caught anything yet. */}
+  <section class="band reveal" style="--i: 2">
+    <div class="container">
+      <div class="rail">
+        <h2 class="rail-title">Elsewhere in the Atmosphere</h2>
+        <span class="rail-meta ident">community.lexicon.calendar.event</span>
+        {externalEvents.length > 0 && <a href="/gatherings" class="rail-more">Browse the network &rarr;</a>}
       </div>
-    </section>
-  )}
+
+      {externalEvents.length > 0 ? (
+        <>
+          <p class="rail-lede">
+            Put up by people using other apps &mdash; Smoke Signal, atmo.rsvp, OpenMeet
+            &mdash; and visible here because we all speak the same schema. Nobody had to
+            integrate with anybody. Go anyway.
+          </p>
+          <div class="grid-3">
+            {externalEvents.map((e) => (
+              <AtEventCard
+                uri={e.uri} did={e.did} name={e.name} startsAt={e.startsAt}
+                locationJson={e.locationJson ?? null} urisJson={e.urisJson ?? null}
+                status={e.status ?? null} groupName={e.groupName ?? null}
+              />
+            ))}
+          </div>
+        </>
+      ) : (
+        <div class="network-note">
+          <p class="network-note-lead">
+            DevRel(ish) doesn&rsquo;t only show its own events. Anything published to the
+            AT&nbsp;Protocol as a <span class="ident">calendar.event</span> shows up here
+            too &mdash; from <a href="https://smokesignal.events" target="_blank" rel="noopener noreferrer">Smoke&nbsp;Signal</a>,
+            <a href="https://atmo.rsvp" target="_blank" rel="noopener noreferrer">atmo.rsvp</a>,
+            <a href="https://openmeet.net" target="_blank" rel="noopener noreferrer">OpenMeet</a>,
+            or anything built next week.
+          </p>
+          <p class="network-note-body">
+            Nobody had to integrate with anybody; we just write the same records. Which
+            also means it works in reverse: post a gathering here and it appears in those
+            apps, on your own account, whether or not this site is still around.
+            <a href="/how-it-works">How that works &rarr;</a>
+          </p>
+          <p class="network-note-status">
+            Nothing from the network indexed yet &mdash; new events land here within
+            minutes of being published.
+          </p>
+        </div>
+      )}
+    </div>
+  </section>
 
   {/* Rail 3 — groups */}
   {featuredGroups.length > 0 && (
@@ -328,6 +354,35 @@ const categories = [...categoryTally.entries()]
     max-width: 62ch;
     font-size: var(--text-sm);
     color: var(--color-muted);
+  }
+
+  .network-note {
+    display: grid;
+    gap: var(--space-2xs);
+    padding: var(--space-md);
+    background: var(--color-sun-wash);
+    border-radius: var(--radius-md);
+  }
+
+  .network-note-lead {
+    font-family: var(--font-display);
+    font-variation-settings: var(--display-axes);
+    font-weight: 400;
+    font-size: var(--text-lg);
+    line-height: 1.4;
+    max-width: 62ch;
+  }
+
+  .network-note-body {
+    font-size: var(--text-sm);
+    color: var(--color-ink-2);
+    max-width: 62ch;
+  }
+
+  .network-note-status {
+    font-size: var(--text-xs);
+    color: var(--color-muted);
+    max-width: none;
   }
 
   .rail-empty {

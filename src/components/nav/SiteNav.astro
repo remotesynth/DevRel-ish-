@@ -43,7 +43,22 @@ const [gatheringRow] = await db
 
 const groupCount = groupRow?.val ?? 0;
 const gatheringCount = gatheringRow?.val ?? 0;
-const hasSomething = gatheringCount > 0;
+
+// A brand-new site has nothing on the calendar. Saying "0 gatherings" advertises
+// emptiness; hiding the line entirely leaves a hole where the friendliest thing
+// on the page should be. So the line always says something true and inviting —
+// it just says a different true thing depending on what exists yet.
+type Line =
+  | { kind: "counts"; gatherings: number; groups: number }
+  | { kind: "groups"; groups: number }
+  | { kind: "opening" };
+
+const line: Line =
+  gatheringCount > 0
+    ? { kind: "counts", gatherings: gatheringCount, groups: groupCount }
+    : groupCount > 0
+      ? { kind: "groups", groups: groupCount }
+      : { kind: "opening" };
 ---
 
 <header class="bar">
@@ -52,16 +67,25 @@ const hasSomething = gatheringCount > 0;
       <a href="/" class="wordmark" aria-label="DevRel(ish) home">
         DevRel<span class="wordmark-ish">(ish)</span>
       </a>
-      {
-        hasSomething && (
-          <p class="bar-count">
-            <strong>{gatheringCount}</strong>
-            {gatheringCount === 1 ? " gathering" : " gatherings"} coming up across
-            <strong>{groupCount}</strong>
-            {groupCount === 1 ? " group" : " groups"}
-          </p>
-        )
-      }
+      <p class="bar-count">
+        {
+          line.kind === "counts" ? (
+            <>
+              <strong>{line.gatherings}</strong>
+              {line.gatherings === 1 ? " gathering" : " gatherings"} coming up across
+              <strong>{line.groups}</strong>
+              {line.groups === 1 ? " group" : " groups"}
+            </>
+          ) : line.kind === "groups" ? (
+            <>
+              <strong>{line.groups}</strong>
+              {line.groups === 1 ? " group" : " groups"} here, picking dates
+            </>
+          ) : (
+            <>In-person gatherings for people who work in tech</>
+          )
+        }
+      </p>
     </div>
 
     <button class="bar-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-links">

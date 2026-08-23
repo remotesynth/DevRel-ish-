@@ -147,6 +147,17 @@ const JetstreamCursor = defineTable({
   },
 });
 
+// Repos whose calendar back-catalogue we've already read, so the indexer only
+// pays for each organizer's history once. Jetstream is forward-only; this is
+// what reaches events published before we started listening.
+const BackfilledRepos = defineTable({
+  columns: {
+    did: column.text({ primaryKey: true }),
+    records: column.number({ default: 0 }),
+    backfilledAt: column.text(),
+  },
+});
+
 // Indexed community.lexicon.calendar.event records
 const AtEvents = defineTable({
   columns: {
@@ -361,6 +372,7 @@ export default defineDb({
     OAuthState,
     OAuthSession,
     JetstreamCursor,
+    BackfilledRepos,
     AtEvents,
     AtRsvps,
     AtGroups,
