@@ -38,13 +38,15 @@ const Meetups = defineTable({
     date: column.date(),
     time: column.text(),
     endTime: column.text({ optional: true }),  // "HH:MM", local to the venue
-    venue: column.text(),
+    mode: column.text({ default: "inperson" }), // inperson | virtual | hybrid
+    venue: column.text({ optional: true }),     // required for inperson/hybrid, unused for virtual
+    joinUrl: column.text({ optional: true }),   // required for virtual/hybrid; revealed only to attendees
     address: column.text({ optional: true }),
     city: column.text({ optional: true }),
     country: column.text({ optional: true }),
     eventContext: column.text({ optional: true }),
     tags: column.text({ optional: true }),
-    capacity: column.number(),
+    capacity: column.number({ optional: true }), // null = unlimited
     status: column.text({ default: "active" }), // active | canceled
     atEventUri: column.text({ optional: true }), // at:// URI of community.lexicon.calendar.event
     atEventCid: column.text({ optional: true }), // CID of the event record

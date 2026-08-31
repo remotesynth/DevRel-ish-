@@ -7,29 +7,31 @@
  * anchor set in the display face, hairlines separate rather than enclose, and
  * the only hover signal is the rule going to ink.
  */
-import { formatTime, osmUrl } from "../../lib/utils";
+import { formatTime, osmUrl, spotsLeft as spotsRemaining, isOnline } from "../../lib/utils";
 
 interface Props {
   id: string;
   title: string;
   date: Date;
   time: string;
-  venue: string;
+  mode?: string | null;
+  venue?: string | null;
   address?: string | null;
   city?: string | null;
   country?: string | null;
   eventContext?: string | null;
-  capacity: number;
+  capacity: number | null;
   rsvpCount: number;
   groupName: string;
 }
 
-const { id, title, date, time, venue, address, city, country, eventContext, capacity, rsvpCount, groupName } =
+const { id, title, date, time, mode, venue, address, city, country, eventContext, capacity, rsvpCount, groupName } =
   Astro.props;
 
-const spotsLeft = Math.max(0, capacity - rsvpCount);
-const isFull = spotsLeft === 0;
-const nearlyFull = !isFull && spotsLeft <= 5;
+const spotsLeft = spotsRemaining(capacity, rsvpCount);
+const isFull = spotsLeft !== null && spotsLeft === 0;
+const nearlyFull = spotsLeft !== null && !isFull && spotsLeft <= 5;
+const online = isOnline(mode);
 
 const locationParts = [city, country].filter(Boolean).join(", ");
 const locationLine = eventContext
@@ -59,7 +61,12 @@ const weekday = new Intl.DateTimeFormat("en-US", { weekday: "short" }).format(da
   <p class="entry-where">
     <time class="entry-time">{formatTime(time)}</time>
     <span class="sep" aria-hidden="true">·</span>
-    <a href={osmUrl(venue, address)} target="_blank" rel="noopener noreferrer">{venue}</a>
+    {venue ? (
+      <a href={osmUrl(venue, address)} target="_blank" rel="noopener noreferrer">{venue}</a>
+    ) : (
+      <span class="venue-online">Online</span>
+    )}
+    {online && venue && <span class="entry-place">also online</span>}
     {locationLine && <span class="entry-place">{locationLine}</span>}
   </p>
 
@@ -67,6 +74,8 @@ const weekday = new Intl.DateTimeFormat("en-US", { weekday: "short" }).format(da
     {
       isFull ? (
         <span class="badge badge-full">Full</span>
+      ) : spotsLeft === null ? (
+        <span class="spots-of">Open to all</span>
       ) : (
         <>
           <span class:list={["spots-n", { low: nearlyFull }]}>{spotsLeft}</span>
@@ -189,5 +198,9 @@ const weekday = new Intl.DateTimeFormat("en-US", { weekday: "short" }).format(da
 
   .spots-n.low {
     color: var(--color-notice);
+  }
+
+  .venue-online {
+    font-weight: 600;
   }
 </style>

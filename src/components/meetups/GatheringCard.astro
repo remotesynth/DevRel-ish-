@@ -1,5 +1,5 @@
 ---
-import { formatTime, osmUrl, groupUrl } from "../../lib/utils";
+import { formatTime, osmUrl, groupUrl, spotsLeft as spotsRemaining, isOnline } from "../../lib/utils";
 import { renderMarkdown } from "../../lib/markdown";
 
 interface Props {
@@ -8,13 +8,14 @@ interface Props {
   description: string;
   date: Date;
   time: string;
-  venue: string;
+  mode?: string | null;
+  venue?: string | null;
   address?: string | null;
   city?: string | null;
   country?: string | null;
   eventContext?: string | null;
   tags?: string | null;
-  capacity: number;
+  capacity: number | null;
   rsvpCount: number;
   groupName: string;
   groupSlug: string;
@@ -23,15 +24,16 @@ interface Props {
 }
 
 const {
-  id, title, description, date, time, venue, address,
+  id, title, description, date, time, mode, venue, address,
   city, country, eventContext, tags,
   capacity, rsvpCount, groupName, groupSlug, groupCustomSlug, status = "active",
 } = Astro.props;
 const groupHref = groupUrl({ slug: groupSlug, customSlug: groupCustomSlug });
 
 const isCanceled = status === "canceled";
-const spotsLeft = Math.max(0, capacity - rsvpCount);
-const isFull = spotsLeft === 0;
+const spotsLeft = spotsRemaining(capacity, rsvpCount);
+const isFull = spotsLeft !== null && spotsLeft === 0;
+const online = isOnline(mode);
 const descHtml = renderMarkdown(description);
 const tagList = tags ? tags.split(",").map(t => t.trim()).filter(Boolean) : [];
 
@@ -59,7 +61,12 @@ const locationLine = eventContext
         {isCanceled && <span class="badge-canceled">Cancelled</span>}
       </h3>
       <p class="gathering-where">
-        {formatTime(time)} &bull; <a href={osmUrl(venue, address)} class="venue-link" target="_blank" rel="noopener noreferrer">{venue}</a>
+        {formatTime(time)} &bull; {venue ? (
+          <a href={osmUrl(venue, address)} class="venue-link" target="_blank" rel="noopener noreferrer">{venue}</a>
+        ) : (
+          <span class="venue-online">Online</span>
+        )}
+        {online && venue && <span class="location-context"> · also online</span>}
         {locationLine && <span class="location-context"> · {locationLine}</span>}
       </p>
     </div>
@@ -83,7 +90,9 @@ const locationLine = eventContext
         <span class="badge badge-full">Full</span>
       ) : (
         <span class="spots-left">
-          <strong>{spotsLeft}</strong> of {capacity} spots left
+          {spotsLeft === null
+            ? "Open to all"
+            : <Fragment><strong>{spotsLeft}</strong> of {capacity} spots left</Fragment>}
         </span>
       )}
     </div>
@@ -270,6 +279,10 @@ const locationLine = eventContext
   .canceled-note {
     font-size: var(--text-sm);
     color: var(--color-danger);
+    font-weight: 600;
+  }
+
+  .venue-online {
     font-weight: 600;
   }
 </style>

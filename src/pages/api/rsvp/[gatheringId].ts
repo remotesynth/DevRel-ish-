@@ -61,7 +61,7 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
     .where(eq(RSVPs.meetupId, gatheringId));
 
   const rsvpCount = countResult?.val ?? 0;
-  if (rsvpCount >= meetup.capacity) {
+  if (meetup.capacity != null && rsvpCount >= meetup.capacity) {
     return json({ error: "This gathering is full.", code: "full" }, 409);
   }
 

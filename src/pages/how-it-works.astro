@@ -11,8 +11,8 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       <p class="hiw-eyebrow">Documentation</p>
       <h1>How DevRel(ish) Works</h1>
       <p class="hiw-lead">
-        DevRel(ish) is an index of local tech groups and the in-person gatherings they run — across every part of the industry, not one corner of it.
-        What the groups here have in common is a commitment to being worth turning up to alone: see the <a href="/code-of-conduct">code of conduct</a>.
+        DevRel(ish) is an index of tech groups and the gatherings they run — in a room, online, or both — across every part of the industry.
+        What the groups here have in common is a commitment to being welcoming and accessible, for <em>everyone</a>: see the <a href="/code-of-conduct">code of conduct</a>.
         It's built on the open <a href="https://atproto.com" target="_blank" rel="noopener">AT Protocol</a> — the decentralized standard behind Bluesky and
         the wider Atmosphere — so your data is portable, your identity travels with you, and events are visible across compatible apps.
       </p>
@@ -53,8 +53,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
               You don't need an account to browse, RSVP, or follow a group — skip this step entirely if you like.
               If you do sign in, DevRel(ish) uses AT Protocol OAuth, so any account in the Atmosphere works:
               Bluesky, a community-run server, or a PDS you host yourself. There's no separate password.
-              Your handle and identity come from your own Personal Data Server (PDS), so they're yours
-              regardless of what apps you use.
+              Your handle and identity come from your own Personal Data Server (PDS), so they're yours regardless of what apps you use.
             </p>
           </div>
         </div>
@@ -65,8 +64,9 @@ import BaseLayout from "../layouts/BaseLayout.astro";
             <h3>Join a group on ATProto</h3>
             <p>
               On any group's page, signed-in members can click <strong>Join on ATProto</strong>.
-              This writes a membership record directly to your AT Protocol PDS, meaning your membership
-              is stored in your own account — not just our database — and is readable by any compatible app.
+              This writes a membership record directly to your AT Protocol PDS. Your membership lives in your
+              own account, not ours — we only keep a copy indexed from the network — and it's readable by any
+              compatible app. Delete the record from your PDS and it disappears from here too.
             </p>
           </div>
         </div>
@@ -92,7 +92,9 @@ import BaseLayout from "../layouts/BaseLayout.astro";
               Signed-in users can RSVP with one click via their ATProto account — this writes an RSVP record
               to your PDS using the open <code>community.lexicon.calendar.rsvp</code> schema.
               You can also fill out the traditional form if you prefer not to sign in.
-              Capacity is limited; spots are first come, first served.
+              Where a gathering sets a capacity, spots are first come, first served — some are open to all.
+              If it's an online gathering, the joining link appears once you've RSVP'd; enter the same email
+              again on that page any time to get it back.
             </p>
           </div>
         </div>
@@ -201,7 +203,8 @@ import BaseLayout from "../layouts/BaseLayout.astro";
             <h3>Announce a gathering</h3>
             <p>
               Go to <a href="/dashboard/gatherings">Gatherings</a> in the dashboard and click <strong>New gathering</strong>.
-              Add a title, description, date, time, venue, and capacity.
+              Add a title, description, date, and time, then say whether it's in person, online, or both —
+              a venue, a joining link, or both. Capacity is optional; leave it blank for no limit.
               Once created, the gathering appears on your public group page and is published as an open
               <code>community.lexicon.calendar.event</code> record — compatible with Smoke Signal and other ATProto calendar apps.
             </p>
@@ -210,6 +213,21 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 
         <div class="step">
           <div class="step-num">7</div>
+          <div class="step-content">
+            <h3>Bring events you've already made elsewhere</h3>
+            <p>
+              Events you created on Smoke Signal, atmo.rsvp, OpenMeet, or any other Atmosphere calendar app
+              live in your own account, not theirs. Use <strong>Bring existing events</strong> in the Gatherings
+              dashboard and DevRel(ish) reads them straight from your PDS — or paste a single
+              <code>at://</code> URI or Smoke Signal link. Nothing is copied or moved: the original record keeps
+              its address, so edits in the original app keep working. We just add a record saying the event
+              belongs to your group.
+            </p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">8</div>
           <div class="step-content">
             <h3>Import upcoming events from Meetup</h3>
             <p>
@@ -222,7 +240,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         </div>
 
         <div class="step">
-          <div class="step-num">8</div>
+          <div class="step-num">9</div>
           <div class="step-content">
             <h3>Manage attendees</h3>
             <p>
@@ -233,7 +251,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         </div>
 
         <div class="step">
-          <div class="step-num">9</div>
+          <div class="step-num">10</div>
           <div class="step-content">
             <h3>Add co-organizers</h3>
             <p>
@@ -245,7 +263,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         </div>
 
         <div class="step">
-          <div class="step-num">10</div>
+          <div class="step-num">11</div>
           <div class="step-content">
             <h3>Respond to messages</h3>
             <p>
@@ -343,7 +361,6 @@ import BaseLayout from "../layouts/BaseLayout.astro";
             is for on your group page.
           </p>
           <p>
-            Groups are intended for in-person gatherings; online-only communities aren't the current focus.
             There is no manual approval step — groups go live immediately after registration, and can
             be closed afterwards if they don't meet the code of conduct.
           </p>

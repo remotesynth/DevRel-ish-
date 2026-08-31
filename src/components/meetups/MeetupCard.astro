@@ -1,5 +1,5 @@
 ---
-import { formatDate, formatTime, spotsLeft, osmUrl } from "../../lib/utils";
+import { formatDate, formatTime, spotsLeft, osmUrl, isOnline } from "../../lib/utils";
 import { renderMarkdown } from "../../lib/markdown";
 
 interface Props {
@@ -8,23 +8,25 @@ interface Props {
   description: string;
   date: Date;
   time: string;
-  venue: string;
+  mode?: string | null;
+  venue?: string | null;
   address?: string | null;
   city?: string | null;
   country?: string | null;
   eventContext?: string | null;
-  capacity: number;
+  capacity: number | null;
   rsvpCount: number;
   groupSlug?: string;
   status?: string;
   groupClosed?: boolean;
 }
 
-const { id, title, description, date, time, venue, address, city, country, eventContext, capacity, rsvpCount, groupSlug, status = "active", groupClosed = false } = Astro.props;
+const { id, title, description, date, time, mode, venue, address, city, country, eventContext, capacity, rsvpCount, groupSlug, status = "active", groupClosed = false } = Astro.props;
 
 const isCanceled = status === "canceled";
 const spots = spotsLeft(capacity, rsvpCount);
-const isFull = spots === 0;
+const isFull = spots !== null && spots === 0;
+const online = isOnline(mode);
 const descHtml = renderMarkdown(description);
 ---
 
@@ -42,7 +44,12 @@ const descHtml = renderMarkdown(description);
         {isCanceled && <span class="badge-canceled">Cancelled</span>}
       </h3>
       <p class="meetup-time">
-        {formatTime(time)} &bull; <a href={osmUrl(venue, address)} class="venue-link" target="_blank" rel="noopener noreferrer">{venue}</a>
+        {formatTime(time)} &bull; {venue ? (
+          <a href={osmUrl(venue, address)} class="venue-link" target="_blank" rel="noopener noreferrer">{venue}</a>
+        ) : (
+          <span class="venue-online">Online</span>
+        )}
+        {online && venue && <span class="event-context"> · also online</span>}
         {eventContext && <span class="event-context"> · {eventContext}</span>}
         {!eventContext && city && <span class="event-context"> · {country ? `${city}, ${country}` : city}</span>}
       </p>
@@ -59,7 +66,9 @@ const descHtml = renderMarkdown(description);
         <span class="badge badge-full">Full</span>
       ) : (
         <span class="spots-left">
-          <strong>{spots}</strong> of {capacity} spots left
+          {spots === null
+            ? "Open to all"
+            : <Fragment><strong>{spots}</strong> of {capacity} spots left</Fragment>}
         </span>
       )}
     </div>
@@ -207,6 +216,10 @@ const descHtml = renderMarkdown(description);
   .canceled-note {
     font-size: var(--text-sm);
     color: var(--color-danger);
+    font-weight: 600;
+  }
+
+  .venue-online {
     font-weight: 600;
   }
 </style>

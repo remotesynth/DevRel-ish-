@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 import { db, Meetups, Groups, eq } from "astro:db";
 import { generateId } from "../../../lib/utils";
-import { publishGathering } from "../../../lib/gatherings";
+import { publishGathering, resolveCapacity, resolveLocation } from "../../../lib/gatherings";
 
 export const prerender = false;
 
@@ -27,9 +27,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return json({ error: "Invalid request body." }, 400);
   }
 
-  const { title, description, date, time, endTime, venue, address, capacity } = body as Record<string, unknown>;
+  const { title, description, date, time, endTime, mode, venue, joinUrl, address, capacity } =
+    body as Record<string, unknown>;
 
-  if (!title || !description || !date || !time || !venue || !capacity) {
+  if (!title || !description || !date || !time) {
     return json({ error: "All required fields must be provided." }, 400);
   }
 
@@ -41,10 +42,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return json({ error: "Gathering date must be in the future." }, 400);
   }
 
-  const cap = Number(capacity);
-  if (!Number.isInteger(cap) || cap < 1 || cap > 500) {
-    return json({ error: "Capacity must be between 1 and 500." }, 400);
-  }
+  const where = resolveLocation({
+    mode,
+    venue: venue ? String(venue) : "",
+    joinUrl: joinUrl ? String(joinUrl) : "",
+    address: address ? String(address) : "",
+  });
+  if ("error" in where) return json({ error: where.error }, 400);
+
+  const cap = resolveCapacity(capacity);
+  if ("error" in cap) return json({ error: cap.error }, 400);
 
   const timeRe = /^\d{2}:\d{2}$/;
   const endTimeStr = endTime ? String(endTime).trim() : "";
@@ -64,9 +71,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
     date: meetupDate,
     time: String(time),
     endTime: endTimeStr || null,
-    venue: String(venue).trim(),
-    address: address ? String(address).trim() : null,
-    capacity: cap,
+    mode: where.mode,
+    venue: where.venue,
+    joinUrl: where.joinUrl,
+    address: where.address,
+    capacity: cap.capacity,
     createdAt: now,
   });
 

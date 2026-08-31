@@ -10,11 +10,28 @@ export const EVENT_NSID = "community.lexicon.calendar.event";
 export const RSVP_NSID = "community.lexicon.calendar.rsvp";
 export const ADDRESS_NSID = "community.lexicon.location.address";
 
+export const EVENT_URI_NSID = "community.lexicon.calendar.event#uri";
+
 export const EventMode = {
   inperson: "community.lexicon.calendar.event#inperson",
   virtual: "community.lexicon.calendar.event#virtual",
   hybrid: "community.lexicon.calendar.event#hybrid",
 } as const;
+
+export type EventModeValue = (typeof EventMode)[keyof typeof EventMode];
+
+/** The three values an organizer picks between, as stored in Meetups.mode. */
+export type GatheringMode = "inperson" | "virtual" | "hybrid";
+
+export function eventModeFor(mode: string | null | undefined): EventModeValue {
+  return EventMode[(mode ?? "inperson") as GatheringMode] ?? EventMode.inperson;
+}
+
+/** The reverse: a mode token from someone else's record, as we store it. */
+export function gatheringModeFrom(token: unknown): GatheringMode {
+  const match = Object.entries(EventMode).find(([, v]) => v === token);
+  return (match?.[0] as GatheringMode) ?? "inperson";
+}
 
 export const EventStatus = {
   planned: "community.lexicon.calendar.event#planned",
@@ -51,6 +68,26 @@ export interface AddressRecord {
   locality?: string;
   region?: string;
   postalCode?: string;
+}
+
+export interface UriLocation {
+  $type: typeof EVENT_URI_NSID;
+  uri: string;
+  name?: string;
+}
+
+/**
+ * Build a `community.lexicon.calendar.event#uri` location.
+ *
+ * This is how an online gathering says *where* it is to the rest of the
+ * network. Note what we point it at: the DevRel(ish) RSVP page, never the
+ * meeting link itself. The link is attendee-only, and a PDS record is public
+ * the moment it's written — putting it here would hand it to anyone reading
+ * the firehose.
+ */
+export function buildUriLocation(uri: string, name?: string): UriLocation | null {
+  if (!uri) return null;
+  return name ? { $type: EVENT_URI_NSID, uri, name } : { $type: EVENT_URI_NSID, uri };
 }
 
 /**
@@ -110,6 +147,8 @@ export interface CalendarEventInput {
   endsAt?: string | null;       // ISO datetime
   createdAt: string;            // ISO datetime
   location?: AddressRecord | null;
+  /** Where an online gathering points — the RSVP page, never the meeting link. */
+  uriLocation?: UriLocation | null;
   /** Canonical DevRel(ish) page for this event — how other apps link back. */
   canonicalUrl?: string | null;
   mode?: string;
@@ -136,7 +175,8 @@ export function buildCalendarEvent(input: CalendarEventInput): Record<string, un
   };
 
   if (input.endsAt) record.endsAt = input.endsAt;
-  if (input.location) record.locations = [input.location];
+  const locations = [input.location, input.uriLocation].filter(Boolean);
+  if (locations.length > 0) record.locations = locations;
   if (input.canonicalUrl) {
     record.uris = [{ uri: input.canonicalUrl, name: "RSVP on DevRel(ish)" }] satisfies EventUri[];
   }

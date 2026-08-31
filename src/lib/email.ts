@@ -47,7 +47,8 @@ export async function sendGatheringNotification({
     title: string;
     date: Date;
     time: string;
-    venue: string;
+    mode?: string | null;
+    venue?: string | null;
     city?: string | null;
     country?: string | null;
     eventContext?: string | null;
@@ -55,10 +56,13 @@ export async function sendGatheringNotification({
   rsvpUrl: string;
 }) {
   const dateStr = new Intl.DateTimeFormat("en-US", { dateStyle: "long" }).format(gathering.date);
+  // An online gathering has no venue to name. The joining link is attendee-only,
+  // so followers get "Online" and the RSVP link, not the link itself.
+  const whereLine = gathering.venue ?? "Online";
   const locationParts = [gathering.city, gathering.country].filter(Boolean).join(", ");
   const locationLine = gathering.eventContext
     ? `${gathering.eventContext}${locationParts ? ` · ${locationParts}` : ""}`
-    : locationParts || gathering.venue;
+    : locationParts || whereLine;
 
   // Send individually so each has their own unique unsubscribe link
   const baseUrl = new URL(rsvpUrl).origin;
@@ -76,14 +80,14 @@ export async function sendGatheringNotification({
           <table style="margin:1rem 0;border-left: var(--rule-thick) solid var(--color-accent);padding-left:1rem;border-collapse:collapse;">
             <tr><td style="font-size:1.1em;font-weight:700;padding-bottom:0.25rem;">${gathering.title}</td></tr>
             <tr><td style="color:#555;">${dateStr} · ${gathering.time}</td></tr>
-            <tr><td style="color:#555;">${gathering.venue}${locationLine ? ` · ${locationLine}` : ""}</td></tr>
+            <tr><td style="color:#555;">${whereLine}${locationLine && locationLine !== whereLine ? ` · ${locationLine}` : ""}</td></tr>
           </table>
           <p style="margin: 1.5rem 0;">
             <a href="${rsvpUrl}" style="background:var(--color-accent);color:var(--color-paper);padding:0.6rem 1.25rem;border-radius:6px;text-decoration:none;font-weight:600;">RSVP →</a>
           </p>
           <p style="font-size:0.85em;color:#666;">You're receiving this because you follow ${group.name} on ${SITE_NAME}. <a href="${unsubscribeUrl}">Unsubscribe</a>.</p>
         `,
-        text: `${greeting}\n\n${group.name} has posted a new gathering:\n\n${gathering.title}\n${dateStr} · ${gathering.time}\n${gathering.venue}${locationLine ? ` · ${locationLine}` : ""}\n\nRSVP: ${rsvpUrl}\n\nUnsubscribe: ${unsubscribeUrl}`,
+        text: `${greeting}\n\n${group.name} has posted a new gathering:\n\n${gathering.title}\n${dateStr} · ${gathering.time}\n${whereLine}${locationLine && locationLine !== whereLine ? ` · ${locationLine}` : ""}\n\nRSVP: ${rsvpUrl}\n\nUnsubscribe: ${unsubscribeUrl}`,
       });
     })
   );
@@ -183,10 +187,11 @@ export async function sendCancellationNotice({
   gathering: {
     title: string;
     date: Date;
-    venue: string;
+    venue?: string | null;
   };
 }) {
   const dateStr = new Intl.DateTimeFormat("en-US", { dateStyle: "long" }).format(gathering.date);
+  const whereLine = gathering.venue ?? "Online";
 
   await Promise.allSettled(
     rsvps.map(({ email, name }) =>
@@ -199,12 +204,12 @@ export async function sendCancellationNotice({
           <p>We're sorry to let you know that the following gathering has been cancelled:</p>
           <table style="margin:1rem 0;border-left: var(--rule-thick) solid #e8704a;padding-left:1rem;border-collapse:collapse;">
             <tr><td style="font-size:1.1em;font-weight:700;padding-bottom:0.25rem;">${gathering.title}</td></tr>
-            <tr><td style="color:#555;">${dateStr} · ${gathering.venue}</td></tr>
+            <tr><td style="color:#555;">${dateStr} · ${whereLine}</td></tr>
             <tr><td style="color:#555;">Organised by ${groupName}</td></tr>
           </table>
           <p style="color:#555;">If you have questions, you can reach the organiser through the group's page on ${SITE_NAME}.</p>
         `,
-        text: `Hi ${name},\n\nWe're sorry to let you know that the following gathering has been cancelled:\n\n${gathering.title}\n${dateStr} · ${gathering.venue}\nOrganised by ${groupName}\n\nIf you have questions, you can reach the organiser through the group's page on ${SITE_NAME}.`,
+        text: `Hi ${name},\n\nWe're sorry to let you know that the following gathering has been cancelled:\n\n${gathering.title}\n${dateStr} · ${whereLine}\nOrganised by ${groupName}\n\nIf you have questions, you can reach the organiser through the group's page on ${SITE_NAME}.`,
       })
     )
   );

@@ -35,9 +35,21 @@ export function formatTime(time: string): string {
   return `${hour}:${String(m).padStart(2, "0")} ${period}`;
 }
 
-/** Count remaining spots */
-export function spotsLeft(capacity: number, rsvpCount: number): number {
+/** Count remaining spots. A null capacity means unlimited, so null comes back. */
+export function spotsLeft(capacity: number | null, rsvpCount: number): number | null {
+  if (capacity == null) return null;
   return Math.max(0, capacity - rsvpCount);
+}
+
+/** Whether a gathering has hit its cap. An uncapped gathering is never full. */
+export function isFull(capacity: number | null, rsvpCount: number): boolean {
+  return capacity != null && rsvpCount >= capacity;
+}
+
+export type GatheringMode = "inperson" | "virtual" | "hybrid";
+
+export function isOnline(mode: string | null | undefined): boolean {
+  return mode === "virtual" || mode === "hybrid";
 }
 
 /** Build an OpenStreetMap search URL for a venue + optional address */
@@ -54,7 +66,7 @@ export function googleCalendarUrl(opts: {
   title: string;
   date: Date;
   time: string;
-  venue: string;
+  venue: string | null | undefined;
   address: string | null | undefined;
   description: string;
 }): string {
@@ -77,7 +89,9 @@ export function googleCalendarUrl(opts: {
   const start = gcalDT(date, time);
   const end = gcalDT(date, `${pad(endHH)}:${pad(mm)}`);
 
-  const location = [venue, address].filter(Boolean).join(", ");
+  // No venue means an online gathering. The joining link is deliberately not
+  // put here: a calendar entry travels further than the attendee it was for.
+  const location = [venue, address].filter(Boolean).join(", ") || "Online";
 
   const params = new URLSearchParams({
     action: "TEMPLATE",

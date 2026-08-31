@@ -1,6 +1,6 @@
 ---
 import DashboardLayout from "../../../../layouts/DashboardLayout.astro";
-import { publishOrSyncGathering } from "../../../../lib/gatherings";
+import { publishOrSyncGathering, resolveCapacity, resolveLocation } from "../../../../lib/gatherings";
 import { db, Groups, Meetups } from "astro:db";
 import { eq, and } from "astro:db";
 
@@ -33,13 +33,15 @@ let vals = {
   date: meetup.date.toISOString().split("T")[0],
   time: meetup.time,
   endTime: meetup.endTime ?? "",
-  venue: meetup.venue,
+  mode: meetup.mode ?? "inperson",
+  venue: meetup.venue ?? "",
+  joinUrl: meetup.joinUrl ?? "",
   address: meetup.address ?? "",
   city: meetup.city ?? "",
   country: meetup.country ?? "",
   eventContext: meetup.eventContext ?? "",
   tags: meetup.tags ?? "",
-  capacity: String(meetup.capacity),
+  capacity: meetup.capacity == null ? "" : String(meetup.capacity),
 };
 
 if (Astro.request.method === "POST") {
@@ -51,7 +53,9 @@ if (Astro.request.method === "POST") {
     date: form.get("date")?.toString() ?? "",
     time: form.get("time")?.toString() ?? "",
     endTime: form.get("endTime")?.toString() ?? "",
+    mode: form.get("mode")?.toString() ?? "inperson",
     venue: form.get("venue")?.toString().trim() ?? "",
+    joinUrl: form.get("joinUrl")?.toString().trim() ?? "",
     address: form.get("address")?.toString().trim() ?? "",
     city: form.get("city")?.toString().trim() ?? "",
     country: form.get("country")?.toString().trim() ?? "",
@@ -60,17 +64,20 @@ if (Astro.request.method === "POST") {
     capacity: form.get("capacity")?.toString() ?? "",
   };
 
-  const cap = Number(vals.capacity);
   const meetupDate = new Date(vals.date);
+  const where = resolveLocation(vals);
+  const cap = resolveCapacity(vals.capacity);
 
-  if (!vals.title || !vals.description || !vals.date || !vals.time || !vals.venue || !vals.capacity) {
+  if (!vals.title || !vals.description || !vals.date || !vals.time) {
     result = { type: "error", message: "All required fields must be filled in." };
   } else if (vals.description.length < 20) {
     result = { type: "error", message: "Description must be at least 20 characters." };
   } else if (isNaN(meetupDate.getTime())) {
     result = { type: "error", message: "Invalid date." };
-  } else if (!Number.isInteger(cap) || cap < 1 || cap > 500) {
-    result = { type: "error", message: "Capacity must be between 1 and 500." };
+  } else if ("error" in where) {
+    result = { type: "error", message: where.error };
+  } else if ("error" in cap) {
+    result = { type: "error", message: cap.error };
   } else {
     await db
       .update(Meetups)
@@ -80,13 +87,15 @@ if (Astro.request.method === "POST") {
         date: meetupDate,
         time: vals.time,
         endTime: vals.endTime || null,
-        venue: vals.venue,
-        address: vals.address || null,
+        mode: where.mode,
+        venue: where.venue,
+        joinUrl: where.joinUrl,
+        address: where.address,
         city: vals.city || null,
         country: vals.country || null,
         eventContext: vals.eventContext || null,
         tags: vals.tags || null,
-        capacity: cap,
+        capacity: cap.capacity,
       })
       .where(eq(Meetups.id, id));
 
@@ -146,17 +155,44 @@ if (Astro.request.method === "POST") {
         </div>
       </div>
 
-      <div class="form-group">
+      <fieldset class="form-group mode-picker">
+        <legend>Where is it?</legend>
+        <div class="mode-options">
+          <label class="mode-option">
+            <input type="radio" name="mode" value="inperson" checked={vals.mode === "inperson"} />
+            <span><strong>In person</strong><small>At a venue</small></span>
+          </label>
+          <label class="mode-option">
+            <input type="radio" name="mode" value="virtual" checked={vals.mode === "virtual"} />
+            <span><strong>Online</strong><small>A call or stream</small></span>
+          </label>
+          <label class="mode-option">
+            <input type="radio" name="mode" value="hybrid" checked={vals.mode === "hybrid"} />
+            <span><strong>Both</strong><small>Venue and a link</small></span>
+          </label>
+        </div>
+      </fieldset>
+
+      <div class="form-group venue-field">
         <label for="venue">Venue name *</label>
-        <input id="venue" name="venue" type="text" value={vals.venue} placeholder="The Interval at Long Now" required />
+        <input id="venue" name="venue" type="text" value={vals.venue} placeholder="The Interval at Long Now" />
       </div>
 
-      <div class="form-group">
+      <div class="form-group venue-field">
         <label for="address">Address</label>
         <input id="address" name="address" type="text" value={vals.address} placeholder="2 Marina Blvd, San Francisco, CA 94123" />
       </div>
 
-      <div class="form-row">
+      <div class="form-group join-field">
+        <label for="joinUrl">Joining link *</label>
+        <input id="joinUrl" name="joinUrl" type="url" value={vals.joinUrl} placeholder="https://meet.example.com/your-room" />
+        <span class="form-hint">
+          Shown only to people who have RSVP'd, on the gathering page.
+          It is never published to your public page or to the ATProto record.
+        </span>
+      </div>
+
+      <div class="form-row venue-field">
         <div class="form-group">
           <label for="city">City</label>
           <input id="city" name="city" type="text" value={vals.city} placeholder="San Francisco" />
@@ -180,9 +216,9 @@ if (Astro.request.method === "POST") {
       </div>
 
       <div class="form-group">
-        <label for="capacity">Capacity *</label>
-        <input id="capacity" name="capacity" type="number" value={vals.capacity} min="1" max="500" required />
-        <span class="form-hint">How many people can attend?</span>
+        <label for="capacity">Capacity</label>
+        <input id="capacity" name="capacity" type="number" value={vals.capacity} min="1" max="500" placeholder="Leave blank for unlimited" />
+        <span class="form-hint">How many people can attend? Leave blank for no limit.</span>
       </div>
 
       <div class="form-actions">
@@ -192,6 +228,36 @@ if (Astro.request.method === "POST") {
     </form>
   </div>
 </DashboardLayout>
+
+<script>
+  // Show only the fields the chosen mode actually needs. The server revalidates
+  // in resolveLocation() — this is just so organizers aren't asked for a street
+  // address for a video call.
+  function syncModeFields(form: HTMLFormElement) {
+    const mode = (form.querySelector('input[name="mode"]:checked') as HTMLInputElement | null)?.value ?? "inperson";
+    const inPerson = mode !== "virtual";
+    const online = mode !== "inperson";
+
+    form.querySelectorAll<HTMLElement>(".venue-field").forEach(el => {
+      el.hidden = !inPerson;
+    });
+    form.querySelectorAll<HTMLElement>(".join-field").forEach(el => {
+      el.hidden = !online;
+    });
+
+    const venue = form.querySelector<HTMLInputElement>("#venue");
+    if (venue) venue.required = inPerson;
+    const joinUrl = form.querySelector<HTMLInputElement>("#joinUrl");
+    if (joinUrl) joinUrl.required = online;
+  }
+
+  document.querySelectorAll<HTMLFormElement>("form.meetup-form").forEach(form => {
+    form.querySelectorAll('input[name="mode"]').forEach(radio => {
+      radio.addEventListener("change", () => syncModeFields(form));
+    });
+    syncModeFields(form);
+  });
+</script>
 
 <style>
   .page-header {
@@ -246,6 +312,71 @@ if (Astro.request.method === "POST") {
 
   @media (max-width: 480px) {
     .form-row {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .mode-picker {
+    border: none;
+    padding: 0;
+    margin: 0 0 1.25rem;
+  }
+
+  .mode-picker legend {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    padding: 0;
+  }
+
+  .mode-options {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+  }
+
+  .mode-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-sm, 4px);
+    cursor: pointer;
+    font-weight: 400;
+  }
+
+  .mode-option:hover {
+    border-color: var(--color-accent);
+  }
+
+  .mode-option:has(input:checked) {
+    border-color: var(--color-accent);
+    background: var(--color-accent-wash, transparent);
+  }
+
+  .mode-option span {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.3;
+  }
+
+  .mode-option strong {
+    font-size: var(--text-sm);
+  }
+
+  .mode-option small {
+    font-size: var(--text-xs);
+    color: var(--color-ink-2);
+  }
+
+  .venue-field[hidden],
+  .join-field[hidden] {
+    display: none;
+  }
+
+  @media (max-width: 640px) {
+    .mode-options {
       grid-template-columns: 1fr;
     }
   }

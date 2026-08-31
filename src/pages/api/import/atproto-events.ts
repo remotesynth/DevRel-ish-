@@ -2,7 +2,7 @@ import type { APIRoute } from "astro";
 import { db, Meetups, Groups, eq } from "astro:db";
 import { generateId } from "../../../lib/utils";
 import { getPdsSession, pdsCreate } from "../../../lib/atproto-pds";
-import { EVENT_NSID } from "../../../lib/atproto-records";
+import { EVENT_NSID, gatheringModeFrom } from "../../../lib/atproto-records";
 import { EVENT_META_NSID } from "../../../lib/gatherings";
 import { coerceToAtUri, getRecord, listRecords, parseAtUri } from "../../../lib/atproto-repo";
 
@@ -28,6 +28,7 @@ export interface DiscoveredEvent {
   name: string;
   startsAt: string | null;
   description: string | null;
+  mode: string;
   venue: string | null;
   city: string | null;
   country: string | null;
@@ -134,10 +135,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
       description: ev.description ?? "",
       date: start,
       time: start.toISOString().slice(11, 16),
-      venue: ev.venue ?? "See event details",
+      mode: ev.mode,
+      // An online event genuinely has no venue; an in-person one whose record
+      // omitted the venue name still needs something in the column.
+      venue: ev.mode === "virtual" ? null : ev.venue ?? "See event details",
       city: ev.city,
       country: ev.country,
-      capacity: 100,
+      // Unlimited rather than a capacity we'd be inventing on the organizer's
+      // behalf — they can set a real one by editing the gathering.
+      capacity: null,
       status: ev.cancelled ? "canceled" : "active",
       // Point at the EXISTING record rather than writing a new one.
       atEventUri: record.uri,
@@ -155,7 +161,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
         const meta = await pdsCreate(session, EVENT_META_NSID, {
           event: { uri: record.uri, cid: record.cid },
           group: { uri: group.atUri, cid: group.atCid },
-          capacity: 100,
           createdAt: new Date().toISOString(),
         });
         await db
@@ -196,6 +201,7 @@ function toDiscovered(
     name: str(value.name) ?? "Untitled event",
     startsAt: str(value.startsAt),
     description: str(value.description),
+    mode: gatheringModeFrom(value.mode),
     venue: str(first.name),
     city: str(first.locality) ?? str(first.city),
     country: str(first.country),

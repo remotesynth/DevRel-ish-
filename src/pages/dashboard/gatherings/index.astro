@@ -81,10 +81,10 @@ const justCreated = Astro.url.searchParams.get("created") === "1";
                     {formatDate(m.date)}<br />
                     <span class="time-text">{formatTime(m.time)}</span>
                   </td>
-                  <td>{m.venue}</td>
+                  <td>{m.venue ?? "Online"}</td>
                   <td class="rsvp-count">
-                    <span class:list={[{ full: !isCanceled && rsvpCounts[m.id] >= m.capacity }]}>
-                      {rsvpCounts[m.id]} / {m.capacity}
+                    <span class:list={[{ full: !isCanceled && m.capacity != null && rsvpCounts[m.id] >= m.capacity }]}>
+                      {m.capacity == null ? rsvpCounts[m.id] : `${rsvpCounts[m.id]} / ${m.capacity}`}
                     </span>
                   </td>
                   <td>

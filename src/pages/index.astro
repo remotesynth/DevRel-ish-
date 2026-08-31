@@ -107,16 +107,13 @@ const categories = [...categoryTally.entries()]
   <section class="lede reveal" style="--i: 0">
     <div class="container lede-grid">
       <p class="lede-text">
-        Most tech work happens in front of a screen, for people you&rsquo;ll never
-        meet. Here are the times it doesn&rsquo;t &mdash; local groups, real rooms,
-        and <span class="marked">people worth the trip<DrawnUnderline tone="sun" variant={1} /></span>.
+        DevRel(ish) helps you find local groups, opportunities to learn,
+        and <span class="marked">real connections<DrawnUnderline tone="sun" variant={1} /></span>.
       </p>
       <p class="lede-note">
         Every corner of tech: web and mobile, data and AI, platform and security, game
-        dev, design systems, indie projects, developer relations. What these groups have
-        in common isn&rsquo;t a subject &mdash; it&rsquo;s that they&rsquo;re built for
-        turning up on your own and leaving glad you did.
-        <a href="/code-of-conduct">That&rsquo;s the one thing we ask of them</a>.
+        dev, design systems, indie projects, developer relations. Find groups that are welcoming, accessible and diverse.
+        <a href="/code-of-conduct">That&rsquo;s what we ask of them</a>.
       </p>
     </div>
   </section>
@@ -144,7 +141,7 @@ const categories = [...categoryTally.entries()]
             return (
               <GatheringCardCompact
                 id={m.id} title={m.title} date={m.date} time={m.time}
-                venue={m.venue} address={m.address} city={m.city} country={m.country}
+                mode={m.mode} venue={m.venue} address={m.address} city={m.city} country={m.country}
                 eventContext={m.eventContext} capacity={m.capacity}
                 rsvpCount={rsvpCounts[m.id] ?? 0} groupName={group.name}
               />
@@ -171,7 +168,7 @@ const categories = [...categoryTally.entries()]
           <p class="rail-lede">
             Put up by people using other apps &mdash; Smoke Signal, atmo.rsvp, OpenMeet
             &mdash; and visible here because we all speak the same schema. Nobody had to
-            integrate with anybody. Go anyway.
+            integrate with anybody.
           </p>
           <div class="grid-3">
             {externalEvents.map((e) => (
@@ -187,7 +184,7 @@ const categories = [...categoryTally.entries()]
         <div class="network-note">
           <p class="network-note-lead">
             DevRel(ish) doesn&rsquo;t only show its own events. Tech events published
-            anywhere on the AT&nbsp;Protocol as a <span class="ident">calendar.event</span>
+            anywhere on the <a href="https://lab.leaflet.pub/3mrq6ma5dgs2x" target="_blank" rel="noopener noreferrer">Atmosphere</a> as a <span class="ident">calendar.event</span>
             turn up here too &mdash; from <a href="https://smokesignal.events" target="_blank" rel="noopener noreferrer">Smoke&nbsp;Signal</a>,
             <a href="https://atmo.rsvp" target="_blank" rel="noopener noreferrer">atmo.rsvp</a>,
             <a href="https://openmeet.net" target="_blank" rel="noopener noreferrer">OpenMeet</a>,
@@ -201,7 +198,7 @@ const categories = [...categoryTally.entries()]
           </p>
           <p class="network-note-status">
             Nothing to show yet. That schema is shared with the rest of the Atmosphere
-            &mdash; book clubs, yoga, everything &mdash; so we only surface the events
+            &mdash; book clubs, yoga, everything. We only surface the events
             about technology, and there aren&rsquo;t any on the calendar right now.
           </p>
         </div>
@@ -286,11 +283,9 @@ const categories = [...categoryTally.entries()]
       </div>
       <div class="closing-body">
         <p>
-          Register a group and it&rsquo;s live immediately &mdash; no approval queue, no
-          review. We ask one thing: that you run something people can turn up to on their
-          own and be glad they did, and that you act when someone tells you it
+          Register a group and it&rsquo;s live immediately. We ask one thing: that you run something welcoming, accessible and open to everyone and that you act when someone tells you it
           isn&rsquo;t. That&rsquo;s the <a href="/code-of-conduct">code of conduct</a>, in
-          a sentence. Your group and every gathering become records on your own account,
+          summary. Your group and every gathering become records on your own account,
           so they surface in other Atmosphere apps too, and stay yours if you ever stop
           using this one. Already running events elsewhere? Bring them across in a couple
           of clicks.

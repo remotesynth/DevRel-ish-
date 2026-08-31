@@ -14,10 +14,15 @@ import {
   buildCalendarEvent,
   buildEndsAt,
   buildStartsAt,
+  buildUriLocation,
+  eventModeFor,
   gatheringUrl,
 } from "./atproto-records";
 
 export const EVENT_META_NSID = "com.devrelish.event.meta";
+
+export { normalizeMode, normalizeJoinUrl, resolveLocation, resolveCapacity, GATHERING_MODES } from "./gathering-input";
+export type { Mode } from "./gathering-input";
 
 type GatheringRow = typeof Meetups.$inferSelect;
 type GroupRow = typeof Groups.$inferSelect;
@@ -29,20 +34,29 @@ type GroupRow = typeof Groups.$inferSelect;
  * say), so those win over the group's home location when present.
  */
 function eventRecordFor(meetup: GatheringRow, group: GroupRow) {
+  const url = gatheringUrl(meetup.id);
+  const online = meetup.mode === "virtual" || meetup.mode === "hybrid";
+
   return buildCalendarEvent({
     name: meetup.title,
     description: meetup.description,
     startsAt: buildStartsAt(meetup.date, meetup.time),
     endsAt: buildEndsAt(meetup.date, meetup.time, meetup.endTime),
     createdAt: meetup.createdAt.toISOString(),
-    location: buildAddress({
-      name: meetup.venue,
-      street: meetup.address,
-      locality: meetup.city ?? group.city,
-      region: group.region,
-      country: meetup.country ?? group.country,
-    }),
-    canonicalUrl: gatheringUrl(meetup.id),
+    // A virtual gathering has no address to publish; a hybrid one has both.
+    location: meetup.venue
+      ? buildAddress({
+          name: meetup.venue,
+          street: meetup.address,
+          locality: meetup.city ?? group.city,
+          region: group.region,
+          country: meetup.country ?? group.country,
+        })
+      : null,
+    // Deliberately the RSVP page, not meetup.joinUrl — see buildUriLocation.
+    uriLocation: online ? buildUriLocation(url, "Online — RSVP for the joining link") : null,
+    mode: eventModeFor(meetup.mode),
+    canonicalUrl: url,
     status: meetup.status === "canceled" ? EventStatus.cancelled : EventStatus.scheduled,
     rsvpExpected: meetup.status !== "canceled",
   });
@@ -57,7 +71,9 @@ function metaRecordFor(
   return {
     event: { uri: event.uri, cid: event.cid },
     group: { uri: group.atUri!, cid: group.atCid! },
-    capacity: meetup.capacity,
+    // The lexicon says to omit capacity for unlimited, so a null must not be
+    // written through as a null.
+    ...(meetup.capacity != null ? { capacity: meetup.capacity } : {}),
     ...(meetup.eventContext ? { eventContext: meetup.eventContext } : {}),
     createdAt: meetup.createdAt.toISOString(),
   };

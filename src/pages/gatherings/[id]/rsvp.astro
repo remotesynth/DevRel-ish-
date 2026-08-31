@@ -3,7 +3,7 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
 import BlueskyThreadPanel from "../../../components/BlueskyThreadPanel";
 import { db, Meetups, RSVPs, AtRsvps, Groups, GatheringSpeakers, GatheringSessions, GatheringSessionSpeakers, count, eq, and } from "astro:db";
 import { asc, inArray } from "astro:db";
-import { formatDate, formatTime, spotsLeft, generateId, googleCalendarUrl, osmUrl, groupUrl } from "../../../lib/utils";
+import { formatDate, formatTime, spotsLeft, generateId, googleCalendarUrl, osmUrl, groupUrl, isOnline } from "../../../lib/utils";
 import { renderMarkdown } from "../../../lib/markdown";
 import { createHash } from "node:crypto";
 import { getPdsSession, pdsCreate } from "../../../lib/atproto-pds";
@@ -106,7 +106,7 @@ if (Astro.request.method === "POST") {
         : 0;
       const currentCount = (countResult?.val ?? 0) + networkGoing;
 
-      if (currentCount >= meetup.capacity) {
+      if (meetup.capacity != null && currentCount >= meetup.capacity) {
         result = { type: "full" };
       } else {
         // Check for duplicate
@@ -216,14 +216,28 @@ const networkRsvps = meetup.atEventUri
 const networkRsvpCount = networkRsvps.length;
 const rsvpCount = formRsvpCount + networkRsvpCount;
 const spots = spotsLeft(meetup.capacity, rsvpCount);
-const isFull = spots === 0;
+const isFull = spots !== null && spots === 0;
+
+const online = isOnline(meetup.mode);
+
+// Who may see the joining link. Three ways to earn it: you just RSVP'd, you
+// RSVP'd before with this email, or you're signed in and already responded on
+// the network. The `cancelToken` check matters — the honeypot path above fakes
+// a success result for bots, and a fake success has no token.
+const justRsvpd =
+  (result?.type === "success" && result.cancelToken !== "") ||
+  result?.type === "atproto-success" ||
+  result?.type === "duplicate";
+const viewerAlreadyRsvpd =
+  !!Astro.locals.user && networkRsvps.some((r) => r.did === Astro.locals.user!.did);
+const showJoinLink = !!meetup.joinUrl && !isMeetupCanceled && (justRsvpd || viewerAlreadyRsvpd);
 
 const descriptionHtml = renderMarkdown(meetup.description);
 ---
 
 <BaseLayout
   title={meetup.title}
-  description={`Join ${meetup.title} hosted by ${group.name} on ${formatDate(meetup.date)}${meetup.venue ? ` at ${meetup.venue}` : ""}${meetup.city ? `, ${meetup.city}` : ""}. RSVP to secure your spot.`}
+  description={`Join ${meetup.title} hosted by ${group.name} on ${formatDate(meetup.date)}${meetup.venue ? ` at ${meetup.venue}` : online ? " online" : ""}${meetup.venue && meetup.city ? `, ${meetup.city}` : ""}. RSVP to secure your spot.`}
 >
   <section class="event-page">
     <div class="container">
@@ -329,13 +343,27 @@ const descriptionHtml = renderMarkdown(meetup.description);
             <div class="meetup-detail-row">
               <span class="detail-label">Where</span>
               <div>
-                <a href={osmUrl(meetup.venue, meetup.address)} class="venue-link" target="_blank" rel="noopener noreferrer">
-                  {meetup.venue}
-                </a>
+                {meetup.venue ? (
+                  <a href={osmUrl(meetup.venue, meetup.address)} class="venue-link" target="_blank" rel="noopener noreferrer">
+                    {meetup.venue}
+                  </a>
+                ) : (
+                  <span class="venue-online">Online</span>
+                )}
                 {meetup.address && <div class="address">{meetup.address}</div>}
+                {online && meetup.venue && <div class="address">Also streaming online</div>}
+                {online && (
+                  showJoinLink ? (
+                    <a href={meetup.joinUrl} class="join-link" target="_blank" rel="noopener noreferrer">
+                      Join the gathering →
+                    </a>
+                  ) : (
+                    <div class="join-hint">RSVP to get the joining link.</div>
+                  )
+                )}
               </div>
             </div>
-            {!isFull && !isMeetupCanceled && !isGroupClosed && (
+            {spots !== null && !isFull && !isMeetupCanceled && !isGroupClosed && (
               <div class="meetup-detail-row">
                 <span class="detail-icon">👥</span>
                 <span class:list={[{ "spots-low": spots <= 5 }]}>
@@ -384,6 +412,14 @@ const descriptionHtml = renderMarkdown(meetup.description);
                 <p>We've got your RSVP. See you there!</p>
                 <p class="success-email">Confirmed for <strong>{result.email}</strong>.</p>
 
+                {showJoinLink && (
+                  <div class="join-box">
+                    <p class="join-box-label">Your joining link</p>
+                    <a href={meetup.joinUrl} class="join-box-url" target="_blank" rel="noopener noreferrer">{meetup.joinUrl}</a>
+                    <p class="join-box-hint">Save this link. You can get it back any time by entering the same email on this page again. Please don't share it publicly.</p>
+                  </div>
+                )}
+
                 <div class="calendar-section">
                   <p class="calendar-label">Add to your calendar:</p>
                   <div class="calendar-btns">
@@ -427,6 +463,11 @@ const descriptionHtml = renderMarkdown(meetup.description);
                 {result?.type === "duplicate" && (
                   <div class="alert alert-info" role="alert">
                     <strong>Already registered!</strong> <strong>{result.email}</strong> is already on the list. See you there!
+                    {showJoinLink && (
+                      <p class="duplicate-join">
+                        <a href={meetup.joinUrl} target="_blank" rel="noopener noreferrer">Join the gathering →</a>
+                      </p>
+                    )}
                     <p class="duplicate-cancel-hint">
                       <a href={`/gatherings/${id}/cancel`}>Need to cancel? →</a>
                     </p>
@@ -475,7 +516,7 @@ const descriptionHtml = renderMarkdown(meetup.description);
                       {result?.type === "error" && (
                         <div class="alert alert-error" role="alert">{result.message}</div>
                       )}
-                      {spots <= 5 && (
+                      {spots !== null && spots <= 5 && (
                         <div class="alert alert-warning">Only <strong>{spots}</strong> spot{spots === 1 ? "" : "s"} left!</div>
                       )}
 
@@ -795,6 +836,55 @@ const descriptionHtml = renderMarkdown(meetup.description);
     .event-title { font-size: var(--text-3xl); }
     .event-layout { grid-template-columns: 1fr; gap: 2rem; }
     .event-action { position: static; order: -1; }
+  }
+
+  .venue-online {
+    font-weight: 600;
+  }
+
+  .join-link {
+    display: inline-block;
+    margin-top: 0.375rem;
+    font-weight: 600;
+    color: var(--color-accent);
+  }
+
+  .join-hint {
+    margin-top: 0.375rem;
+    font-size: var(--text-sm);
+    color: var(--color-ink-2);
+  }
+
+  .join-box {
+    margin: 1.25rem 0;
+    padding: 1rem;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-sm, 4px);
+    text-align: left;
+  }
+
+  .join-box-label {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    margin: 0 0 0.375rem;
+  }
+
+  .join-box-url {
+    display: block;
+    word-break: break-all;
+    font-weight: 600;
+    color: var(--color-accent);
+  }
+
+  .join-box-hint {
+    margin: 0.5rem 0 0;
+    font-size: var(--text-xs);
+    color: var(--color-ink-2);
+  }
+
+  .duplicate-join {
+    margin-top: 0.5rem;
+    font-weight: 600;
   }
 </style>
 

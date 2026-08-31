@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 import { db, Meetups, Groups, RSVPs, eq, and } from "astro:db";
 import { getPdsSession, pdsDelete } from "../../../lib/atproto-pds";
-import { syncGathering } from "../../../lib/gatherings";
+import { resolveCapacity, resolveLocation, syncGathering } from "../../../lib/gatherings";
 
 export const prerender = false;
 
@@ -33,7 +33,8 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
     return json({ error: "Invalid request body." }, 400);
   }
 
-  const { title, description, date, time, endTime, venue, address, capacity } = body as Record<string, unknown>;
+  const { title, description, date, time, endTime, mode, venue, joinUrl, address, capacity } =
+    body as Record<string, unknown>;
 
   const updates: Partial<typeof meetup> = {};
 
@@ -67,20 +68,26 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
     if (e && !/^\d{2}:\d{2}$/.test(e)) return json({ error: "Invalid end time." }, 400);
     updates.endTime = e || null;
   }
-  if (venue !== undefined) {
-    const v = String(venue).trim();
-    if (!v) return json({ error: "Venue cannot be empty." }, 400);
-    updates.venue = v;
-  }
-  if (address !== undefined) {
-    updates.address = address ? String(address).trim() : null;
+  // Mode, venue and joining link constrain each other, so a change to any one
+  // of them is re-resolved against the stored row rather than applied alone —
+  // otherwise switching to virtual could leave the old venue behind.
+  if (mode !== undefined || venue !== undefined || joinUrl !== undefined || address !== undefined) {
+    const where = resolveLocation({
+      mode: mode !== undefined ? mode : meetup.mode,
+      venue: venue !== undefined ? String(venue) : meetup.venue ?? "",
+      joinUrl: joinUrl !== undefined ? String(joinUrl) : meetup.joinUrl ?? "",
+      address: address !== undefined ? String(address) : meetup.address ?? "",
+    });
+    if ("error" in where) return json({ error: where.error }, 400);
+    updates.mode = where.mode;
+    updates.venue = where.venue;
+    updates.joinUrl = where.joinUrl;
+    updates.address = where.address;
   }
   if (capacity !== undefined) {
-    const cap = Number(capacity);
-    if (!Number.isInteger(cap) || cap < 1 || cap > 500) {
-      return json({ error: "Capacity must be between 1 and 500." }, 400);
-    }
-    updates.capacity = cap;
+    const cap = resolveCapacity(capacity);
+    if ("error" in cap) return json({ error: cap.error }, 400);
+    updates.capacity = cap.capacity;
   }
 
   await db.update(Meetups).set(updates).where(eq(Meetups.id, meetup.id));

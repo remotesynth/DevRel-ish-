@@ -66,7 +66,7 @@ function foldLine(line: string): string {
 }
 
 function buildICS(
-  meetup: { id: string; title: string; description: string; date: Date; time: string; venue: string; address: string | null },
+  meetup: { id: string; title: string; description: string; date: Date; time: string; venue: string | null; address: string | null },
   group: { name: string; slug: string },
   origin: string
 ): string {
@@ -76,7 +76,9 @@ function buildICS(
   const endHH = (hh + 2) % 24;
   const dtend = floatingDT(meetup.date, `${pad(endHH)}:${pad(mm)}`);
 
-  const location = [meetup.venue, meetup.address].filter(Boolean).join(", ");
+  // This endpoint is public, so an online gathering's joining link stays out of
+  // the file — attendees get it on the gathering page instead.
+  const location = [meetup.venue, meetup.address].filter(Boolean).join(", ") || "Online";
   const eventUrl = `${origin}/gatherings/${meetup.id}/rsvp`;
   const description = `${meetup.description}\n\nHosted by ${group.name}\nMore info: ${eventUrl}`;
 
