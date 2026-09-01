@@ -7,7 +7,9 @@
     "build": "astro db push --remote && astro build --remote",
     "preview": "astro preview",
     "astro": "astro",
-    "db:push": "astro db push --remote"
+    "db:push": "astro db push --remote",
+    "test": "tsx --test test/**/*.test.ts",
+    "verify": "npm run test && npm run astro -- check"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.10",
@@ -30,6 +32,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/sanitize-html": "^2.16.1",
+    "tsx": "^4.23.13",
     "typescript": "^5.7.3"
   }
 }
