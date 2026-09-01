@@ -4,8 +4,6 @@ import { db, Groups, AppUser } from "astro:db";
 import { eq } from "astro:db";
 import { generateId, slugify } from "../../lib/utils";
 import { CATEGORIES, getCategoryLabel } from "../../lib/categories";
-import { getPdsSession, pdsCreate } from "../../lib/atproto-pds";
-import { buildAddress, GROUP_NSID } from "../../lib/atproto-records";
 
 if (!Astro.locals.user) {
   return Astro.redirect("/auth/login?redirect=/groups/register");
@@ -75,61 +73,26 @@ if (Astro.request.method === "POST") {
       const [slugConflict] = await db.select().from(Groups).where(eq(Groups.slug, slug));
       if (slugConflict) slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
 
-      // Write com.devrelish.group record to the organizer's PDS
-      const session = await getPdsSession(Astro.locals.user.did);
-      if (!session) {
-        result = { type: "error", message: "Authentication session expired. Please sign in again." };
-      } else {
-        let atUri: string | null = null;
-        let atCid: string | null = null;
-        const now = new Date();
-        const groupId = generateId();
-
-        try {
-          const address = buildAddress({
-            locality: vals.city,
-            region: vals.region,
-            country: vals.country,
-          });
-          const locationEntry = address ? { location: address } : {};
-
-          const pdsResult = await pdsCreate(session, GROUP_NSID, {
-            name: vals.name,
-            description: vals.description,
-            category: vals.category,
-            ...locationEntry,
-            createdAt: now.toISOString(),
-          });
-          atUri = pdsResult.uri;
-          atCid = pdsResult.cid;
-        } catch (err) {
-          console.error("[register] PDS write failed:", err);
-          result = { type: "error", message: "Failed to publish group to ATProto network. Please try again." };
-        }
-
-        if (!result) {
-          await db.insert(Groups).values({
-            id: groupId,
-            name: vals.name,
-            slug,
-            tagline: vals.tagline || null,
-            category: vals.category,
-            city: vals.city || null,
-            region: vals.region || null,
-            country: vals.country || null,
-            description: vals.description,
-            contactEmail: vals.contactEmail,
-            status: "active",
-            conductAgreedAt: now,
-            managerId: Astro.locals.user.did,
-            atUri,
-            atCid,
-            createdAt: now,
-          });
-          await db.update(AppUser).set({ groupId }).where(eq(AppUser.did, Astro.locals.user.did));
-          result = { type: "success", slug };
-        }
-      }
+      const now = new Date();
+      const groupId = generateId();
+      await db.insert(Groups).values({
+        id: groupId,
+        name: vals.name,
+        slug,
+        tagline: vals.tagline || null,
+        category: vals.category,
+        city: vals.city || null,
+        region: vals.region || null,
+        country: vals.country || null,
+        description: vals.description,
+        contactEmail: vals.contactEmail,
+        status: "active",
+        conductAgreedAt: now,
+        managerId: Astro.locals.user.did,
+        createdAt: now,
+      });
+      await db.update(AppUser).set({ groupId }).where(eq(AppUser.did, Astro.locals.user.did));
+      result = { type: "success", slug };
     }
   }
 }
@@ -156,9 +119,9 @@ if (Astro.request.method === "POST") {
         {result?.type === "success" && result.slug ? (
           <div class="success-state">
             <div class="success-icon" aria-hidden="true">✦</div>
-            <h2>Your group is live!</h2>
+            <h2>Your group is ready!</h2>
             <p>
-              Your group has been created and published to the ATProto network.
+              Your group has been created. Next, connect its dedicated ATProto account from the dashboard to publish public records.
             </p>
             <div style="display:flex;gap:0.75rem;flex-wrap:wrap;justify-content:center;margin-top:0.5rem;">
               <a href={`/groups/${result.slug}`} class="btn btn-primary">View your group →</a>

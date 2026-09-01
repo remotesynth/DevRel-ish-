@@ -3,8 +3,9 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 
 const redirectTo = Astro.url.searchParams.get("redirect") ?? "";
 const errorParam = Astro.url.searchParams.get("error") ?? "";
+const isPublisherConnection = Astro.url.searchParams.get("intent") === "publisher";
 
-if (Astro.locals.user) {
+if (Astro.locals.user && !isPublisherConnection) {
   const dest = redirectTo.startsWith("/") ? redirectTo :
     (Astro.locals.user.role === "admin" ? "/admin" : "/dashboard");
   return Astro.redirect(dest);
@@ -17,8 +18,12 @@ if (Astro.locals.user) {
       <div class="auth-card">
         <div class="auth-header">
           <div class="auth-logo" aria-hidden="true">◎</div>
-          <h1>Welcome back</h1>
-          <p>Sign in with any Atmosphere account to manage your DevRel(ish) group.</p>
+          <h1>{isPublisherConnection ? "Connect your group account" : "Welcome back"}</h1>
+          <p>
+            {isPublisherConnection
+              ? "Sign in with the dedicated account that will publish this group’s public ATProto records. This will not replace your organizer login."
+              : "Sign in with any Atmosphere account to manage your DevRel(ish) group."}
+          </p>
         </div>
 
         {errorParam && (

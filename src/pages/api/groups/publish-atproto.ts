@@ -8,16 +8,16 @@ export const prerender = false;
 export const POST: APIRoute = async ({ locals, redirect }) => {
   if (!locals.user) return redirect("/auth/login");
 
-  const [group] = await db
-    .select()
-    .from(Groups)
-    .where(eq(Groups.managerId, locals.user.did));
+  const [group] = locals.user.groupId
+    ? await db.select().from(Groups).where(eq(Groups.id, locals.user.groupId))
+    : await db.select().from(Groups).where(eq(Groups.managerId, locals.user.did));
 
   if (!group) return redirect("/dashboard?error=no-group");
   if (group.atUri) return redirect("/dashboard?published=already");
+  if (!group.publisherDid) return redirect("/dashboard?error=publisher-not-connected");
 
-  const session = await getPdsSession(locals.user.did);
-  if (!session) return redirect("/auth/login");
+  const session = await getPdsSession(group.publisherDid);
+  if (!session) return redirect("/dashboard?error=publisher-reauthorize");
 
   try {
     const address = buildAddress({

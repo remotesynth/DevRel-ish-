@@ -137,6 +137,31 @@ if (Astro.request.method === "POST") {
   {handleWarning && <div class="alert alert-warning">{handleWarning}</div>}
   {errorMsg && <div class="alert alert-error">{errorMsg}</div>}
 
+  <section class="form-card publisher-card">
+    <h3>ATProto publisher account</h3>
+    {group.publisherDid ? (
+      <>
+        <p class="card-desc">
+          Public group and gathering records are published by this dedicated account:
+          <code>{group.publisherDid}</code>.
+        </p>
+        <form method="POST" action="/api/groups/connect-publisher">
+          <button type="submit" class="btn btn-ghost">Reconnect or change account</button>
+        </form>
+      </>
+    ) : (
+      <>
+        <p class="card-desc">
+          Connect a dedicated ATProto account for this group. It will author the group’s public records;
+          your personal organizer account remains separate.
+        </p>
+        <form method="POST" action="/api/groups/connect-publisher">
+          <button type="submit" class="btn btn-primary">Connect group account →</button>
+        </form>
+      </>
+    )}
+  </section>
+
   <form method="POST" class="group-edit-form">
 
     <div class="form-card">

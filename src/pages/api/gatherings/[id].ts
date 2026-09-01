@@ -95,7 +95,7 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
   // Push the edit to the network so other apps don't keep showing a stale event.
   const [updated] = await db.select().from(Meetups).where(eq(Meetups.id, meetup.id));
   const [ownerGroup] = await db.select().from(Groups).where(eq(Groups.id, meetup.groupId));
-  if (updated && ownerGroup) await syncGathering(locals.user.did, updated, ownerGroup);
+  if (updated && ownerGroup) await syncGathering(updated, ownerGroup);
 
   return json({ ok: true });
 };

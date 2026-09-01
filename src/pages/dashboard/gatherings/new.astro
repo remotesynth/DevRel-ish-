@@ -96,7 +96,7 @@ if (Astro.request.method === "POST") {
     // Publish to the organizer's PDS so the gathering exists on the network,
     // not just in our database. Best-effort — never blocks the redirect.
     const [saved] = await db.select().from(Meetups).where(eq(Meetups.id, newId));
-    if (saved) await publishGathering(user.did, saved, group);
+    if (saved) await publishGathering(saved, group);
 
     // Notify confirmed followers (fire-and-forget — don't block the redirect)
     const followers = await db

@@ -35,7 +35,7 @@ export const POST: APIRoute = async ({ params, locals }) => {
   // was cancelled if the published record's status says so.
   const [updated] = await db.select().from(Meetups).where(eq(Meetups.id, id));
   const [ownerGroup] = await db.select().from(Groups).where(eq(Groups.id, meetup.groupId));
-  if (updated && ownerGroup) await syncGathering(locals.user.did, updated, ownerGroup);
+  if (updated && ownerGroup) await syncGathering(updated, ownerGroup);
 
   // Notify RSVPs only when cancelling (not when restoring)
   if (newStatus === "canceled") {

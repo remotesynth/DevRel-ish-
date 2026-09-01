@@ -3,8 +3,6 @@ import { db, Groups, AppUser } from "astro:db";
 import { generateId, slugify } from "../../../lib/utils";
 import { eq } from "astro:db";
 import { CATEGORIES } from "../../../lib/categories";
-import { getPdsSession, pdsCreate } from "../../../lib/atproto-pds";
-import { buildAddress, GROUP_NSID } from "../../../lib/atproto-records";
 
 export const prerender = false;
 
@@ -79,40 +77,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
   }
 
-  const session = await getPdsSession(locals.user.did);
-  if (!session) {
-    return json({ error: "Authentication session expired. Please sign in again." }, 401);
-  }
-
-  let atUri: string | null = null;
-  let atCid: string | null = null;
-
   const now = new Date();
   const groupId = generateId();
-
-  try {
-    // `country` is the only required field of the address type, so an address
-    // without one is invalid — buildAddress returns null and we omit the field.
-    const address = buildAddress({
-      locality: city as string | undefined,
-      region: region as string | undefined,
-      country: country as string | undefined,
-    });
-    const locationEntry = address ? { location: address } : {};
-
-    const pdsResult = await pdsCreate(session, GROUP_NSID, {
-      name: name.trim(),
-      description: description.trim(),
-      category: category.trim(),
-      ...locationEntry,
-      createdAt: now.toISOString(),
-    });
-    atUri = pdsResult.uri;
-    atCid = pdsResult.cid;
-  } catch (err) {
-    console.error("[groups/register] PDS write failed:", err);
-    return json({ error: "Failed to publish group to ATProto network. Please try again." }, 500);
-  }
 
   await db.insert(Groups).values({
     id: groupId,
@@ -128,8 +94,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
     status: "active",
     conductAgreedAt: now,
     managerId: locals.user.did,
-    atUri,
-    atCid,
     createdAt: now,
   });
 

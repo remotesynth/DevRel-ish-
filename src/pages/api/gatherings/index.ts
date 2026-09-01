@@ -82,7 +82,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // Publish to the organizer's PDS. Best-effort: the gathering already exists
   // locally, and one unreachable PDS shouldn't fail the request.
   const [saved] = await db.select().from(Meetups).where(eq(Meetups.id, meetupId));
-  if (saved) await publishGathering(locals.user.did, saved, group);
+  if (saved) await publishGathering(saved, group);
 
   return json({ ok: true, id: meetupId }, 201);
 };

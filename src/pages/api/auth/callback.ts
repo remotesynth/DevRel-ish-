@@ -1,11 +1,17 @@
 import type { APIRoute } from "astro";
 import { getOAuthClient } from "../../../lib/atproto-oauth";
-import { createSession, upsertUser, SESSION_COOKIE } from "../../../lib/session";
+import { createSession, getSessionUser, upsertUser, SESSION_COOKIE } from "../../../lib/session";
 import { resolveHandleFromDid } from "../../../lib/atproto-identity";
+import { db, Groups, eq } from "astro:db";
+import {
+  OAUTH_INTENT_COOKIE,
+  OAUTH_INTENT_COOKIE_OPTIONS,
+  publisherIntentGroupId,
+} from "../../../lib/oauth-intent";
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ url, redirect }) => {
+export const GET: APIRoute = async ({ url, cookies, redirect }) => {
   const params = url.searchParams;
 
   if (params.get("error")) {
@@ -19,6 +25,25 @@ export const GET: APIRoute = async ({ url, redirect }) => {
     const { session } = await client.callback(params);
 
     const did = session.did;
+
+    const publisherGroupId = publisherIntentGroupId(cookies.get(OAUTH_INTENT_COOKIE)?.value);
+    if (publisherGroupId) {
+      cookies.delete(OAUTH_INTENT_COOKIE, OAUTH_INTENT_COOKIE_OPTIONS);
+
+      const operatorSessionId = cookies.get(SESSION_COOKIE)?.value;
+      const operator = operatorSessionId ? await getSessionUser(operatorSessionId) : null;
+      const [group] = await db.select().from(Groups).where(eq(Groups.id, publisherGroupId));
+
+      if (!operator || !group || (group.managerId !== operator.did && operator.role !== "admin")) {
+        return redirect("/dashboard?error=publisher-authorization");
+      }
+      if (did === operator.did) {
+        return redirect("/dashboard?error=publisher-must-be-separate");
+      }
+
+      await db.update(Groups).set({ publisherDid: did }).where(eq(Groups.id, group.id));
+      return redirect("/dashboard?publisher=connected");
+    }
 
     // Resolve handle from the DID document — works for any ATProto PDS.
     let handle: string = did;

@@ -103,7 +103,7 @@ if (Astro.request.method === "POST") {
     // stale version of an event people are relying on.
     const [updated] = await db.select().from(Meetups).where(eq(Meetups.id, id));
     const [ownerGroup] = await db.select().from(Groups).where(eq(Groups.id, meetup.groupId));
-    if (updated && ownerGroup) await publishOrSyncGathering(user.did, updated, ownerGroup);
+    if (updated && ownerGroup) await publishOrSyncGathering(updated, ownerGroup);
 
     result = { type: "success" };
   }

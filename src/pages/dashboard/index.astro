@@ -8,6 +8,8 @@ const user = Astro.locals.user;
 const justJoined = Astro.url.searchParams.get("joined") === "1";
 const justPublished = Astro.url.searchParams.get("published") === "atproto";
 const publishError = Astro.url.searchParams.get("error") === "publish-failed";
+const publisherConnected = Astro.url.searchParams.get("publisher") === "connected";
+const publisherError = Astro.url.searchParams.get("error");
 
 // Find the user's group — check by stored groupId first, fall back to managerId
 // (handles accounts created before Phase 4 linked group ↔ user)
@@ -73,6 +75,24 @@ if (group) {
       </div>
     )}
 
+    {publisherConnected && (
+      <div class="alert alert-success" style="margin-bottom: 1.5rem;">
+        Group publisher account connected. You can now publish the group and its public records from that account.
+      </div>
+    )}
+
+    {publisherError === "publisher-must-be-separate" && (
+      <div class="alert alert-error" style="margin-bottom: 1.5rem;">
+        Use a dedicated group account, not your personal organizer account, to publish this group.
+      </div>
+    )}
+
+    {(publisherError === "publisher-reauthorize" || publisherError === "publisher-authorization") && (
+      <div class="alert alert-error" style="margin-bottom: 1.5rem;">
+        The group publisher account needs to be connected again before it can publish records.
+      </div>
+    )}
+
     {
       !group ? (
         <div class="no-group-state">
@@ -105,16 +125,28 @@ if (group) {
             </a>
           </div>
 
-          {!group.atUri && (
+          {!group.publisherDid && (
             <div class="atproto-nudge">
               <div class="atproto-nudge-text">
-                <strong>Not yet on the ATProto network</strong>
-                <span>Publish your group to ATProto so members can join from any Atmosphere account and RSVPs sync across apps.</span>
+                <strong>Connect a group publisher account</strong>
+                <span>Use a dedicated ATProto account for the group’s public records. Your personal organizer account stays separate.</span>
+              </div>
+              <form method="POST" action="/api/groups/connect-publisher">
+                <button type="submit" class="btn btn-primary btn-sm">
+                  Connect group account →
+                </button>
+              </form>
+            </div>
+          )}
+
+          {group.publisherDid && !group.atUri && (
+            <div class="atproto-nudge">
+              <div class="atproto-nudge-text">
+                <strong>Ready to publish</strong>
+                <span>Your dedicated group account is connected. Publish the group record to make it discoverable in the Atmosphere.</span>
               </div>
               <form method="POST" action="/api/groups/publish-atproto">
-                <button type="submit" class="btn btn-primary btn-sm">
-                  Publish to ATProto →
-                </button>
+                <button type="submit" class="btn btn-primary btn-sm">Publish to ATProto →</button>
               </form>
             </div>
           )}

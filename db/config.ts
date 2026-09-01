@@ -23,6 +23,9 @@ const Groups = defineTable({
     status: column.text({ default: "active" }), // active | closed
     conductAgreedAt: column.date({ optional: true }), // organizer accepted the code of conduct
     managerId: column.text({ optional: true }), // soft ref to AppUser.did
+    // Dedicated ATProto account that authors this group's public records.
+    // It is intentionally distinct from an organizer's personal login.
+    publisherDid: column.text({ optional: true }),
     atUri: column.text({ optional: true }),     // at:// URI of com.devrelish.group
     atCid: column.text({ optional: true }),     // CID of the group record
     createdAt: column.date({ default: new Date() }),

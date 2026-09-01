@@ -86,12 +86,9 @@ function metaRecordFor(
  * briefly unreachable shouldn't cost the organizer their work. Returns whether
  * the write landed so callers can surface it.
  */
-export async function publishGathering(
-  did: string,
-  meetup: GatheringRow,
-  group: GroupRow
-): Promise<boolean> {
-  const session = await getPdsSession(did);
+export async function publishGathering(meetup: GatheringRow, group: GroupRow): Promise<boolean> {
+  if (!group.publisherDid) return false;
+  const session = await getPdsSession(group.publisherDid);
   if (!session) return false;
 
   try {
@@ -133,13 +130,9 @@ export async function publishGathering(
  * `session.did`. An admin editing someone else's gathering would otherwise write
  * into their own repo, so the URI's DID has to match the caller.
  */
-export async function syncGathering(
-  did: string,
-  meetup: GatheringRow,
-  group: GroupRow
-): Promise<boolean> {
+export async function syncGathering(meetup: GatheringRow, group: GroupRow): Promise<boolean> {
   if (!meetup.atEventUri) return false;
-  if (meetup.atEventUri.split("/")[2] !== did) return false;
+  if (!group.publisherDid || meetup.atEventUri.split("/")[2] !== group.publisherDid) return false;
 
   // An adopted event's record is authored and maintained by another app.
   // `putRecord` replaces a record wholesale and `eventRecordFor` builds it from
@@ -147,7 +140,7 @@ export async function syncGathering(
   // stores there. Leave it alone.
   if (meetup.adopted) return false;
 
-  const session = await getPdsSession(did);
+  const session = await getPdsSession(group.publisherDid);
   if (!session) return false;
 
   try {
@@ -176,12 +169,8 @@ export async function syncGathering(
  * before the dashboard wrote to the PDS at all. Adopted events fall through to
  * `syncGathering`, which declines to touch them.
  */
-export async function publishOrSyncGathering(
-  did: string,
-  meetup: GatheringRow,
-  group: GroupRow
-): Promise<boolean> {
+export async function publishOrSyncGathering(meetup: GatheringRow, group: GroupRow): Promise<boolean> {
   return meetup.atEventUri
-    ? syncGathering(did, meetup, group)
-    : publishGathering(did, meetup, group);
+    ? syncGathering(meetup, group)
+    : publishGathering(meetup, group);
 }
