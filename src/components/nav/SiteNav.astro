@@ -123,7 +123,11 @@ const line: Line =
                   {user.role === "admin" ? "Admin" : "My group"}
                 </a>
               </li>
-              <li><a href="/auth/signout" class="bar-link">Sign out</a></li>
+              <li>
+                <form method="post" action="/auth/signout">
+                  <button type="submit" class="bar-link signout-button">Sign out</button>
+                </form>
+              </li>
             </>
           ) : (
             <li>
@@ -238,6 +242,15 @@ const line: Line =
   .bar-link.active {
     color: var(--color-accent);
     border-bottom-color: var(--color-accent);
+  }
+
+  .signout-button {
+    font-family: inherit;
+    background: transparent;
+    border-top: 0;
+    border-right: 0;
+    border-left: 0;
+    cursor: pointer;
   }
 
   .bar-cta {

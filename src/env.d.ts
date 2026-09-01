@@ -2,6 +2,7 @@
 
 interface ImportMetaEnv {
   readonly PUBLIC_URL: string;
+  readonly ADMIN_DIDS: string;
   readonly CONDUCT_EMAIL: string;
   readonly ATPROTO_PRIVATE_KEY_JWK: string;
   readonly CLOUDINARY_CLOUD_NAME: string;

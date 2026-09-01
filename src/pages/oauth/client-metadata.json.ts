@@ -4,14 +4,23 @@ import { JoseKey } from "@atproto/jwk-jose";
 export const prerender = false;
 
 export const GET: APIRoute = async () => {
-  const publicUrl = import.meta.env.PUBLIC_URL;
+  const publicUrl = import.meta.env.PUBLIC_URL ?? process.env.PUBLIC_URL;
   if (!publicUrl) {
     return new Response("PUBLIC_URL not configured", { status: 500 });
   }
 
-  const raw = import.meta.env.ATPROTO_PRIVATE_KEY_JWK;
+  let origin: string;
+  try {
+    const url = new URL(publicUrl);
+    if (url.protocol !== "https:") throw new Error("HTTPS required");
+    origin = url.origin;
+  } catch {
+    return new Response("Invalid PUBLIC_URL", { status: 500 });
+  }
+
+  const raw = import.meta.env.ATPROTO_PRIVATE_KEY_JWK ?? process.env.ATPROTO_PRIVATE_KEY_JWK;
   if (!raw) {
-    return new Response(null, { status: 404 });
+    return new Response("ATPROTO_PRIVATE_KEY_JWK not configured", { status: 500 });
   }
 
   let jwks: { keys: object[] };
@@ -25,10 +34,10 @@ export const GET: APIRoute = async () => {
   }
 
   const metadata = {
-    client_id: `${publicUrl}/oauth/client-metadata.json`,
+    client_id: `${origin}/oauth/client-metadata.json`,
     client_name: "DevRel(ish)",
-    client_uri: publicUrl,
-    redirect_uris: [`${publicUrl}/api/auth/callback`],
+    client_uri: origin,
+    redirect_uris: [`${origin}/api/auth/callback`],
     scope: "atproto transition:generic",
     grant_types: ["authorization_code", "refresh_token"],
     response_types: ["code"],

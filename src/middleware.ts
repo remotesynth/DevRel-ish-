@@ -1,28 +1,24 @@
 import { defineMiddleware } from "astro:middleware";
-import { getSessionUser, isAdminHandle, promoteToAdmin, SESSION_COOKIE } from "./lib/session";
+import { hasTrustedRequestOrigin } from "./lib/request-security";
+import { getSessionUser, SESSION_COOKIE } from "./lib/session";
 
 export const onRequest = defineMiddleware(async (context, next) => {
+  if (!hasTrustedRequestOrigin(context.request, context.url.origin)) {
+    return new Response("Forbidden", { status: 403 });
+  }
+
   const sessionId = context.cookies.get(SESSION_COOKIE)?.value ?? null;
 
   if (sessionId) {
     try {
       const row = await getSessionUser(sessionId);
       if (row) {
-        let role = row.role;
-
-        // If the handle is in ADMIN_HANDLES but the DB row isn't admin yet,
-        // promote now — handles already-logged-in users after the env var is set.
-        if (role !== "admin" && isAdminHandle(row.handle)) {
-          await promoteToAdmin(row.did);
-          role = "admin";
-        }
-
         context.locals.user = {
           id: row.did,
           did: row.did,
           handle: row.handle,
           displayName: row.displayName ?? null,
-          role,
+          role: row.role,
           groupId: row.groupId ?? null,
         };
       } else {

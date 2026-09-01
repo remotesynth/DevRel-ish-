@@ -222,6 +222,7 @@ The dev seed creates placeholder users with fake DIDs — these can't actually s
    | Variable | Value |
    | -------- | ----- |
    | `PUBLIC_URL` | Your site URL, e.g. `https://devrelish.tech` |
+   | `ADMIN_DIDS` | Optional comma-separated admin DIDs (never handles) |
    | `ATPROTO_PRIVATE_KEY_JWK` | The JSON string from step 2 |
    | `ASTRO_DB_REMOTE_URL` | From Turso |
    | `ASTRO_DB_APP_TOKEN` | From Turso |
