@@ -31,9 +31,8 @@ function pad(n: number): string {
 }
 
 /**
- * Build a "floating" ICS datetime (no timezone suffix).
- * This displays at the correct wall-clock time regardless of the
- * attendee's timezone — appropriate since we store time without tz.
+ * Build an ICS local datetime. The event uses the group's IANA TZID so calendar
+ * applications can convert it to each attendee's local timezone.
  */
 function floatingDT(date: Date, time: string): string {
   const [hh, mm] = time.split(":").map(Number);
@@ -68,7 +67,7 @@ function foldLine(line: string): string {
 
 function buildICS(
   meetup: { id: string; title: string; description: string; date: Date; time: string; endTime: string | null; venue: string | null; address: string | null },
-  group: { name: string; slug: string },
+  group: { name: string; slug: string; timezone: string },
   origin: string
 ): string {
   const dtstart = floatingDT(meetup.date, meetup.time);
@@ -87,9 +86,10 @@ function buildICS(
     "PRODID:-//DevRel(ish)//devrelish.tech//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
+    `X-WR-TIMEZONE:${group.timezone}`,
     "BEGIN:VEVENT",
-    `DTSTART:${dtstart}`,
-    `DTEND:${dtend}`,
+    `DTSTART;TZID=${group.timezone}:${dtstart}`,
+    `DTEND;TZID=${group.timezone}:${dtend}`,
     `SUMMARY:${escapeICS(meetup.title)}`,
     `DESCRIPTION:${escapeICS(description)}`,
     `LOCATION:${escapeICS(location)}`,

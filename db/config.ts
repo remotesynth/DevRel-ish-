@@ -11,6 +11,7 @@ const Groups = defineTable({
     city: column.text({ optional: true }),
     region: column.text({ optional: true }),
     country: column.text({ optional: true }),
+    timezone: column.text({ default: "UTC" }), // IANA timezone for event wall-clock times
     tagline: column.text({ optional: true }),
     tags: column.text({ optional: true }),
     category: column.text({ optional: true }),
@@ -30,7 +31,7 @@ const Groups = defineTable({
     // Dedicated ATProto account that authors this group's public records.
     // It is intentionally distinct from an organizer's personal login.
     publisherDid: column.text({ optional: true }),
-    atUri: column.text({ optional: true }),     // at:// URI of com.devrelish.group
+    atUri: column.text({ optional: true }),     // at:// URI of tech.devrelish.group
     atCid: column.text({ optional: true }),     // CID of the group record
     createdAt: column.date({ default: new Date() }),
   },
@@ -57,7 +58,7 @@ const Meetups = defineTable({
     status: column.text({ default: "active" }), // active | canceled
     atEventUri: column.text({ optional: true }), // at:// URI of community.lexicon.calendar.event
     atEventCid: column.text({ optional: true }), // CID of the event record
-    atMetaUri: column.text({ optional: true }),  // at:// URI of com.devrelish.event.meta
+    atMetaUri: column.text({ optional: true }),  // at:// URI of tech.devrelish.event.meta
     atMetaCid: column.text({ optional: true }),  // CID of the meta record
     adopted: column.boolean({ default: false }), // event record came from another app; we don't own it
     createdAt: column.date({ default: new Date() }),
@@ -205,7 +206,7 @@ const AtRsvps = defineTable({
   },
 });
 
-// Indexed com.devrelish.group records
+// Indexed tech.devrelish.group records
 const AtGroups = defineTable({
   columns: {
     uri: column.text({ primaryKey: true }),
@@ -229,7 +230,7 @@ const AtGroups = defineTable({
   },
 });
 
-// Indexed com.devrelish.event.meta records
+// Indexed tech.devrelish.event.meta records
 const AtEventMeta = defineTable({
   columns: {
     uri: column.text({ primaryKey: true }),
@@ -246,7 +247,7 @@ const AtEventMeta = defineTable({
   },
 });
 
-// Indexed com.devrelish.membership records
+// Indexed tech.devrelish.membership records
 const AtMemberships = defineTable({
   columns: {
     uri: column.text({ primaryKey: true }),

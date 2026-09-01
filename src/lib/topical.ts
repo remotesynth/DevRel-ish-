@@ -127,7 +127,7 @@ function mentions(haystack: string, term: string): boolean {
  * @param name        the event title — weighted double
  * @param description the event body, if any
  * @param claimed     true when a DevRel(ish) group has claimed this event via
- *                    com.devrelish.event.meta, which settles it outright
+ *                    tech.devrelish.event.meta, which settles it outright
  */
 export function classifyEvent(
   name: string | null | undefined,

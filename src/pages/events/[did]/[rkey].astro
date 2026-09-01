@@ -83,7 +83,7 @@ if (!event) {
 
 if (!event) return Astro.redirect("/404");
 
-// A DevRel(ish) group may have claimed this event via com.devrelish.event.meta.
+// A DevRel(ish) group may have claimed this event via tech.devrelish.event.meta.
 const [meta] = await db
   .select({ groupName: AtGroups.name })
   .from(AtEventMeta)

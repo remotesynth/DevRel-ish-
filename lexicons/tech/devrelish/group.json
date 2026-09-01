@@ -1,6 +1,6 @@
 {
     "lexicon": 1,
-    "id": "com.devrelish.group",
+    "id": "tech.devrelish.group",
     "defs": {
         "main": {
             "type": "record",

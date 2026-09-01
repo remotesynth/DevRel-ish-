@@ -5,6 +5,7 @@
 // with it. These helpers use the protocol's own mechanisms instead.
 
 import type { PdsSession } from "./atproto-pds";
+import { safeExternalHttpsUrl } from "./safe-external-url";
 
 const TIMEOUT_MS = 4_000;
 
@@ -33,12 +34,15 @@ export async function resolveHandleToDid(
 
   // 1. The handle's own domain.
   try {
-    const res = await fetch(`https://${clean}/.well-known/atproto-did`, {
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    });
-    if (res.ok) {
-      const did = (await res.text()).trim();
-      if (did.startsWith("did:")) return did;
+    const url = await safeExternalHttpsUrl(`https://${clean}/.well-known/atproto-did`);
+    if (url) {
+      const res = await fetch(url, {
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      });
+      if (res.ok) {
+        const did = (await res.text()).trim();
+        if (did.startsWith("did:")) return did;
+      }
     }
   } catch {
     // Not every handle serves .well-known — fall through.
@@ -93,7 +97,9 @@ export async function resolvePdsEndpoint(did: string): Promise<string | null> {
       (s.id === "#atproto_pds" || s.id.endsWith("#atproto_pds"))
   );
   const endpoint = pds?.serviceEndpoint;
-  return typeof endpoint === "string" ? endpoint.replace(/\/$/, "") : null;
+  if (typeof endpoint !== "string") return null;
+  const safe = await safeExternalHttpsUrl(endpoint);
+  return safe?.toString().replace(/\/$/, "") ?? null;
 }
 
 async function fetchDidDocument(did: string): Promise<Record<string, unknown> | null> {
@@ -113,7 +119,9 @@ async function fetchDidDocument(did: string): Promise<Record<string, unknown> | 
   }
 
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(5_000) });
+    const safe = await safeExternalHttpsUrl(url);
+    if (!safe) return null;
+    const res = await fetch(safe, { signal: AbortSignal.timeout(5_000) });
     if (!res.ok) return null;
     return (await res.json()) as Record<string, unknown>;
   } catch {

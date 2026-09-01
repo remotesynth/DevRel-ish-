@@ -28,9 +28,9 @@ Custom ATProto lexicons for DevRel-ish-specific record types.
 
 | Lexicon | File | Purpose |
 | ------- | ---- | ------- |
-| `com.devrelish.group` | `lexicons/com/devrelish/group.json` | Permanent group identity with location, category, organizer DID |
-| `com.devrelish.event.meta` | `lexicons/com/devrelish/event/meta.json` | Extension record linking a group to a community event; adds capacity, speakers, sessions |
-| `com.devrelish.membership` | `lexicons/com/devrelish/membership.json` | Member's declared affiliation to a group |
+| `tech.devrelish.group` | `lexicons/tech/devrelish/group.json` | Permanent group identity with location, category, organizer DID |
+| `tech.devrelish.event.meta` | `lexicons/tech/devrelish/event/meta.json` | Extension record linking a group to a community event; adds capacity, speakers, sessions |
+| `tech.devrelish.membership` | `lexicons/tech/devrelish/membership.json` | Member's declared affiliation to a group |
 
 Community lexicons used (not bundled here — referenced by NSID). Canonical source:
 [tangled.org/lexicon.community/lexicons](https://tangled.org/lexicon.community/lexicons).
@@ -42,7 +42,24 @@ Community lexicons used (not bundled here — referenced by NSID). Canonical sou
 
 There is deliberately **no** community lexicon for groups or memberships — the
 `community.lexicon.calendar` namespace contains only `event` and `rsvp` — which is
-why `com.devrelish.group` and `com.devrelish.membership` are custom.
+why `tech.devrelish.group` and `tech.devrelish.membership` are custom.
+
+The custom namespace is governed by `devrelish.tech`, not `devrelish.com`.
+Before launch, publish the schemas to the app's ATProto account and add DNS TXT
+records pointing to that account DID:
+
+| NSID | DNS TXT name |
+| --- | --- |
+| `tech.devrelish.group`, `tech.devrelish.membership` | `_lexicon.devrelish.tech` |
+| `tech.devrelish.event.meta` | `_lexicon.event.devrelish.tech` |
+
+Each record value is `did=<your publisher DID>`. Then run:
+
+```sh
+LEXICON_PUBLISHER_HANDLE=devrelish.tech \
+LEXICON_PUBLISHER_PASSWORD=<app-password> \
+node scripts/publish-lexicons.mjs
+```
 
 Records are built in one place, `src/lib/atproto-records.ts`, and published through
 `src/lib/gatherings.ts`. Event records carry `uris` (so other apps can link back here),

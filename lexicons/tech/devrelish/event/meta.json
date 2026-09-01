@@ -1,6 +1,6 @@
 {
     "lexicon": 1,
-    "id": "com.devrelish.event.meta",
+    "id": "tech.devrelish.event.meta",
     "defs": {
         "main": {
             "type": "record",
@@ -22,7 +22,7 @@
                     "group": {
                         "type": "ref",
                         "ref": "com.atproto.repo.strongRef",
-                        "description": "Strong reference to the com.devrelish.group record this event belongs to."
+                        "description": "Strong reference to the tech.devrelish.group record this event belongs to."
                     },
                     "createdAt": {
                         "type": "string",

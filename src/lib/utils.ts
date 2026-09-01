@@ -84,12 +84,13 @@ export function googleCalendarUrl(opts: {
   title: string;
   date: Date;
   time: string;
-  endTime?: string | null;
+ endTime?: string | null;
+  timeZone?: string | null;
   venue: string | null | undefined;
   address: string | null | undefined;
   description: string;
 }): string {
-  const { title, date, time, endTime, venue, address, description } = opts;
+  const { title, date, time, endTime, venue, address, description, timeZone } = opts;
 
   function pad(n: number) {
     return String(n).padStart(2, "0");
@@ -117,6 +118,7 @@ export function googleCalendarUrl(opts: {
     dates: `${start}/${end}`,
     details: description,
     location,
+    ...(timeZone ? { ctz: timeZone } : {}),
   });
 
   return `https://calendar.google.com/calendar/render?${params}`;

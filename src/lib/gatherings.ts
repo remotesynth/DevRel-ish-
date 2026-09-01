@@ -19,7 +19,7 @@ import {
   gatheringUrl,
 } from "./atproto-records";
 
-export const EVENT_META_NSID = "com.devrelish.event.meta";
+export const EVENT_META_NSID = "tech.devrelish.event.meta";
 
 export { normalizeMode, normalizeJoinUrl, resolveLocation, resolveCapacity, GATHERING_MODES } from "./gathering-input";
 export type { Mode } from "./gathering-input";
@@ -40,8 +40,8 @@ function eventRecordFor(meetup: GatheringRow, group: GroupRow) {
   return buildCalendarEvent({
     name: meetup.title,
     description: meetup.description,
-    startsAt: buildStartsAt(meetup.date, meetup.time),
-    endsAt: buildEndsAt(meetup.date, meetup.time, meetup.endTime),
+    startsAt: buildStartsAt(meetup.date, meetup.time, group.timezone),
+    endsAt: buildEndsAt(meetup.date, meetup.time, meetup.endTime, group.timezone),
     createdAt: meetup.createdAt.toISOString(),
     // A virtual gathering has no address to publish; a hybrid one has both.
     location: meetup.venue

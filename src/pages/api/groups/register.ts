@@ -3,6 +3,7 @@ import { db, Groups, AppUser } from "astro:db";
 import { generateId, slugify } from "../../../lib/utils";
 import { eq } from "astro:db";
 import { CATEGORIES } from "../../../lib/categories";
+import { normalizeTimeZone } from "../../../lib/timezone";
 
 export const prerender = false;
 
@@ -21,7 +22,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return json({ error: "Invalid request body." }, 400);
   }
 
-  const { name, tagline, category, city, region, country, description, contactEmail, _hp, _t } =
+  const { name, tagline, category, city, region, country, timezone: timezoneInput, description, contactEmail, _hp, _t } =
     body as Record<string, string>;
   const conduct = (body as Record<string, unknown>).conduct;
 
@@ -65,6 +66,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!emailRe.test(contactEmail)) {
     return json({ error: "Please enter a valid email address." }, 400);
   }
+  const timezone = normalizeTimeZone(timezoneInput);
+  if (!timezone) return json({ error: "Use a valid IANA timezone such as America/New_York or Europe/London." }, 400);
 
   const [existing] = await db.select().from(Groups).where(eq(Groups.name, name.trim()));
   if (existing) {
@@ -89,6 +92,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     city: city?.trim() || null,
     region: region?.trim() || null,
     country: country?.trim() || null,
+    timezone,
     description: description.trim(),
     contactEmail: contactEmail.trim().toLowerCase(),
     status: "active",

@@ -21,9 +21,9 @@ const JETSTREAM_URL = "wss://jetstream2.us-east.bsky.network/subscribe";
 const WANTED_COLLECTIONS = [
   "community.lexicon.calendar.event",
   "community.lexicon.calendar.rsvp",
-  "com.devrelish.group",
-  "com.devrelish.event.meta",
-  "com.devrelish.membership",
+  "tech.devrelish.group",
+  "tech.devrelish.event.meta",
+  "tech.devrelish.membership",
 ];
 
 // Netlify caps scheduled functions at 30s. At 45s this function was being
@@ -165,7 +165,7 @@ async function indexRecord(
     return true;
   }
 
-  if (collection === "com.devrelish.group") {
+  if (collection === "tech.devrelish.group") {
     await db.execute({
       sql: `INSERT INTO "AtGroups" (uri, cid, did, name, description, locationJson, category, tags, website, handle, handleDid, linkedinUrl, coOrganizers, createdAt, indexedAt)
             VALUES (:uri, :cid, :did, :name, :description, :locationJson, :category, :tags, :website, :handle, :handleDid, :linkedinUrl, :coOrganizers, :createdAt, :indexedAt)
@@ -194,7 +194,7 @@ async function indexRecord(
     return true;
   }
 
-  if (collection === "com.devrelish.event.meta") {
+  if (collection === "tech.devrelish.event.meta") {
     const eventRef = record.event as { uri?: string } | undefined;
     const groupRef = record.group as { uri?: string } | undefined;
     await db.execute({
@@ -220,7 +220,7 @@ async function indexRecord(
     return true;
   }
 
-  if (collection === "com.devrelish.membership") {
+  if (collection === "tech.devrelish.membership") {
     const groupRef = record.group as { uri?: string } | undefined;
     await db.execute({
       sql: `INSERT INTO "AtMemberships" (uri, cid, did, groupUri, role, createdAt, indexedAt)
@@ -250,9 +250,9 @@ async function deleteRecord(
   const tableMap: Record<string, string> = {
     "community.lexicon.calendar.event": "AtEvents",
     "community.lexicon.calendar.rsvp": "AtRsvps",
-    "com.devrelish.group": "AtGroups",
-    "com.devrelish.event.meta": "AtEventMeta",
-    "com.devrelish.membership": "AtMemberships",
+    "tech.devrelish.group": "AtGroups",
+    "tech.devrelish.event.meta": "AtEventMeta",
+    "tech.devrelish.membership": "AtMemberships",
   };
   const table = tableMap[collection];
   if (!table) return;

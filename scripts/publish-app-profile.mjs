@@ -36,7 +36,7 @@ const profile = {
   $type: "community.lexicon.app.profile",
   name: "DevRel(ish)",
   description:
-    "In-person gatherings for developer relations professionals and adjacent " +
+    "In-person, hybrid, and online gatherings for developer relations professionals and adjacent " +
     "roles. Permanent local groups rather than one-off events, with everything " +
     "published as open calendar records you own.",
   status: `${L}#preview`,
@@ -58,9 +58,9 @@ const profile = {
     produces: [
       "community.lexicon.calendar.event",
       "community.lexicon.calendar.rsvp",
-      "com.devrelish.group",
-      "com.devrelish.event.meta",
-      "com.devrelish.membership",
+      "tech.devrelish.group",
+      "tech.devrelish.event.meta",
+      "tech.devrelish.membership",
     ],
     consumes: [
       "community.lexicon.calendar.event",
@@ -69,17 +69,17 @@ const profile = {
       "community.lexicon.location.geo",
       "community.lexicon.location.fsq",
       "community.lexicon.location.hthree",
-      "com.devrelish.group",
-      "com.devrelish.event.meta",
-      "com.devrelish.membership",
+      "tech.devrelish.group",
+      "tech.devrelish.event.meta",
+      "tech.devrelish.membership",
     ],
   },
   // Records that only DevRel(ish) writes — their presence in a repo is a
   // reliable signal that the account has used this app.
   accountIndicators: [
-    { collection: "com.devrelish.group" },
-    { collection: "com.devrelish.event.meta" },
-    { collection: "com.devrelish.membership" },
+    { collection: "tech.devrelish.group" },
+    { collection: "tech.devrelish.event.meta" },
+    { collection: "tech.devrelish.membership" },
   ],
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),

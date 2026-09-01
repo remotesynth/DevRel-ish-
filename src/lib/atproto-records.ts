@@ -1,3 +1,6 @@
+import { Temporal } from "@js-temporal/polyfill";
+import { normalizeTimeZone } from "./timezone";
+
 // Builders for the community lexicon records DevRel(ish) publishes.
 //
 // These live in one place because the same records are written from several
@@ -9,12 +12,12 @@
 export const EVENT_NSID = "community.lexicon.calendar.event";
 export const RSVP_NSID = "community.lexicon.calendar.rsvp";
 export const ADDRESS_NSID = "community.lexicon.location.address";
-export const GROUP_NSID = "com.devrelish.group";
-export const MEMBERSHIP_NSID = "com.devrelish.membership";
+export const GROUP_NSID = "tech.devrelish.group";
+export const MEMBERSHIP_NSID = "tech.devrelish.membership";
 
 export const MembershipRole = {
-  member: "com.devrelish.membership#member",
-  organizer: "com.devrelish.membership#organizer",
+  member: "tech.devrelish.membership#member",
+  organizer: "tech.devrelish.membership#organizer",
 } as const;
 
 export const EVENT_URI_NSID = "community.lexicon.calendar.event#uri";
@@ -119,12 +122,23 @@ export function buildAddress(input: AddressInput): AddressRecord | null {
 }
 
 /**
- * Combine a date and an "HH:MM" time into an ISO datetime.
- * Treated as UTC; timezone-aware scheduling is a future improvement.
+ * Combine a stored civil date and wall-clock time in an IANA timezone into an
+ * instant. ATProto event records use absolute datetimes, so emitting UTC here
+ * preserves an organizer's local start time for every attendee.
  */
-export function buildStartsAt(date: Date, timeStr: string): string {
-  const dateStr = date.toISOString().split("T")[0]; // "YYYY-MM-DD"
-  return `${dateStr}T${timeStr}:00.000Z`;
+export function buildStartsAt(date: Date, timeStr: string, timeZone: string): string {
+  const zone = normalizeTimeZone(timeZone);
+  if (!zone) throw new Error("A valid IANA timezone is required to publish an event");
+  const [hour, minute] = timeStr.split(":").map(Number);
+  const day = Temporal.PlainDate.from({
+    year: date.getUTCFullYear(),
+    month: date.getUTCMonth() + 1,
+    day: date.getUTCDate(),
+  });
+  return day
+    .toZonedDateTime({ timeZone: zone, plainTime: new Temporal.PlainTime(hour, minute) })
+    .toInstant()
+    .toString({ smallestUnit: "millisecond" });
 }
 
 /**
@@ -134,12 +148,13 @@ export function buildStartsAt(date: Date, timeStr: string): string {
 export function buildEndsAt(
   date: Date,
   startTime: string,
-  endTime: string | null | undefined
+  endTime: string | null | undefined,
+  timeZone: string
 ): string | null {
   if (!endTime) return null;
   const day = new Date(date);
   if (endTime <= startTime) day.setUTCDate(day.getUTCDate() + 1);
-  return buildStartsAt(day, endTime);
+  return buildStartsAt(day, endTime, timeZone);
 }
 
 export interface EventUri {

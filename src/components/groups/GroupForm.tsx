@@ -7,6 +7,7 @@ interface FormData {
   country: string;
   description: string;
   contactEmail: string;
+  timezone: string;
 }
 
 export default function GroupForm() {
@@ -17,6 +18,7 @@ export default function GroupForm() {
     country: "",
     description: "",
     contactEmail: "",
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
   });
   const mountedAt = useRef<number>(0);
   useEffect(() => { mountedAt.current = Date.now(); }, []);
@@ -194,6 +196,15 @@ export default function GroupForm() {
           <span className="form-hint">
             This is how we'll reach you when your group is approved. You'll use this to sign in.
           </span>
+        </div>
+      </div>
+
+      <div className="form-section">
+        <h3 className="section-title">Event timezone</h3>
+        <div className="form-group">
+          <label htmlFor="timezone">IANA timezone *</label>
+          <input id="timezone" type="text" value={form.timezone} onChange={update("timezone")} placeholder="America/New_York" required />
+          <span className="form-hint">Used to publish the correct event time to calendars and the ATProto network.</span>
         </div>
       </div>
 

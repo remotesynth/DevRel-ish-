@@ -1,14 +1,15 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import BlueskyThreadPanel from "../../../components/BlueskyThreadPanel";
-import { db, Meetups, RSVPs, AtRsvps, Groups, GatheringSpeakers, GatheringSessions, GatheringSessionSpeakers, count, eq, and } from "astro:db";
+import { db, Meetups, RSVPs, AtRsvps, Groups, GatheringSpeakers, GatheringSessions, GatheringSessionSpeakers, count, eq } from "astro:db";
 import { asc, inArray } from "astro:db";
 import { formatDate, formatTime, spotsLeft, generateId, googleCalendarUrl, osmUrl, groupUrl, isOnline } from "../../../lib/utils";
 import { renderMarkdown } from "../../../lib/markdown";
 import { createHash } from "node:crypto";
 import { getPdsSession, pdsCreate } from "../../../lib/atproto-pds";
 import { RSVP_NSID, RsvpStatus } from "../../../lib/atproto-records";
-import { totalRsvpCount } from "../../../lib/rsvp-capacity";
+import { networkGoingCount } from "../../../lib/rsvp-capacity";
+import { reserveLocalRsvp } from "../../../lib/rsvp-reservation";
 import { isGoing } from "../../../lib/at-events";
 
 const { id } = Astro.params;
@@ -92,36 +93,15 @@ if (Astro.request.method === "POST") {
     } else if (meetup.date < new Date()) {
       result = { type: "error", message: "This gathering has already passed." };
     } else {
-      // Re-fetch fresh RSVP count inside the POST handler. Must include network
-      // RSVPs, or form sign-ups can overshoot a capacity they already filled.
-      const currentCount = await totalRsvpCount(id, meetup.atEventUri);
-
-      if (meetup.capacity != null && currentCount >= meetup.capacity) {
-        result = { type: "full" };
-      } else {
-        // Check for duplicate
-        const [duplicate] = await db
-          .select()
-          .from(RSVPs)
-          .where(and(eq(RSVPs.meetupId, id), eq(RSVPs.email, email)));
-
-        if (duplicate) {
-          result = { type: "duplicate", email };
-        } else {
-          const cancelToken = generateId();
-          await db.insert(RSVPs).values({
-            id: generateId(),
-            meetupId: id,
-            name,
-            email,
-            jobTitle,
-            company,
-            cancelToken,
-            createdAt: new Date(),
-          });
-          result = { type: "success", name, email, cancelToken };
-        }
-      }
+      const networkGoing = await networkGoingCount(meetup.atEventUri);
+      const cancelToken = generateId();
+      const reservation = await reserveLocalRsvp({
+        id: generateId(), meetupId: id, name, email, jobTitle, company, cancelToken,
+        availableLocalSeats: meetup.capacity == null ? null : meetup.capacity - networkGoing,
+      });
+      if (reservation === "full") result = { type: "full" };
+      else if (reservation === "duplicate") result = { type: "duplicate", email };
+      else result = { type: "success", name, email, cancelToken };
     }
   }
   } // end else (regular form path)
@@ -152,6 +132,7 @@ const gcalUrl = googleCalendarUrl({
   date: meetup.date,
   time: meetup.time,
   endTime: meetup.endTime,
+  timeZone: group.timezone,
   venue: meetup.venue,
   address: meetup.address,
   description: `${meetup.description}\n\nHosted by ${group.name}`,

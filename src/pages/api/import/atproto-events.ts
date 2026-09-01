@@ -17,7 +17,7 @@ export const prerender = false;
  *
  * Adoption never duplicates the event record. The existing record stays where it
  * is and keeps its at:// URI; we add a local row pointing at it plus a
- * `com.devrelish.event.meta` linking it to the group. That's what the meta
+ * `tech.devrelish.event.meta` linking it to the group. That's what the meta
  * record is for.
  */
 
