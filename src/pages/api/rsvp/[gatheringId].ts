@@ -1,9 +1,10 @@
 import type { APIRoute } from "astro";
-import { db, RSVPs, Meetups, Groups, eq, and, count } from "astro:db";
+import { db, RSVPs, Meetups, Groups, eq, and } from "astro:db";
 import { createHash } from "node:crypto";
 import { generateId } from "../../../lib/utils";
 import { getPdsSession, pdsCreate } from "../../../lib/atproto-pds";
 import { RSVP_NSID, RsvpStatus } from "../../../lib/atproto-records";
+import { totalRsvpCount } from "../../../lib/rsvp-capacity";
 
 export const prerender = false;
 
@@ -55,12 +56,7 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
     return json({ error: "Already registered.", code: "duplicate" }, 409);
   }
 
-  const [countResult] = await db
-    .select({ val: count() })
-    .from(RSVPs)
-    .where(eq(RSVPs.meetupId, gatheringId));
-
-  const rsvpCount = countResult?.val ?? 0;
+  const rsvpCount = await totalRsvpCount(gatheringId, meetup.atEventUri);
   if (meetup.capacity != null && rsvpCount >= meetup.capacity) {
     return json({ error: "This gathering is full.", code: "full" }, 409);
   }

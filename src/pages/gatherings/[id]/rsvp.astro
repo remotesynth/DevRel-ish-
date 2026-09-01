@@ -8,6 +8,7 @@ import { renderMarkdown } from "../../../lib/markdown";
 import { createHash } from "node:crypto";
 import { getPdsSession, pdsCreate } from "../../../lib/atproto-pds";
 import { RSVP_NSID, RsvpStatus } from "../../../lib/atproto-records";
+import { totalRsvpCount } from "../../../lib/rsvp-capacity";
 import { isGoing } from "../../../lib/at-events";
 
 const { id } = Astro.params;
@@ -93,18 +94,7 @@ if (Astro.request.method === "POST") {
     } else {
       // Re-fetch fresh RSVP count inside the POST handler. Must include network
       // RSVPs, or form sign-ups can overshoot a capacity they already filled.
-      const [countResult] = await db
-        .select({ val: count() })
-        .from(RSVPs)
-        .where(eq(RSVPs.meetupId, id));
-      const networkGoing = meetup.atEventUri
-        ? (await db
-            .select({ status: AtRsvps.status })
-            .from(AtRsvps)
-            .where(eq(AtRsvps.eventUri, meetup.atEventUri))
-          ).filter((r) => isGoing(r.status)).length
-        : 0;
-      const currentCount = (countResult?.val ?? 0) + networkGoing;
+      const currentCount = await totalRsvpCount(id, meetup.atEventUri);
 
       if (meetup.capacity != null && currentCount >= meetup.capacity) {
         result = { type: "full" };
@@ -161,6 +151,7 @@ const gcalUrl = googleCalendarUrl({
   title: meetup.title,
   date: meetup.date,
   time: meetup.time,
+  endTime: meetup.endTime,
   venue: meetup.venue,
   address: meetup.address,
   description: `${meetup.description}\n\nHosted by ${group.name}`,
@@ -213,7 +204,7 @@ const networkRsvps = meetup.atEventUri
     ).filter((r) => isGoing(r.status))
   : [];
 
-const networkRsvpCount = networkRsvps.length;
+const networkRsvpCount = new Set(networkRsvps.map((r) => r.did)).size;
 const rsvpCount = formRsvpCount + networkRsvpCount;
 const spots = spotsLeft(meetup.capacity, rsvpCount);
 const isFull = spots !== null && spots === 0;

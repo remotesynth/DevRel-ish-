@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { db, Meetups, Groups } from "astro:db";
 import { eq } from "astro:db";
+import { eventEnd } from "../../../lib/utils";
 
 export const prerender = false;
 
@@ -66,15 +67,13 @@ function foldLine(line: string): string {
 }
 
 function buildICS(
-  meetup: { id: string; title: string; description: string; date: Date; time: string; venue: string | null; address: string | null },
+  meetup: { id: string; title: string; description: string; date: Date; time: string; endTime: string | null; venue: string | null; address: string | null },
   group: { name: string; slug: string },
   origin: string
 ): string {
-  const [hh, mm] = meetup.time.split(":").map(Number);
   const dtstart = floatingDT(meetup.date, meetup.time);
-  // Default duration: 2 hours
-  const endHH = (hh + 2) % 24;
-  const dtend = floatingDT(meetup.date, `${pad(endHH)}:${pad(mm)}`);
+  const end = eventEnd(meetup.date, meetup.time, meetup.endTime);
+  const dtend = floatingDT(end.date, end.time);
 
   // This endpoint is public, so an online gathering's joining link stays out of
   // the file — attendees get it on the gathering page instead.
