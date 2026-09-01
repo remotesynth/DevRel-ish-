@@ -15,6 +15,10 @@ const Groups = defineTable({
     tags: column.text({ optional: true }),
     category: column.text({ optional: true }),
     website: column.text({ optional: true }),
+    // Kept for the two-step migration from the original Bluesky-only field.
+    // Astro DB will add `handle` in this deployment without dropping existing
+    // data; the documented SQL copy can then preserve current values.
+    blueskyHandle: column.text({ optional: true, deprecated: true }),
     handle: column.text({ optional: true }),      // the group's own ATProto handle, no @
     handleDid: column.text({ optional: true }),   // DID that handle resolved to, if verified
     linkedinUrl: column.text({ optional: true }),
@@ -213,6 +217,9 @@ const AtGroups = defineTable({
     category: column.text({ optional: true }),
     tags: column.text({ optional: true }),  // JSON array
     website: column.text({ optional: true }),
+    // Same legacy field retained during the non-destructive provider-neutral
+    // handle migration; see Groups.blueskyHandle above.
+    blueskyHandle: column.text({ optional: true, deprecated: true }),
     handle: column.text({ optional: true }),      // the group's own ATProto handle, no @
     handleDid: column.text({ optional: true }),   // DID that handle resolved to, if verified
     linkedinUrl: column.text({ optional: true }),

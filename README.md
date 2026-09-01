@@ -250,6 +250,16 @@ The dev seed creates placeholder users with fake DIDs — these can't actually s
    npm run db:push
    ```
 
+   If this is an existing database from before the ATProto migration, the
+   deprecated `blueskyHandle` columns are retained for one deploy so Astro DB
+   can add the new provider-neutral `handle` columns safely. Immediately after
+   the push, copy existing values once:
+
+   ```sh
+   npm run astro -- db shell --remote --query 'UPDATE "Groups" SET "handle" = "blueskyHandle" WHERE "handle" IS NULL AND "blueskyHandle" IS NOT NULL;'
+   npm run astro -- db shell --remote --query 'UPDATE "AtGroups" SET "handle" = "blueskyHandle" WHERE "handle" IS NULL AND "blueskyHandle" IS NOT NULL;'
+   ```
+
 7. **Deploy to Netlify** — the build command keeps the schema in sync on every future deploy.
 
    The `publication-reconciler` scheduled function retries durable group/event
