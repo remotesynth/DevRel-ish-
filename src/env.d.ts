@@ -5,6 +5,7 @@ interface ImportMetaEnv {
   readonly ADMIN_DIDS: string;
   readonly CONDUCT_EMAIL: string;
   readonly ATPROTO_PRIVATE_KEY_JWK: string;
+  readonly OAUTH_STORAGE_KEY: string;
   readonly CLOUDINARY_CLOUD_NAME: string;
   readonly CLOUDINARY_API_KEY: string;
   readonly CLOUDINARY_API_SECRET: string;

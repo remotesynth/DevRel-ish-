@@ -1,6 +1,7 @@
 import { NodeOAuthClient } from "@atproto/oauth-client-node";
 import { JoseKey } from "@atproto/jwk-jose";
 import { db, OAuthState, OAuthSession, eq } from "astro:db";
+import { assertOAuthStorageKeyConfigured, openOAuthValue, sealOAuthValue } from "./oauth-storage";
 
 const isDev = import.meta.env.DEV;
 
@@ -54,7 +55,7 @@ async function buildKeyset() {
 function makeStores() {
   const stateStore = {
     async set(key: string, value: Record<string, unknown>) {
-      const serialized = JSON.stringify(value);
+      const serialized = sealOAuthValue(JSON.stringify(value));
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
       await db
         .insert(OAuthState)
@@ -74,7 +75,7 @@ function makeStores() {
         await db.delete(OAuthState).where(eq(OAuthState.key, key));
         return undefined;
       }
-      return JSON.parse(row.value) as Record<string, unknown>;
+      return JSON.parse(openOAuthValue(row.value)) as Record<string, unknown>;
     },
     async del(key: string) {
       await db.delete(OAuthState).where(eq(OAuthState.key, key));
@@ -83,7 +84,7 @@ function makeStores() {
 
   const sessionStore = {
     async set(did: string, value: Record<string, unknown>) {
-      const serialized = JSON.stringify(value);
+      const serialized = sealOAuthValue(JSON.stringify(value));
       await db
         .insert(OAuthSession)
         .values({ did, value: serialized })
@@ -98,7 +99,7 @@ function makeStores() {
         .from(OAuthSession)
         .where(eq(OAuthSession.did, did));
       if (!row) return undefined;
-      return JSON.parse(row.value) as Record<string, unknown>;
+      return JSON.parse(openOAuthValue(row.value)) as Record<string, unknown>;
     },
     async del(did: string) {
       await db.delete(OAuthSession).where(eq(OAuthSession.did, did));
@@ -112,6 +113,10 @@ let _client: NodeOAuthClient | null = null;
 
 export async function getOAuthClient(): Promise<NodeOAuthClient> {
   if (_client) return _client;
+
+  // OAuth state and refresh tokens are persisted in Turso. Never let a
+  // production deployment initialize a client that would write them plainly.
+  assertOAuthStorageKeyConfigured();
 
   const { stateStore, sessionStore } = makeStores();
   const keyset = isDev ? undefined : await buildKeyset();

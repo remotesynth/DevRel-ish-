@@ -204,6 +204,17 @@ The dev seed creates placeholder users with fake DIDs — these can't actually s
 
    Store the output as `ATPROTO_PRIVATE_KEY_JWK`. Keep it secret — it authenticates your app.
 
+   Generate a separate, stable encryption key for the OAuth state and refresh
+   tokens persisted in Turso:
+
+   ```sh
+   node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))"
+   ```
+
+   Store it as `OAUTH_STORAGE_KEY`. Do not rotate it casually: rotating it
+   invalidates stored OAuth sessions and requires each connected account to
+   authorize again.
+
 3. **Publish the app profile** (optional, but it's how app directories and other
    event apps discover which lexicons DevRel(ish) speaks):
 
@@ -224,6 +235,7 @@ The dev seed creates placeholder users with fake DIDs — these can't actually s
    | `PUBLIC_URL` | Your site URL, e.g. `https://devrelish.tech` |
    | `ADMIN_DIDS` | Optional comma-separated admin DIDs (never handles) |
    | `ATPROTO_PRIVATE_KEY_JWK` | The JSON string from step 2 |
+   | `OAUTH_STORAGE_KEY` | Base64 32-byte key generated in step 2; encrypts persisted OAuth credentials |
    | `ASTRO_DB_REMOTE_URL` | From Turso |
    | `ASTRO_DB_APP_TOKEN` | From Turso |
    | `CLOUDINARY_CLOUD_NAME` | From Cloudinary |
