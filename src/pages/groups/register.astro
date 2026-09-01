@@ -5,7 +5,7 @@ import { eq } from "astro:db";
 import { generateId, slugify } from "../../lib/utils";
 import { CATEGORIES, getCategoryLabel } from "../../lib/categories";
 import { getPdsSession, pdsCreate } from "../../lib/atproto-pds";
-import { buildAddress } from "../../lib/atproto-records";
+import { buildAddress, GROUP_NSID } from "../../lib/atproto-records";
 
 if (!Astro.locals.user) {
   return Astro.redirect("/auth/login?redirect=/groups/register");
@@ -93,7 +93,7 @@ if (Astro.request.method === "POST") {
           });
           const locationEntry = address ? { location: address } : {};
 
-          const pdsResult = await pdsCreate(session, "com.devrelish.group", {
+          const pdsResult = await pdsCreate(session, GROUP_NSID, {
             name: vals.name,
             description: vals.description,
             category: vals.category,

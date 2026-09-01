@@ -4,7 +4,7 @@ import { generateId, slugify } from "../../../lib/utils";
 import { eq } from "astro:db";
 import { CATEGORIES } from "../../../lib/categories";
 import { getPdsSession, pdsCreate } from "../../../lib/atproto-pds";
-import { buildAddress } from "../../../lib/atproto-records";
+import { buildAddress, GROUP_NSID } from "../../../lib/atproto-records";
 
 export const prerender = false;
 
@@ -100,7 +100,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     });
     const locationEntry = address ? { location: address } : {};
 
-    const pdsResult = await pdsCreate(session, "com.devrelish.group", {
+    const pdsResult = await pdsCreate(session, GROUP_NSID, {
       name: name.trim(),
       description: description.trim(),
       category: category.trim(),

@@ -9,6 +9,13 @@
 export const EVENT_NSID = "community.lexicon.calendar.event";
 export const RSVP_NSID = "community.lexicon.calendar.rsvp";
 export const ADDRESS_NSID = "community.lexicon.location.address";
+export const GROUP_NSID = "com.devrelish.group";
+export const MEMBERSHIP_NSID = "com.devrelish.membership";
+
+export const MembershipRole = {
+  member: "com.devrelish.membership#member",
+  organizer: "com.devrelish.membership#organizer",
+} as const;
 
 export const EVENT_URI_NSID = "community.lexicon.calendar.event#uri";
 
@@ -192,6 +199,9 @@ export function buildCalendarEvent(input: CalendarEventInput): Record<string, un
  * whatever preview deploy happened to serve the write.
  */
 export function gatheringUrl(gatheringId: string): string {
-  const siteUrl = import.meta.env.PUBLIC_URL ?? "http://localhost:4321";
+  const siteUrl = import.meta.env.PUBLIC_URL ?? process.env.PUBLIC_URL;
+  if (!siteUrl && !import.meta.env.DEV) {
+    throw new Error("PUBLIC_URL must be configured before publishing gathering records");
+  }
   return new URL(`/gatherings/${gatheringId}/rsvp`, siteUrl).toString();
 }

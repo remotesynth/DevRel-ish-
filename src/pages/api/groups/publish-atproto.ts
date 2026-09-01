@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 import { db, Groups, eq } from "astro:db";
 import { getPdsSession, pdsCreate } from "../../../lib/atproto-pds";
-import { buildAddress } from "../../../lib/atproto-records";
+import { buildAddress, GROUP_NSID } from "../../../lib/atproto-records";
 
 export const prerender = false;
 
@@ -27,7 +27,7 @@ export const POST: APIRoute = async ({ locals, redirect }) => {
     });
     const locationEntry = address ? { location: address } : {};
 
-    const result = await pdsCreate(session, "com.devrelish.group", {
+    const result = await pdsCreate(session, GROUP_NSID, {
       name: group.name,
       description: group.description,
       ...(group.category ? { category: group.category } : {}),
