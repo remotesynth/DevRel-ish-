@@ -453,7 +453,7 @@ const descriptionHtml = renderMarkdown(meetup.description);
                     <code class="cancel-link-url" id="cancel-url">{Astro.url.origin}/gatherings/{id}/cancel/{result.cancelToken}</code>
                     <button type="button" class="btn btn-ghost btn-sm js-copy-cancel" data-url={`${Astro.url.origin}/gatherings/${id}/cancel/${result.cancelToken}`}>Copy link</button>
                   </div>
-                  <p class="cancel-link-hint">Bookmark this page or save the link — if you lose it, you'll need to contact the organizer to cancel.</p>
+                  <p class="cancel-link-hint">Bookmark this page or save the link. If you lose it, use “Cancel your RSVP” to request a new one by email.</p>
                 </div>
 
                 <a href={groupUrl(group)} class="back-link-success">← Back to {group.name}</a>
@@ -508,7 +508,7 @@ const descriptionHtml = renderMarkdown(meetup.description);
                       </p>
                     )}
                     <h2 class="rsvp-cta-heading">Count me in!</h2>
-                    <p class="form-outcome-note">We'll email you a confirmation and your cancel link.</p>
+                    <p class="form-outcome-note">Your confirmation page will include a personal cancel link—save it somewhere safe.</p>
                     <form method="POST" class="rsvp-form" novalidate>
                       <input name="_hp" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" class="hp-field" />
                       <input name="_t" type="hidden" value={String(Date.now())} />
