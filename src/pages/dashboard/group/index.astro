@@ -6,6 +6,7 @@ import { CATEGORIES } from "../../../lib/categories";
 import { groupUrl } from "../../../lib/utils";
 import { HANDLE_RE, resolveHandleToDid } from "../../../lib/atproto-identity";
 import { getPdsSession } from "../../../lib/atproto-pds";
+import { enqueueGroupPublication, reconcilePublicationOutbox } from "../../../lib/publication-outbox";
 
 if (!Astro.locals.user) return Astro.redirect("/auth/login");
 const user = Astro.locals.user;
@@ -120,7 +121,13 @@ if (Astro.request.method === "POST") {
       .where(eq(Groups.id, group.id));
     if (!successMsg) successMsg = "Group details updated!";
     const [updated] = await db.select().from(Groups).where(eq(Groups.id, group.id));
-    if (updated) Object.assign(group, updated);
+    if (updated) {
+      Object.assign(group, updated);
+      if (updated.publisherDid) {
+        const job = await enqueueGroupPublication(updated.id);
+        await reconcilePublicationOutbox({ ids: [job], limit: 1 });
+      }
+    }
   }
 }
 ---

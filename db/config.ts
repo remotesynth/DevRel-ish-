@@ -361,6 +361,23 @@ const OAuthSession = defineTable({
   },
 });
 
+// Durable work for public PDS publication. Rows survive function restarts and
+// are retried by the scheduled reconciler after transient PDS/OAuth failures.
+const PublicationOutbox = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    kind: column.text(),                    // group | gathering | claim-adopted | delete-gathering
+    groupId: column.text(),
+    meetupId: column.text({ optional: true }),
+    payload: column.text({ optional: true }), // deletion target after local row is gone
+    attempts: column.number({ default: 0 }),
+    nextAttemptAt: column.date({ optional: true }),
+    lastError: column.text({ optional: true }),
+    createdAt: column.date({ default: new Date() }),
+    updatedAt: column.date({ default: new Date() }),
+  },
+});
+
 export default defineDb({
   tables: {
     Groups,
@@ -382,6 +399,7 @@ export default defineDb({
     AppSession,
     OAuthState,
     OAuthSession,
+    PublicationOutbox,
     JetstreamCursor,
     BackfilledRepos,
     AtEvents,

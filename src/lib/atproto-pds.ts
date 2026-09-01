@@ -78,7 +78,10 @@ export async function pdsDelete(session: PdsSession, uri: string): Promise<void>
     body: JSON.stringify({ repo: session.did, collection, rkey }),
   });
   if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { message?: string };
+    const body = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
+    // A previous attempt may have reached the PDS just before the database or
+    // function timed out. Deletion is therefore idempotent for the outbox.
+    if (res.status === 400 && body.error === "RecordNotFound") return;
     throw new Error(`deleteRecord(${uri}) ${res.status}: ${body.message ?? "unknown"}`);
   }
 }

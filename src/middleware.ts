@@ -1,9 +1,12 @@
 import { defineMiddleware } from "astro:middleware";
 import { hasTrustedRequestOrigin } from "./lib/request-security";
+import { hasPublicationWorkerAuthorization } from "./lib/publication-worker-auth";
 import { getSessionUser, SESSION_COOKIE } from "./lib/session";
 
 export const onRequest = defineMiddleware(async (context, next) => {
-  if (!hasTrustedRequestOrigin(context.request, context.url.origin)) {
+  const isPublicationWorker = context.url.pathname === "/api/internal/reconcile-publications"
+    && hasPublicationWorkerAuthorization(context.request);
+  if (!isPublicationWorker && !hasTrustedRequestOrigin(context.request, context.url.origin)) {
     return new Response("Forbidden", { status: 403 });
   }
 

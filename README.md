@@ -236,6 +236,7 @@ The dev seed creates placeholder users with fake DIDs — these can't actually s
    | `ADMIN_DIDS` | Optional comma-separated admin DIDs (never handles) |
    | `ATPROTO_PRIVATE_KEY_JWK` | The JSON string from step 2 |
    | `OAUTH_STORAGE_KEY` | Base64 32-byte key generated in step 2; encrypts persisted OAuth credentials |
+   | `PUBLICATION_RECONCILE_SECRET` | `openssl rand -base64 32`; authenticates the scheduled PDS reconciliation worker |
    | `ASTRO_DB_REMOTE_URL` | From Turso |
    | `ASTRO_DB_APP_TOKEN` | From Turso |
    | `CLOUDINARY_CLOUD_NAME` | From Cloudinary |
@@ -250,6 +251,12 @@ The dev seed creates placeholder users with fake DIDs — these can't actually s
    ```
 
 7. **Deploy to Netlify** — the build command keeps the schema in sync on every future deploy.
+
+   The `publication-reconciler` scheduled function retries durable group/event
+   publication work every 15 minutes. Normal edits attempt publication
+   immediately; the queue protects work when a PDS or OAuth refresh is briefly
+   unavailable. If an account has revoked authorization, reconnect that group's
+   publisher account from its dashboard after restoring service.
 
 8. **Create your admin account:**
    - Visit `https://your-site.netlify.app/setup`

@@ -3,7 +3,8 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
 import { db, Groups, Meetups, Followers, eq, and } from "astro:db";
 import { generateId } from "../../../lib/utils";
 import { sendGatheringNotification } from "../../../lib/email";
-import { publishGathering, resolveCapacity, resolveLocation } from "../../../lib/gatherings";
+import { resolveCapacity, resolveLocation } from "../../../lib/gatherings";
+import { enqueueGatheringPublication, reconcilePublicationOutbox } from "../../../lib/publication-outbox";
 
 if (!Astro.locals.user) return Astro.redirect("/auth/login");
 const user = Astro.locals.user;
@@ -93,10 +94,10 @@ if (Astro.request.method === "POST") {
       createdAt: new Date(),
     });
 
-    // Publish to the organizer's PDS so the gathering exists on the network,
-    // not just in our database. Best-effort — never blocks the redirect.
-    const [saved] = await db.select().from(Meetups).where(eq(Meetups.id, newId));
-    if (saved) await publishGathering(saved, group);
+    // Make the normal path immediate, but retain the work for the scheduled
+    // reconciler if the group PDS is temporarily unavailable.
+    const job = await enqueueGatheringPublication(group.id, newId);
+    await reconcilePublicationOutbox({ ids: [job], limit: 1 });
 
     // Notify confirmed followers (fire-and-forget — don't block the redirect)
     const followers = await db

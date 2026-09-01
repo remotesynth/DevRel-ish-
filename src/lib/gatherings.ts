@@ -1,4 +1,4 @@
-// Publishing gatherings to the organizer's PDS.
+// Publishing gatherings to the dedicated group publisher's PDS.
 //
 // This lives here because four call sites need it: the two API routes and the
 // two dashboard pages. Until this module existed only the API routes wrote to
@@ -6,7 +6,7 @@
 // the dashboard never reached the network at all.
 
 import { db, Meetups, Groups, eq } from "astro:db";
-import { getPdsSession, pdsCreate, pdsPut } from "./atproto-pds";
+import { getPdsSession, pdsPut } from "./atproto-pds";
 import {
   EVENT_NSID,
   EventStatus,
@@ -80,39 +80,58 @@ function metaRecordFor(
 }
 
 /**
- * Publish a newly created gathering to the organizer's PDS.
+ * Publish a newly created gathering to the group's PDS.
  *
- * Best-effort by design: the gathering already exists locally, and a PDS that's
- * briefly unreachable shouldn't cost the organizer their work. Returns whether
- * the write landed so callers can surface it.
+ * Best-effort convenience wrapper. New application paths enqueue the durable
+ * outbox instead; this is retained for callers that only need an immediate
+ * attempt. Returns whether the write landed.
  */
-export async function publishGathering(meetup: GatheringRow, group: GroupRow): Promise<boolean> {
-  if (!group.publisherDid) return false;
+async function writeNewGathering(meetup: GatheringRow, group: GroupRow): Promise<void> {
+  if (!group.publisherDid) throw new Error("The group publisher account is not connected");
   const session = await getPdsSession(group.publisherDid);
-  if (!session) return false;
+  if (!session) throw new Error("The group publisher account needs to reauthorize");
 
+  // A deterministic rkey prevents a timeout between the PDS write and the DB
+  // update from producing a duplicate event on retry.
+  const eventUri = `at://${group.publisherDid}/${EVENT_NSID}/gathering-${meetup.id}`;
+  const event = await pdsPut(session, eventUri, eventRecordFor(meetup, group));
+  await db.update(Meetups).set({ atEventUri: event.uri, atEventCid: event.cid }).where(eq(Meetups.id, meetup.id));
+
+  if (group.atUri && group.atCid) {
+    const metaUri = `at://${group.publisherDid}/${EVENT_META_NSID}/gathering-${meetup.id}`;
+    const meta = await pdsPut(session, metaUri, metaRecordFor(meetup, group, event));
+    await db.update(Meetups).set({ atMetaUri: meta.uri, atMetaCid: meta.cid }).where(eq(Meetups.id, meetup.id));
+  }
+}
+
+export async function reconcileGatheringPublication(meetup: GatheringRow, group: GroupRow): Promise<void> {
+  if (meetup.adopted) return;
+  if (!group.publisherDid) throw new Error("The group publisher account is not connected");
+
+  // Records authored before the dedicated group publisher model cannot be
+  // safely updated. Publish a new canonical record under the group account.
+  if (!meetup.atEventUri || meetup.atEventUri.split("/")[2] !== group.publisherDid) {
+    await writeNewGathering(meetup, group);
+    return;
+  }
+
+  const session = await getPdsSession(group.publisherDid);
+  if (!session) throw new Error("The group publisher account needs to reauthorize");
+  const event = await pdsPut(session, meetup.atEventUri, eventRecordFor(meetup, group));
+  await db.update(Meetups).set({ atEventCid: event.cid }).where(eq(Meetups.id, meetup.id));
+
+  if (group.atUri && group.atCid) {
+    const metaUri = meetup.atMetaUri?.split("/")[2] === group.publisherDid
+      ? meetup.atMetaUri
+      : `at://${group.publisherDid}/${EVENT_META_NSID}/gathering-${meetup.id}`;
+    const meta = await pdsPut(session, metaUri, metaRecordFor(meetup, group, event));
+    await db.update(Meetups).set({ atMetaUri: meta.uri, atMetaCid: meta.cid }).where(eq(Meetups.id, meetup.id));
+  }
+}
+
+export async function publishGathering(meetup: GatheringRow, group: GroupRow): Promise<boolean> {
   try {
-    const event = await pdsCreate(session, EVENT_NSID, eventRecordFor(meetup, group));
-
-    // The meta record holds strongRefs to both the event and the group, so it
-    // can only be written once the group itself is on the network.
-    let metaUri: string | null = null;
-    let metaCid: string | null = null;
-    if (group.atUri && group.atCid) {
-      const meta = await pdsCreate(session, EVENT_META_NSID, metaRecordFor(meetup, group, event));
-      metaUri = meta.uri;
-      metaCid = meta.cid;
-    }
-
-    await db
-      .update(Meetups)
-      .set({
-        atEventUri: event.uri,
-        atEventCid: event.cid,
-        ...(metaUri ? { atMetaUri: metaUri, atMetaCid: metaCid } : {}),
-      })
-      .where(eq(Meetups.id, meetup.id));
-
+    await reconcileGatheringPublication(meetup, group);
     return true;
   } catch (err) {
     console.error("[gatherings] PDS publish failed:", err);
@@ -131,31 +150,8 @@ export async function publishGathering(meetup: GatheringRow, group: GroupRow): P
  * into their own repo, so the URI's DID has to match the caller.
  */
 export async function syncGathering(meetup: GatheringRow, group: GroupRow): Promise<boolean> {
-  if (!meetup.atEventUri) return false;
-  if (!group.publisherDid || meetup.atEventUri.split("/")[2] !== group.publisherDid) return false;
-
-  // An adopted event's record is authored and maintained by another app.
-  // `putRecord` replaces a record wholesale and `eventRecordFor` builds it from
-  // only the fields we know, so syncing would silently drop whatever that app
-  // stores there. Leave it alone.
-  if (meetup.adopted) return false;
-
-  const session = await getPdsSession(group.publisherDid);
-  if (!session) return false;
-
   try {
-    const event = await pdsPut(session, meetup.atEventUri, eventRecordFor(meetup, group));
-    await db.update(Meetups).set({ atEventCid: event.cid }).where(eq(Meetups.id, meetup.id));
-
-    if (meetup.atMetaUri && group.atUri && group.atCid) {
-      const meta = await pdsPut(
-        session,
-        meetup.atMetaUri,
-        metaRecordFor(meetup, group, { uri: event.uri, cid: event.cid })
-      );
-      await db.update(Meetups).set({ atMetaCid: meta.cid }).where(eq(Meetups.id, meetup.id));
-    }
-
+    await reconcileGatheringPublication(meetup, group);
     return true;
   } catch (err) {
     console.error("[gatherings] PDS sync failed:", err);

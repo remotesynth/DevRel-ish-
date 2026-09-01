@@ -1,8 +1,7 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { db, AppUser, Groups, GroupInvites, AtGroups, eq } from "astro:db";
-import { getPdsSession, pdsPut } from "../../lib/atproto-pds";
-import { buildAddress } from "../../lib/atproto-records";
+import { db, AppUser, Groups, GroupInvites, eq } from "astro:db";
+import { enqueueGroupPublication, reconcilePublicationOutbox } from "../../lib/publication-outbox";
 
 const { token } = Astro.params;
 if (!token) return Astro.redirect("/");
@@ -35,39 +34,11 @@ if (isValid && user && Astro.request.method === "POST") {
     // Consume the invite so it can't be reused
     await db.delete(GroupInvites).where(eq(GroupInvites.id, token));
 
-    // Update the group's PDS record to include the new co-organizer's DID (best-effort)
-    if (group!.atUri && group!.atCid && group!.managerId) {
-      try {
-        const organizerSession = await getPdsSession(group!.managerId);
-        if (organizerSession) {
-          const [atGroup] = await db
-            .select({ coOrganizers: AtGroups.coOrganizers })
-            .from(AtGroups)
-            .where(eq(AtGroups.uri, group!.atUri));
-          const existing: string[] = atGroup?.coOrganizers
-            ? (() => { try { return JSON.parse(atGroup.coOrganizers); } catch { return []; } })()
-            : [];
-          const coOrganizers = [...new Set([...existing, user.did])];
-
-          await pdsPut(organizerSession, group!.atUri, {
-            name: group!.name,
-            description: group!.description,
-            ...(() => {
-              const address = buildAddress({
-                locality: group!.city,
-                region: group!.region,
-                country: group!.country,
-              });
-              return address ? { location: address } : {};
-            })(),
-            ...(group!.category ? { category: group!.category } : {}),
-            coOrganizers,
-            createdAt: group!.createdAt.toISOString(),
-          });
-        }
-      } catch (err) {
-        console.warn("[invite] Could not update group PDS record with co-organizer:", err);
-      }
+    // The dedicated group publisher, not this organizer's personal account,
+    // owns the public group record. Keep the update durable if it is offline.
+    if (group!.publisherDid) {
+      const job = await enqueueGroupPublication(group!.id);
+      await reconcilePublicationOutbox({ ids: [job], limit: 1 });
     }
 
     successMsg = `You now have co-organizer access to ${group!.name}.`;

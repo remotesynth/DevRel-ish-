@@ -1,7 +1,8 @@
 import type { APIRoute } from "astro";
 import { db, Meetups, Groups, eq } from "astro:db";
 import { generateId } from "../../../lib/utils";
-import { publishGathering, resolveCapacity, resolveLocation } from "../../../lib/gatherings";
+import { resolveCapacity, resolveLocation } from "../../../lib/gatherings";
+import { enqueueGatheringPublication, reconcilePublicationOutbox } from "../../../lib/publication-outbox";
 
 export const prerender = false;
 
@@ -79,10 +80,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
     createdAt: now,
   });
 
-  // Publish to the organizer's PDS. Best-effort: the gathering already exists
-  // locally, and one unreachable PDS shouldn't fail the request.
-  const [saved] = await db.select().from(Meetups).where(eq(Meetups.id, meetupId));
-  if (saved) await publishGathering(saved, group);
+  // Persist first, then make an immediate attempt. Any failure remains queued
+  // for the scheduler rather than leaving this gathering local-only.
+  const job = await enqueueGatheringPublication(group.id, meetupId);
+  await reconcilePublicationOutbox({ ids: [job], limit: 1 });
 
   return json({ ok: true, id: meetupId }, 201);
 };

@@ -2,7 +2,7 @@ import type { APIRoute } from "astro";
 import { db, Meetups, Groups, RSVPs } from "astro:db";
 import { eq, and } from "astro:db";
 import { sendCancellationNotice } from "../../../../lib/email";
-import { syncGathering } from "../../../../lib/gatherings";
+import { enqueueGatheringPublication, reconcilePublicationOutbox } from "../../../../lib/publication-outbox";
 
 export const prerender = false;
 
@@ -33,9 +33,8 @@ export const POST: APIRoute = async ({ params, locals }) => {
   // Tell the network too. Emailing our own RSVP list is not enough: anyone who
   // found this event through Smoke Signal, atmo.rsvp, or OpenMeet only learns it
   // was cancelled if the published record's status says so.
-  const [updated] = await db.select().from(Meetups).where(eq(Meetups.id, id));
-  const [ownerGroup] = await db.select().from(Groups).where(eq(Groups.id, meetup.groupId));
-  if (updated && ownerGroup) await syncGathering(updated, ownerGroup);
+  const job = await enqueueGatheringPublication(meetup.groupId, meetup.id);
+  await reconcilePublicationOutbox({ ids: [job], limit: 1 });
 
   // Notify RSVPs only when cancelling (not when restoring)
   if (newStatus === "canceled") {

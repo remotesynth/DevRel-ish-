@@ -7,6 +7,7 @@ if (!Astro.locals.user) return Astro.redirect("/auth/login");
 const user = Astro.locals.user;
 const justJoined = Astro.url.searchParams.get("joined") === "1";
 const justPublished = Astro.url.searchParams.get("published") === "atproto";
+const publishQueued = Astro.url.searchParams.get("published") === "queued";
 const publishError = Astro.url.searchParams.get("error") === "publish-failed";
 const publisherConnected = Astro.url.searchParams.get("publisher") === "connected";
 const publisherError = Astro.url.searchParams.get("error");
@@ -69,6 +70,12 @@ if (group) {
       </div>
     )}
 
+    {publishQueued && (
+      <div class="alert alert-success" style="margin-bottom: 1.5rem;">
+        Publication is queued and will retry automatically. Reconnect the group publisher account if it has been revoked.
+      </div>
+    )}
+
     {publishError && (
       <div class="alert alert-error" style="margin-bottom: 1.5rem;">
         Could not publish to ATProto. Please try again or check that your session is still active.
@@ -77,7 +84,7 @@ if (group) {
 
     {publisherConnected && (
       <div class="alert alert-success" style="margin-bottom: 1.5rem;">
-        Group publisher account connected. You can now publish the group and its public records from that account.
+        Group publisher account connected. Public records are being published from that account.
       </div>
     )}
 

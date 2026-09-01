@@ -3,6 +3,7 @@ import { getOAuthClient } from "../../../lib/atproto-oauth";
 import { createSession, getSessionUser, upsertUser, SESSION_COOKIE } from "../../../lib/session";
 import { resolveHandleFromDid } from "../../../lib/atproto-identity";
 import { db, Groups, eq } from "astro:db";
+import { enqueueGroupPublication, reconcilePublicationOutbox } from "../../../lib/publication-outbox";
 import {
   OAUTH_INTENT_COOKIE,
   OAUTH_INTENT_COOKIE_OPTIONS,
@@ -42,6 +43,8 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
       }
 
       await db.update(Groups).set({ publisherDid: did }).where(eq(Groups.id, group.id));
+      const job = await enqueueGroupPublication(group.id);
+      await reconcilePublicationOutbox({ ids: [job], limit: 1 });
       return redirect("/dashboard?publisher=connected");
     }
 

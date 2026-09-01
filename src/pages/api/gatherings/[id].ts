@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 import { db, Meetups, Groups, RSVPs, eq, and } from "astro:db";
-import { getPdsSession, pdsDelete } from "../../../lib/atproto-pds";
-import { resolveCapacity, resolveLocation, syncGathering } from "../../../lib/gatherings";
+import { resolveCapacity, resolveLocation } from "../../../lib/gatherings";
+import { enqueueGatheringDeletion, enqueueGatheringPublication, reconcilePublicationOutbox } from "../../../lib/publication-outbox";
 
 export const prerender = false;
 
@@ -92,10 +92,10 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
 
   await db.update(Meetups).set(updates).where(eq(Meetups.id, meetup.id));
 
-  // Push the edit to the network so other apps don't keep showing a stale event.
-  const [updated] = await db.select().from(Meetups).where(eq(Meetups.id, meetup.id));
-  const [ownerGroup] = await db.select().from(Groups).where(eq(Groups.id, meetup.groupId));
-  if (updated && ownerGroup) await syncGathering(updated, ownerGroup);
+  // A successful local edit is durable publication work, even if the PDS is
+  // unavailable during this request.
+  const job = await enqueueGatheringPublication(meetup.groupId, meetup.id);
+  await reconcilePublicationOutbox({ ids: [job], limit: 1 });
 
   return json({ ok: true });
 };
@@ -106,18 +106,9 @@ export const DELETE: APIRoute = async ({ params, locals }) => {
   const meetup = await getOwnedMeetup(params.id!, locals.user.id);
   if (!meetup) return json({ error: "Gathering not found." }, 404);
 
-  // Remove PDS records before local deletion (best-effort)
-  if (meetup.atEventUri) {
-    const session = await getPdsSession(locals.user.did);
-    if (session) {
-      try {
-        if (meetup.atMetaUri) await pdsDelete(session, meetup.atMetaUri);
-        await pdsDelete(session, meetup.atEventUri);
-      } catch (err) {
-        console.error("[gatherings/delete] PDS delete failed:", err);
-      }
-    }
-  }
+  const [group] = await db.select().from(Groups).where(eq(Groups.id, meetup.groupId));
+  const job = await enqueueGatheringDeletion(meetup.groupId, meetup, group?.publisherDid ?? null);
+  if (job) await reconcilePublicationOutbox({ ids: [job], limit: 1 });
 
   await db.delete(RSVPs).where(eq(RSVPs.meetupId, meetup.id));
   await db.delete(Meetups).where(eq(Meetups.id, meetup.id));

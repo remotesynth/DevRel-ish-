@@ -1,9 +1,8 @@
 import type { APIRoute } from "astro";
 import { db, Meetups, Groups, eq } from "astro:db";
 import { generateId } from "../../../lib/utils";
-import { getPdsSession, pdsCreate } from "../../../lib/atproto-pds";
 import { EVENT_NSID, gatheringModeFrom } from "../../../lib/atproto-records";
-import { EVENT_META_NSID } from "../../../lib/gatherings";
+import { enqueueAdoptedGatheringClaim, reconcilePublicationOutbox } from "../../../lib/publication-outbox";
 import { coerceToAtUri, getRecord, listRecords, parseAtUri } from "../../../lib/atproto-repo";
 
 export const prerender = false;
@@ -94,7 +93,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (uris.length > 50) return json({ error: "Import at most 50 events at a time." }, 400);
 
   const adopted = await adoptedUriSet();
-  const session = await getPdsSession(locals.user.did);
   const results: Array<{ uri: string; ok: boolean; name?: string; error?: string }> = [];
 
   for (const uri of uris) {
@@ -152,26 +150,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
       createdAt: new Date(),
     });
 
-    // Link it to the group. Only possible when both the group is published and
-    // the event lives in this user's repo — a meta record is written to the
-    // caller's own repo, so adopting someone else's event still works, but the
-    // ref points outward.
-    if (session && group.atUri && group.atCid) {
-      try {
-        const meta = await pdsCreate(session, EVENT_META_NSID, {
-          event: { uri: record.uri, cid: record.cid },
-          group: { uri: group.atUri, cid: group.atCid },
-          createdAt: new Date().toISOString(),
-        });
-        await db
-          .update(Meetups)
-          .set({ atMetaUri: meta.uri, atMetaCid: meta.cid })
-          .where(eq(Meetups.id, meetupId));
-      } catch (err) {
-        // The gathering is adopted either way; the meta record is the bonus.
-        console.warn("[import/atproto] meta write failed for", uri, err);
-      }
-    }
+    // The group publisher owns the claim record, and the durable queue waits
+    // until the group itself has a public strong reference.
+    const job = await enqueueAdoptedGatheringClaim(group.id, meetupId);
+    await reconcilePublicationOutbox({ ids: [job], limit: 1 });
 
     adopted.add(uri);
     results.push({ uri, ok: true, name: ev.name });
