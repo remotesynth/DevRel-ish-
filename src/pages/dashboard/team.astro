@@ -10,6 +10,7 @@ if (!user.groupId) return Astro.redirect("/dashboard");
 
 const [group] = await db.select().from(Groups).where(eq(Groups.id, user.groupId));
 if (!group) return Astro.redirect("/dashboard");
+const isGroupOwner = group.managerId === user.did || user.role === "admin";
 
 let successMsg = "";
 let errorMsg = "";
@@ -19,7 +20,9 @@ if (Astro.request.method === "POST") {
   const form = await Astro.request.formData();
   const action = form.get("action")?.toString();
 
-  if (action === "create_invite") {
+  if (!isGroupOwner) {
+    errorMsg = "Only the group owner can manage co-organizer access.";
+  } else if (action === "create_invite") {
     // Replace any existing invite for this group
     await db.delete(GroupInvites).where(eq(GroupInvites.groupId, user.groupId!));
 
@@ -95,7 +98,7 @@ function formatExpiry(d: Date) {
             </div>
             {m.did === user.id ? (
               <span class="member-you">You</span>
-            ) : (
+            ) : isGroupOwner ? (
               <form method="POST" class="remove-form">
                 <input type="hidden" name="action" value="remove_member" />
                 <input type="hidden" name="memberId" value={m.did} />
@@ -107,14 +110,14 @@ function formatExpiry(d: Date) {
                   Remove
                 </button>
               </form>
-            )}
+            ) : null}
           </div>
         ))}
       </div>
     </section>
 
     <!-- Invite link -->
-    <section class="team-card">
+    {isGroupOwner && <section class="team-card">
       <h2>Invite a co-organizer</h2>
       <p class="invite-desc">
         Generate a one-time invite link and share it with someone you trust. The link expires in 7 days
@@ -154,7 +157,7 @@ function formatExpiry(d: Date) {
           </button>
         </form>
       )}
-    </section>
+    </section>}
   </div>
 </DashboardLayout>
 
