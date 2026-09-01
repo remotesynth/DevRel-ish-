@@ -65,8 +65,8 @@ import BaseLayout from "../layouts/BaseLayout.astro";
             <p>
               On any group's page, signed-in members can click <strong>Join on ATProto</strong>.
               This writes a membership record directly to your AT Protocol PDS. Your membership lives in your
-              own account, not ours — we only keep a copy indexed from the network — and it's readable by any
-              compatible app. Delete the record from your PDS and it disappears from here too.
+              own account, not ours, and it is readable by any compatible app. DevRel(ish) indexes public
+              records to make discovery work; deleting the record from your PDS removes the public membership.
             </p>
           </div>
         </div>
@@ -166,7 +166,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
             <h3>Publish your group to the ATProto network</h3>
             <p>
               From the <a href="/dashboard">organizer dashboard</a>, publish your group to AT Protocol.
-              This writes a <code>com.devrelish.group</code> record to your PDS, making your group
+              This writes a <code>com.devrelish.group</code> record to the dedicated account you connected for your group, making it
               discoverable across the Atmosphere and letting members join from their own accounts.
               Gatherings you create are also published as open calendar records that compatible apps can index.
             </p>
