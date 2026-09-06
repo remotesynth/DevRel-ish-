@@ -138,3 +138,4 @@ dist
 ## Build Artifacts
 .astro/
 .netlify/
+.DS_Store
