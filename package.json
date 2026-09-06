@@ -4,10 +4,11 @@
   "version": "0.1.0",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro db push --remote && astro build --remote",
+    "build": "npm run db:push && astro build --remote",
     "preview": "astro preview",
     "astro": "astro",
-    "db:push": "astro db push --remote",
+    "db:push": "node scripts/push-db-schema.mjs",
+    "db:query": "node scripts/query-db.mjs",
     "test": "tsx --test test/**/*.test.ts",
     "verify": "npm run test && npm run astro -- check"
   },

@@ -1,4 +1,4 @@
-import { column, defineDb, defineTable } from "astro:db";
+import { column, defineDb, defineTable, NOW } from "astro:db";
 
 // ── App Tables ────────────────────────────────────────────────────────────────
 
@@ -33,7 +33,7 @@ const Groups = defineTable({
     publisherDid: column.text({ optional: true }),
     atUri: column.text({ optional: true }),     // at:// URI of tech.devrelish.group
     atCid: column.text({ optional: true }),     // CID of the group record
-    createdAt: column.date({ default: new Date() }),
+    createdAt: column.date({ default: NOW }),
   },
 });
 
@@ -61,7 +61,7 @@ const Meetups = defineTable({
     atMetaUri: column.text({ optional: true }),  // at:// URI of tech.devrelish.event.meta
     atMetaCid: column.text({ optional: true }),  // CID of the meta record
     adopted: column.boolean({ default: false }), // event record came from another app; we don't own it
-    createdAt: column.date({ default: new Date() }),
+    createdAt: column.date({ default: NOW }),
   },
 });
 
@@ -74,7 +74,7 @@ const RSVPs = defineTable({
     jobTitle: column.text(),
     company: column.text(),
     cancelToken: column.text({ optional: true, unique: true }),
-    createdAt: column.date({ default: new Date() }),
+    createdAt: column.date({ default: NOW }),
   },
 });
 
@@ -95,7 +95,7 @@ const ContactMessages = defineTable({
     email: column.text(),
     message: column.text(),
     read: column.boolean({ default: false }),
-    createdAt: column.date({ default: new Date() }),
+    createdAt: column.date({ default: NOW }),
   },
 });
 
@@ -109,7 +109,7 @@ const GatheringSpeakers = defineTable({
     speakerImageUrl: column.text({ optional: true }),
     speakerBio: column.text({ optional: true }),
     sortOrder: column.number({ default: 0 }),
-    createdAt: column.date({ default: new Date() }),
+    createdAt: column.date({ default: NOW }),
   },
 });
 
@@ -121,7 +121,7 @@ const GatheringSessions = defineTable({
     abstract: column.text({ optional: true }),
     startTime: column.text({ optional: true }),
     sortOrder: column.number({ default: 0 }),
-    createdAt: column.date({ default: new Date() }),
+    createdAt: column.date({ default: NOW }),
   },
 });
 
@@ -142,7 +142,7 @@ const Followers = defineTable({
     name: column.text({ optional: true }),
     confirmed: column.boolean({ default: false }),
     token: column.text({ unique: true }),
-    createdAt: column.date({ default: new Date() }),
+    createdAt: column.date({ default: NOW }),
   },
 });
 
@@ -153,7 +153,7 @@ const JetstreamCursor = defineTable({
   columns: {
     id: column.text({ primaryKey: true }),   // always "default"
     cursor: column.text(),                   // microseconds timestamp as string
-    updatedAt: column.date({ default: new Date() }),
+    updatedAt: column.date({ default: NOW }),
   },
 });
 
@@ -338,7 +338,7 @@ const AppUser = defineTable({
     displayName: column.text({ optional: true }),
     role: column.text({ default: "user" }),   // "admin" | "user"
     groupId: column.text({ optional: true }), // soft ref to Groups.id
-    createdAt: column.date({ default: new Date() }),
+    createdAt: column.date({ default: NOW }),
   },
 });
 
@@ -348,7 +348,7 @@ const AppSession = defineTable({
     id: column.text({ primaryKey: true }),    // random value stored in cookie
     did: column.text(),                       // soft ref to AppUser.did
     expiresAt: column.date(),
-    createdAt: column.date({ default: new Date() }),
+    createdAt: column.date({ default: NOW }),
   },
 });
 
@@ -381,8 +381,8 @@ const PublicationOutbox = defineTable({
     attempts: column.number({ default: 0 }),
     nextAttemptAt: column.date({ optional: true }),
     lastError: column.text({ optional: true }),
-    createdAt: column.date({ default: new Date() }),
-    updatedAt: column.date({ default: new Date() }),
+    createdAt: column.date({ default: NOW }),
+    updatedAt: column.date({ default: NOW }),
   },
 });
 
