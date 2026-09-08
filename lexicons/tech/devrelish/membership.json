@@ -1,6 +1,6 @@
 {
     "lexicon": 1,
-    "id": "com.devrelish.membership",
+    "id": "tech.devrelish.membership",
     "defs": {
         "main": {
             "type": "record",
@@ -16,14 +16,14 @@
                     "group": {
                         "type": "ref",
                         "ref": "com.atproto.repo.strongRef",
-                        "description": "Strong reference to the com.devrelish.group record."
+                        "description": "Strong reference to the tech.devrelish.group record."
                     },
                     "role": {
                         "type": "string",
-                        "default": "com.devrelish.membership#member",
+                        "default": "tech.devrelish.membership#member",
                         "knownValues": [
-                            "com.devrelish.membership#member",
-                            "com.devrelish.membership#organizer"
+                            "tech.devrelish.membership#member",
+                            "tech.devrelish.membership#organizer"
                         ],
                         "description": "The member's role within the group."
                     },

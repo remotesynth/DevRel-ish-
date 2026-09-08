@@ -4,33 +4,37 @@
   "version": "0.1.0",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro db push --remote && astro build --remote",
+    "build": "npm run db:push && astro build --remote",
     "preview": "astro preview",
     "astro": "astro",
-    "db:push": "astro db push --remote"
+    "db:push": "node scripts/push-db-schema.mjs",
+    "db:query": "node scripts/query-db.mjs",
+    "test": "tsx --test test/**/*.test.ts",
+    "verify": "npm run test && npm run astro -- check"
   },
   "dependencies": {
-    "@astrojs/check": "^0.9.8",
-    "@astrojs/db": "^0.14.3",
-    "@astrojs/netlify": "^7.0.5",
-    "@astrojs/node": "^10.0.4",
-    "@astrojs/react": "^4.2.1",
+    "@astrojs/check": "^0.9.10",
+    "@astrojs/db": "^0.21.3",
+    "@astrojs/netlify": "^8.2.5",
+    "@astrojs/react": "^6.0.5",
     "@atproto/jwk-jose": "^0.2.3",
-    "@libsql/client": "^0.15.15",
     "@atproto/oauth-client-node": "^0.4.5",
-    "astro": "^6.1.1",
+    "@js-temporal/polyfill": "^0.5.1",
+    "@libsql/client": "^0.17.0",
+    "astro": "^7.3.1",
     "cloudinary": "^2.10.0",
     "drizzle-orm": "^0.45.2",
     "marked": "^17.0.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "resend": "^6.10.0",
-    "sanitize-html": "^2.17.2"
+    "sanitize-html": "2.17.4"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/sanitize-html": "^2.16.1",
+    "tsx": "^4.23.13",
     "typescript": "^5.7.3"
   }
 }

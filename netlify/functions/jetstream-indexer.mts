@@ -1,21 +1,49 @@
 import { createClient, type Client } from "@libsql/client";
+import { classifyEvent } from "../../src/lib/topical";
 
-// Runs every 5 minutes via Netlify Scheduled Functions
+// Runs via Netlify Scheduled Functions.
+//
+// Cost budget (Netlify free plan: 300 credits/month, compute at 10 credits per
+// GB-hour, scheduled functions capped at 30s execution):
+//
+//   every  5 min → 8,640 runs/mo × 20s worst case = 48 GB-h = 480 credits  ✗ over
+//   every 15 min → 2,880 runs/mo × 20s worst case = 16 GB-h = 160 credits  ✓
+//                  steady state is ~9s, so realistically ~40 credits
+//
+// Fifteen minutes is plenty: this function only fetches OTHER people's events.
+// Gatherings created here are written to our own table synchronously and appear
+// immediately, with no indexer involvement at all.
 export const config = {
-  schedule: "*/5 * * * *",
+  schedule: "*/15 * * * *",
 };
 
 const JETSTREAM_URL = "wss://jetstream2.us-east.bsky.network/subscribe";
 const WANTED_COLLECTIONS = [
   "community.lexicon.calendar.event",
   "community.lexicon.calendar.rsvp",
-  "com.devrelish.group",
-  "com.devrelish.event.meta",
-  "com.devrelish.membership",
+  "tech.devrelish.group",
+  "tech.devrelish.event.meta",
+  "tech.devrelish.membership",
 ];
 
-// Stop collecting after this many ms — well within the 5-min interval
-const MAX_COLLECT_MS = 45_000;
+// Netlify caps scheduled functions at 30s. At 45s this function was being
+// killed mid-run, losing the cursor write and re-replaying the same window
+// forever. 20s leaves headroom for the backfill and DB writes that follow.
+const MAX_COLLECT_MS = 20_000;
+
+// Belt and braces: stop reading if the stream floods, so one bad window can't
+// blow the time budget even if the timeout logic misbehaves.
+const MAX_EVENTS_PER_RUN = 40_000;
+
+// How far back a first run replays. Measured replay rate is ~100x realtime, so
+// 2h drains in roughly one run. A longer window sounds better but isn't: in a
+// real 24h sample the firehose yielded ONE calendar event. The per-repo
+// backfill below is what actually populates the index with history.
+const COLD_START_LOOKBACK_MS = 2 * 60 * 60 * 1000;
+
+// Per-run cap on repo back-catalogue fetches, so a busy sweep can't blow the
+// function's time budget.
+const MAX_BACKFILL_REPOS = 8;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -60,15 +88,42 @@ async function indexRecord(
   collection: string,
   record: Record<string, unknown>,
   indexedAt: string
-): Promise<void> {
+): Promise<boolean> {
+  if (!WANTED_COLLECTIONS.includes(collection)) return false;
+
   if (collection === "community.lexicon.calendar.event") {
+    // A group here may have claimed this event, which settles relevance
+    // regardless of what the title says.
+    const claimed = await db.execute({
+      sql: `SELECT 1 FROM "AtEventMeta" WHERE eventUri = ? LIMIT 1`,
+      args: [uri],
+    });
+    const verdict = classifyEvent(
+      record.name != null ? String(record.name) : null,
+      record.description != null ? String(record.description) : null,
+      claimed.rows.length > 0
+    );
+
+    // Don't store what we'll never show. Measured on real data, an indexed
+    // event averages 3.2 KB and 84% of that is the description — so keeping
+    // the whole network's calendar would cost ~326 MB per 100k events, past
+    // Turso's free tier, almost entirely for rows behind a filter.
+    //
+    // Direct links to a filtered event still resolve: /events/[did]/[rkey]
+    // falls back to reading the record live from its own PDS when there's no
+    // indexed row. The filter decides what we advertise, not what exists.
+    if (!verdict.topical) return false;
+
     await db.execute({
-      sql: `INSERT INTO "AtEvents" (uri, cid, did, name, startsAt, endsAt, description, locationJson, status, createdAt, indexedAt)
-            VALUES (:uri, :cid, :did, :name, :startsAt, :endsAt, :description, :locationJson, :status, :createdAt, :indexedAt)
+      sql: `INSERT INTO "AtEvents" (uri, cid, did, name, startsAt, endsAt, description, locationJson, urisJson, mode, status, topical, topicalScore, topicalTerms, createdAt, indexedAt)
+            VALUES (:uri, :cid, :did, :name, :startsAt, :endsAt, :description, :locationJson, :urisJson, :mode, :status, :topical, :topicalScore, :topicalTerms, :createdAt, :indexedAt)
             ON CONFLICT (uri) DO UPDATE SET
               cid = excluded.cid, name = excluded.name, startsAt = excluded.startsAt,
               endsAt = excluded.endsAt, description = excluded.description,
-              locationJson = excluded.locationJson, status = excluded.status,
+              locationJson = excluded.locationJson, urisJson = excluded.urisJson,
+              mode = excluded.mode, status = excluded.status,
+              topical = excluded.topical, topicalScore = excluded.topicalScore,
+              topicalTerms = excluded.topicalTerms,
               indexedAt = excluded.indexedAt`,
       args: {
         uri, cid, did,
@@ -77,12 +132,17 @@ async function indexRecord(
         endsAt: record.endsAt != null ? String(record.endsAt) : null,
         description: record.description != null ? String(record.description) : null,
         locationJson: record.locations != null ? JSON.stringify(record.locations) : null,
+        urisJson: record.uris != null ? JSON.stringify(record.uris) : null,
+        mode: record.mode != null ? String(record.mode) : null,
         status: record.status != null ? String(record.status) : null,
+        topical: verdict.topical ? 1 : 0,
+        topicalScore: verdict.score,
+        topicalTerms: verdict.terms.length ? verdict.terms.join(", ") : null,
         createdAt: String(record.createdAt ?? indexedAt),
         indexedAt,
       },
     });
-    return;
+    return true;
   }
 
   if (collection === "community.lexicon.calendar.rsvp") {
@@ -102,17 +162,17 @@ async function indexRecord(
         indexedAt,
       },
     });
-    return;
+    return true;
   }
 
-  if (collection === "com.devrelish.group") {
+  if (collection === "tech.devrelish.group") {
     await db.execute({
-      sql: `INSERT INTO "AtGroups" (uri, cid, did, name, description, locationJson, category, tags, website, blueskyHandle, linkedinUrl, coOrganizers, createdAt, indexedAt)
-            VALUES (:uri, :cid, :did, :name, :description, :locationJson, :category, :tags, :website, :blueskyHandle, :linkedinUrl, :coOrganizers, :createdAt, :indexedAt)
+      sql: `INSERT INTO "AtGroups" (uri, cid, did, name, description, locationJson, category, tags, website, handle, handleDid, linkedinUrl, coOrganizers, createdAt, indexedAt)
+            VALUES (:uri, :cid, :did, :name, :description, :locationJson, :category, :tags, :website, :handle, :handleDid, :linkedinUrl, :coOrganizers, :createdAt, :indexedAt)
             ON CONFLICT (uri) DO UPDATE SET
               cid = excluded.cid, name = excluded.name, description = excluded.description,
               locationJson = excluded.locationJson, category = excluded.category,
-              tags = excluded.tags, website = excluded.website, blueskyHandle = excluded.blueskyHandle,
+              tags = excluded.tags, website = excluded.website, handle = excluded.handle, handleDid = excluded.handleDid,
               linkedinUrl = excluded.linkedinUrl, coOrganizers = excluded.coOrganizers,
               indexedAt = excluded.indexedAt`,
       args: {
@@ -123,17 +183,18 @@ async function indexRecord(
         category: record.category != null ? String(record.category) : null,
         tags: record.tags != null ? JSON.stringify(record.tags) : null,
         website: record.website != null ? String(record.website) : null,
-        blueskyHandle: record.blueskyHandle != null ? String(record.blueskyHandle) : null,
+        handle: record.handle != null ? String(record.handle) : null,
+        handleDid: record.did != null ? String(record.did) : null,
         linkedinUrl: record.linkedinUrl != null ? String(record.linkedinUrl) : null,
         coOrganizers: record.coOrganizers != null ? JSON.stringify(record.coOrganizers) : null,
         createdAt: String(record.createdAt ?? indexedAt),
         indexedAt,
       },
     });
-    return;
+    return true;
   }
 
-  if (collection === "com.devrelish.event.meta") {
+  if (collection === "tech.devrelish.event.meta") {
     const eventRef = record.event as { uri?: string } | undefined;
     const groupRef = record.group as { uri?: string } | undefined;
     await db.execute({
@@ -156,10 +217,10 @@ async function indexRecord(
         indexedAt,
       },
     });
-    return;
+    return true;
   }
 
-  if (collection === "com.devrelish.membership") {
+  if (collection === "tech.devrelish.membership") {
     const groupRef = record.group as { uri?: string } | undefined;
     await db.execute({
       sql: `INSERT INTO "AtMemberships" (uri, cid, did, groupUri, role, createdAt, indexedAt)
@@ -175,7 +236,10 @@ async function indexRecord(
         indexedAt,
       },
     });
+    return true;
   }
+
+  return false;
 }
 
 async function deleteRecord(
@@ -186,9 +250,9 @@ async function deleteRecord(
   const tableMap: Record<string, string> = {
     "community.lexicon.calendar.event": "AtEvents",
     "community.lexicon.calendar.rsvp": "AtRsvps",
-    "com.devrelish.group": "AtGroups",
-    "com.devrelish.event.meta": "AtEventMeta",
-    "com.devrelish.membership": "AtMemberships",
+    "tech.devrelish.group": "AtGroups",
+    "tech.devrelish.event.meta": "AtEventMeta",
+    "tech.devrelish.membership": "AtMemberships",
   };
   const table = tableMap[collection];
   if (!table) return;
@@ -196,6 +260,78 @@ async function deleteRecord(
     sql: `DELETE FROM "${table}" WHERE uri = ?`,
     args: [uri],
   });
+}
+
+// ── Repo back-catalogue ───────────────────────────────────────────────────────
+//
+// Jetstream is forward-only: it tells us about records as they're written, so an
+// event created last month is invisible no matter how long we listen. When we
+// first see a DID publishing calendar events we therefore read its whole
+// collection straight from its PDS. Unauthenticated, public reads.
+//
+// This compounds: every new organizer the firehose reveals brings their back
+// catalogue with them.
+
+async function resolvePds(did: string): Promise<string | null> {
+  const url = did.startsWith("did:plc:")
+    ? `https://plc.directory/${did}`
+    : did.startsWith("did:web:")
+      ? `https://${did.slice("did:web:".length).replaceAll(":", "/")}/.well-known/did.json`
+      : null;
+  if (!url) return null;
+
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(5_000) });
+    if (!res.ok) return null;
+    const doc = (await res.json()) as { service?: Array<{ id?: string; serviceEndpoint?: string }> };
+    const pds = doc.service?.find((sv) => String(sv.id).endsWith("#atproto_pds"))?.serviceEndpoint;
+    return typeof pds === "string" ? pds.replace(/\/$/, "") : null;
+  } catch {
+    return null;
+  }
+}
+
+async function backfillRepo(db: Client, did: string, collection: string, indexedAt: string): Promise<number> {
+  const pds = await resolvePds(did);
+  if (!pds) return 0;
+
+  let cursor: string | undefined;
+  let n = 0;
+
+  try {
+    // Two pages is plenty for a meetup organizer's history and keeps the
+    // per-run cost predictable.
+    for (let page = 0; page < 2; page++) {
+      const qs = new URLSearchParams({ repo: did, collection, limit: "100" });
+      if (cursor) qs.set("cursor", cursor);
+
+      const res = await fetch(`${pds}/xrpc/com.atproto.repo.listRecords?${qs}`, {
+        signal: AbortSignal.timeout(8_000),
+      });
+      if (!res.ok) break;
+
+      const body = (await res.json()) as {
+        records?: Array<{ uri: string; cid: string; value: Record<string, unknown> }>;
+        cursor?: string;
+      };
+      const batch = body.records ?? [];
+      for (const rec of batch) {
+        try {
+          // Counts records STORED, not records seen — most of a repo's calendar
+          // is filtered out, and a log claiming otherwise is a lie.
+          if (await indexRecord(db, rec.uri, rec.cid, did, collection, rec.value, indexedAt)) n++;
+        } catch (err) {
+          console.warn("[jetstream-indexer] backfill index failed", rec.uri, err);
+        }
+      }
+      if (!body.cursor || batch.length === 0) break;
+      cursor = body.cursor;
+    }
+  } catch (err) {
+    console.warn("[jetstream-indexer] backfill failed for", did, err);
+  }
+
+  return n;
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────────
@@ -211,23 +347,40 @@ export default async function handler(): Promise<void> {
 
   const db = createClient({ url: dbUrl, authToken: dbToken });
 
-  // Load last cursor
+  // Load last cursor.
+  //
+  // On a cold start there isn't one, and connecting with no cursor makes
+  // Jetstream stream from *now* — so a freshly deployed site sees an empty
+  // network until somebody, somewhere, happens to publish. Jetstream accepts a
+  // past cursor and replays from it, so the first run reaches back through its
+  // retention window instead. That's the difference between the network rail
+  // being populated at launch and being empty for a day.
   const cursorResult = await db.execute(
     `SELECT cursor FROM "JetstreamCursor" WHERE id = 'default'`
   );
-  const cursor = cursorResult.rows[0]?.[0] as string | undefined;
+  const stored = cursorResult.rows[0]?.[0] as string | undefined;
+  const coldStart = !stored;
+  const cursor =
+    stored ?? String((Date.now() - COLD_START_LOOKBACK_MS) * 1_000);
 
   // Build subscription URL
   const params = new URLSearchParams();
   for (const col of WANTED_COLLECTIONS) {
-    params.append("wantedCollections[]", col);
+    // No brackets. `wantedCollections[]` is silently ignored by Jetstream, which
+    // then streams the ENTIRE firehose — measured at ~2,000 events per 6s, of
+    // which essentially none are calendar records. The bracketed spelling meant
+    // this function was pulling the whole network every 5 minutes and throwing
+    // 99.9% of it away.
+    params.append("wantedCollections", col);
   }
   if (cursor) {
     params.set("cursor", cursor);
   }
 
   const wsUrl = `${JETSTREAM_URL}?${params}`;
-  console.log(`[jetstream-indexer] Connecting, cursor=${cursor ?? "none"}`);
+  console.log(
+    `[jetstream-indexer] Connecting, cursor=${cursor}${coldStart ? " (cold start — replaying backlog)" : ""}`
+  );
 
   // Phase 1: collect events until caught up or timeout
   const events: JetstreamEvent[] = [];
@@ -249,6 +402,12 @@ export default async function handler(): Promise<void> {
         return;
       }
       events.push(msg);
+      if (events.length >= MAX_EVENTS_PER_RUN) {
+        console.warn(`[jetstream-indexer] Hit ${MAX_EVENTS_PER_RUN}-event cap, closing early`);
+        clearTimeout(deadline);
+        ws.close();
+        return;
+      }
       if (msg.time_us) {
         latestCursor = String(msg.time_us);
         // Caught up: latest event is within 10 s of now
@@ -277,6 +436,12 @@ export default async function handler(): Promise<void> {
   const indexedAt = nowIso();
   let indexed = 0;
   let deleted = 0;
+  let skipped = 0;
+  let offTopic = 0;
+
+  // DIDs seen publishing calendar events this sweep — candidates for a
+  // back-catalogue read once the live pass is done.
+  const eventAuthors = new Set<string>();
 
   for (const msg of events) {
     if (msg.kind !== "commit") continue;
@@ -284,10 +449,15 @@ export default async function handler(): Promise<void> {
     const { operation, collection, rkey, record, cid } = commit;
     const uri = atUri(did, collection, rkey);
 
+    if (collection === "community.lexicon.calendar.event" && operation !== "delete") {
+      eventAuthors.add(did);
+    }
+
     try {
       if ((operation === "create" || operation === "update") && record && cid) {
-        await indexRecord(db, uri, cid, did, collection, record, indexedAt);
-        indexed++;
+        if (await indexRecord(db, uri, cid, did, collection, record, indexedAt)) indexed++;
+        else if (collection === "community.lexicon.calendar.event") offTopic++;
+        else skipped++;
       } else if (operation === "delete") {
         await deleteRecord(db, uri, collection);
         deleted++;
@@ -297,7 +467,34 @@ export default async function handler(): Promise<void> {
     }
   }
 
-  // Phase 3: persist cursor
+  // Phase 3: back-catalogue. Read the full calendar collection of authors we
+  // haven't seen before, so their existing events show up rather than only
+  // whatever they post from now on.
+  let backfilled = 0;
+  const fresh: string[] = [];
+  for (const did of eventAuthors) {
+    const seen = await db.execute({
+      sql: `SELECT 1 FROM "BackfilledRepos" WHERE did = ? LIMIT 1`,
+      args: [did],
+    });
+    if (seen.rows.length === 0) fresh.push(did);
+    if (fresh.length >= MAX_BACKFILL_REPOS) break;
+  }
+
+  for (const did of fresh) {
+    const n = await backfillRepo(db, did, "community.lexicon.calendar.event", indexedAt);
+    backfilled += n;
+    await db.execute({
+      sql: `INSERT INTO "BackfilledRepos" (did, records, backfilledAt) VALUES (?, ?, ?)
+            ON CONFLICT (did) DO UPDATE SET records = excluded.records, backfilledAt = excluded.backfilledAt`,
+      args: [did, n, indexedAt],
+    });
+  }
+  if (fresh.length) {
+    console.log(`[jetstream-indexer] Backfilled ${backfilled} records from ${fresh.length} new repo(s)`);
+  }
+
+  // Phase 4: persist cursor
   if (latestCursor) {
     await db.execute({
       sql: `INSERT INTO "JetstreamCursor" (id, cursor, updatedAt) VALUES (?, ?, ?)
@@ -307,6 +504,7 @@ export default async function handler(): Promise<void> {
   }
 
   console.log(
-    `[jetstream-indexer] Done — indexed=${indexed} deleted=${deleted} cursor=${latestCursor}`
+    `[jetstream-indexer] Done — indexed=${indexed} backfilled=${backfilled} ` +
+      `off-topic=${offTopic} deleted=${deleted} skipped=${skipped} cursor=${latestCursor}`
   );
 }

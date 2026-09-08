@@ -4,7 +4,7 @@ import { deleteSession, getSessionUser, SESSION_COOKIE } from "../../lib/session
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ cookies }) => {
+export const POST: APIRoute = async ({ cookies }) => {
   const sessionId = cookies.get(SESSION_COOKIE)?.value ?? null;
 
   if (sessionId) {

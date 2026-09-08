@@ -48,7 +48,7 @@ export default function BlueskyThreadPanel({ eventUrl }: { eventUrl: string }) {
       style={{
         marginTop: "2.5rem",
         paddingTop: "2rem",
-        borderTop: "2px dashed var(--color-border)",
+        borderTop: "2px dashed var(--color-rule)",
       }}
     >
       <h2
@@ -56,16 +56,16 @@ export default function BlueskyThreadPanel({ eventUrl }: { eventUrl: string }) {
           display: "flex",
           alignItems: "center",
           gap: "0.5rem",
-          fontSize: "var(--size-xl)",
+          fontSize: "var(--text-xl)",
           marginBottom: "1.25rem",
         }}
       >
         <svg
+          aria-hidden="true"
           width="18"
           height="16"
           viewBox="0 0 360 320"
           fill="#0085ff"
-          aria-hidden="true"
         >
           <path d="M180 142c-16.3-31.7-60.7-90.8-102-120C38 2 15.3 1 7.5 1 1 1 0 8.3 0 14.8v11.3c0 27.3 14.7 96.2 62.3 119.4C99.3 163.8 148.7 164 180 164c31.3 0 80.7-.2 117.7-18.5C345.3 122.3 360 53.4 360 26.1V14.8C360 8.3 359 1 352.5 1c-7.8 0-30.5 1-70.5 21C240.7 51.2 196.3 110.3 180 142z" />
           <path d="M180 178c-16.3 31.7-60.7 90.8-102 120-40 20-62.7 21-70.5 21C1 319 0 311.7 0 305.2v-11.3c0-27.3 14.7-96.2 62.3-119.4C99.3 156.2 148.7 156 180 156c31.3 0 80.7.2 117.7 18.5C345.3 197.7 360 266.6 360 293.9v11.3c0 6.5-1 13.8-7.5 13.8-7.8 0-30.5-1-70.5-21-41.3-29.2-85.7-88.3-102-120z" />
@@ -86,8 +86,8 @@ export default function BlueskyThreadPanel({ eventUrl }: { eventUrl: string }) {
               rel="noopener noreferrer"
               style={{
                 display: "block",
-                background: "var(--color-surface)",
-                border: "1.5px solid var(--color-border)",
+                background: "var(--color-paper)",
+                border: "1.5px solid var(--color-rule)",
                 borderRadius: "var(--radius-md)",
                 padding: "0.875rem 1rem",
                 textDecoration: "none",
@@ -110,7 +110,7 @@ export default function BlueskyThreadPanel({ eventUrl }: { eventUrl: string }) {
                     height={28}
                     style={{
                       borderRadius: "50%",
-                      border: "1.5px solid var(--color-border)",
+                      border: "1.5px solid var(--color-rule)",
                       flexShrink: 0,
                     }}
                   />
@@ -138,7 +138,7 @@ export default function BlueskyThreadPanel({ eventUrl }: { eventUrl: string }) {
                 <span
                   style={{
                     fontWeight: 700,
-                    fontSize: "var(--size-sm)",
+                    fontSize: "var(--text-sm)",
                     flex: 1,
                     minWidth: 0,
                     overflow: "hidden",
@@ -150,8 +150,8 @@ export default function BlueskyThreadPanel({ eventUrl }: { eventUrl: string }) {
                 </span>
                 <span
                   style={{
-                    fontSize: "var(--size-xs)",
-                    color: "var(--color-text-light)",
+                    fontSize: "var(--text-xs)",
+                    color: "var(--color-muted)",
                     flexShrink: 0,
                   }}
                 >
@@ -162,9 +162,9 @@ export default function BlueskyThreadPanel({ eventUrl }: { eventUrl: string }) {
               <p
                 style={{
                   margin: 0,
-                  fontSize: "var(--size-sm)",
+                  fontSize: "var(--text-sm)",
                   lineHeight: 1.55,
-                  color: "var(--color-text)",
+                  color: "var(--color-ink)",
                 }}
               >
                 {post.record.text}
@@ -176,12 +176,12 @@ export default function BlueskyThreadPanel({ eventUrl }: { eventUrl: string }) {
                     display: "flex",
                     gap: "1rem",
                     marginTop: "0.5rem",
-                    fontSize: "var(--size-xs)",
-                    color: "var(--color-text-light)",
+                    fontSize: "var(--text-xs)",
+                    color: "var(--color-muted)",
                   }}
                 >
                   {post.replyCount != null && (
-                    <span>💬 {post.replyCount}</span>
+                    <span>{post.replyCount} {post.replyCount === 1 ? "reply" : "replies"}</span>
                   )}
                   {post.repostCount != null && (
                     <span>🔁 {post.repostCount}</span>

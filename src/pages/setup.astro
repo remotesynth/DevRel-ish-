@@ -57,7 +57,7 @@ if (!alreadyConfigured && setupToken && Astro.request.method === "POST") {
           <div class="state-block">
             <div class="state-icon">✓</div>
             <h1>Already configured</h1>
-            <p>An admin account exists. Sign in with your Bluesky account to access the dashboard.</p>
+            <p>An admin account exists. Sign in with your Atmosphere account to access the dashboard.</p>
             <a href="/auth/login" class="btn btn-primary">Go to login →</a>
           </div>
 
@@ -74,7 +74,7 @@ if (!alreadyConfigured && setupToken && Astro.request.method === "POST") {
             <h1>Admin configured!</h1>
             <p>
               <strong>{result.handle}</strong> now has admin access.
-              Sign in with that Bluesky account to access the admin dashboard.
+              Sign in with that Atmosphere account to access the admin dashboard.
               Remove <code>SETUP_TOKEN</code> from your environment for security.
             </p>
             <a href="/auth/login" class="btn btn-primary">Sign in →</a>
@@ -113,7 +113,9 @@ if (!alreadyConfigured && setupToken && Astro.request.method === "POST") {
                   autocomplete="off"
                 />
                 <span class="form-hint">
-                  Find your DID at <a href="https://bsky.app/profile/your-handle.bsky.social" target="_blank">bsky.app</a> or via <code>https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=yourdomain.bsky.social</code>
+                  Your DID is usually shown in your account settings. You can also resolve it from
+                  any AT Protocol server — <code>https://&lt;your-pds&gt;/xrpc/com.atproto.identity.resolveHandle?handle=&lt;your-handle&gt;</code>
+                  (Bluesky users can use <code>bsky.social</code> as the server).
                 </span>
               </div>
 
@@ -139,36 +141,36 @@ if (!alreadyConfigured && setupToken && Astro.request.method === "POST") {
   .setup-card {
     max-width: 480px;
     margin-inline: auto;
-    background: var(--color-surface);
-    border: 2px solid var(--color-border);
-    border-radius: var(--radius-xl);
+    background: var(--color-paper);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-md);
     padding: 2.5rem;
   }
 
   .setup-logo {
     font-family: var(--font-display);
-    font-size: var(--size-2xl);
-    color: var(--color-primary);
+    font-size: var(--text-2xl);
+    color: var(--color-accent);
     text-align: center;
     margin-bottom: 1.75rem;
   }
 
   .logo-ish {
-    color: var(--color-text-muted);
+    color: var(--color-ink-2);
     font-size: 0.85em;
   }
 
   h1 {
-    font-size: var(--size-2xl);
+    font-size: var(--text-2xl);
     margin-bottom: 0.375rem;
     text-align: center;
   }
 
   .setup-subtitle {
-    color: var(--color-text-muted);
+    color: var(--color-ink-2);
     text-align: center;
     margin-bottom: 1.75rem;
-    font-size: var(--size-base);
+    font-size: var(--text-base);
   }
 
   .setup-form {
@@ -186,14 +188,14 @@ if (!alreadyConfigured && setupToken && Astro.request.method === "POST") {
   }
 
   .state-block p {
-    color: var(--color-text-muted);
-    font-size: var(--size-sm);
+    color: var(--color-ink-2);
+    font-size: var(--text-sm);
     max-width: 36ch;
   }
 
   .state-block code {
-    background: var(--color-surface-warm);
-    border: 1px solid var(--color-border);
+    background: var(--color-paper-2);
+    border: var(--rule-hair) solid var(--color-rule);
     border-radius: var(--radius-sm);
     padding: 0.1rem 0.4rem;
     font-size: 0.9em;
@@ -201,12 +203,12 @@ if (!alreadyConfigured && setupToken && Astro.request.method === "POST") {
 
   .state-icon {
     font-size: 2.5rem;
-    color: var(--color-accent);
+    color: var(--color-ok);
     font-family: var(--font-display);
     line-height: 1;
   }
 
   .state-icon.muted {
-    color: var(--color-text-light);
+    color: var(--color-muted);
   }
 </style>

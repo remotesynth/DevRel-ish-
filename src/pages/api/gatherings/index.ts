@@ -1,16 +1,11 @@
 import type { APIRoute } from "astro";
 import { db, Meetups, Groups, eq } from "astro:db";
 import { generateId } from "../../../lib/utils";
-import { getPdsSession, pdsCreate } from "../../../lib/atproto-pds";
+import { resolveCapacity, resolveLocation } from "../../../lib/gatherings";
+import { enqueueGatheringPublication, reconcilePublicationOutbox } from "../../../lib/publication-outbox";
 
 export const prerender = false;
 
-// Combine the date (Date object) and time string ("HH:MM") into an ISO datetime.
-// Treated as UTC; timezone-aware scheduling is a future improvement.
-function buildStartsAt(date: Date, timeStr: string): string {
-  const dateStr = date.toISOString().split("T")[0]; // "YYYY-MM-DD"
-  return `${dateStr}T${timeStr}:00.000Z`;
-}
 
 export const POST: APIRoute = async ({ request, locals }) => {
   if (!locals.user) {
@@ -33,9 +28,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return json({ error: "Invalid request body." }, 400);
   }
 
-  const { title, description, date, time, venue, address, capacity } = body as Record<string, unknown>;
+  const { title, description, date, time, endTime, mode, venue, joinUrl, address, capacity } =
+    body as Record<string, unknown>;
 
-  if (!title || !description || !date || !time || !venue || !capacity) {
+  if (!title || !description || !date || !time) {
     return json({ error: "All required fields must be provided." }, 400);
   }
 
@@ -47,14 +43,25 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return json({ error: "Gathering date must be in the future." }, 400);
   }
 
-  const cap = Number(capacity);
-  if (!Number.isInteger(cap) || cap < 1 || cap > 500) {
-    return json({ error: "Capacity must be between 1 and 500." }, 400);
+  const where = resolveLocation({
+    mode,
+    venue: venue ? String(venue) : "",
+    joinUrl: joinUrl ? String(joinUrl) : "",
+    address: address ? String(address) : "",
+  });
+  if ("error" in where) return json({ error: where.error }, 400);
+
+  const cap = resolveCapacity(capacity);
+  if ("error" in cap) return json({ error: cap.error }, 400);
+
+  const timeRe = /^\d{2}:\d{2}$/;
+  const endTimeStr = endTime ? String(endTime).trim() : "";
+  if (endTimeStr && !timeRe.test(endTimeStr)) {
+    return json({ error: "Invalid end time." }, 400);
   }
 
   const meetupId = generateId();
   const now = new Date();
-  const startsAt = buildStartsAt(meetupDate, String(time));
 
   // Insert to local DB first so the gathering exists even if PDS write fails
   await db.insert(Meetups).values({
@@ -64,59 +71,19 @@ export const POST: APIRoute = async ({ request, locals }) => {
     description: String(description).trim(),
     date: meetupDate,
     time: String(time),
-    venue: String(venue).trim(),
-    address: address ? String(address).trim() : null,
-    capacity: cap,
+    endTime: endTimeStr || null,
+    mode: where.mode,
+    venue: where.venue,
+    joinUrl: where.joinUrl,
+    address: where.address,
+    capacity: cap.capacity,
     createdAt: now,
   });
 
-  // Write to PDS (best-effort; failure is logged but does not roll back the local insert)
-  const session = await getPdsSession(locals.user.did);
-  if (session) {
-    try {
-      const locationObj = {
-        $type: "community.lexicon.location.address",
-        name: String(venue).trim(),
-        ...(address ? { street: String(address).trim() } : {}),
-        ...(group.city ? { locality: group.city } : {}),
-        ...(group.country ? { country: group.country } : {}),
-      };
-
-      const eventResult = await pdsCreate(session, "community.lexicon.calendar.event", {
-        name: String(title).trim(),
-        startsAt,
-        description: String(description).trim(),
-        locations: [locationObj],
-        createdAt: now.toISOString(),
-      });
-
-      // com.devrelish.event.meta requires a strongRef to both the event and the group.
-      // Only create it if the group has been published to ATProto.
-      let metaUri: string | null = null;
-      let metaCid: string | null = null;
-
-      if (group.atUri && group.atCid) {
-        const metaResult = await pdsCreate(session, "com.devrelish.event.meta", {
-          event: { uri: eventResult.uri, cid: eventResult.cid },
-          group: { uri: group.atUri, cid: group.atCid },
-          capacity: cap,
-          createdAt: now.toISOString(),
-        });
-        metaUri = metaResult.uri;
-        metaCid = metaResult.cid;
-      }
-
-      await db.update(Meetups)
-        .set({
-          atEventUri: eventResult.uri,
-          atEventCid: eventResult.cid,
-          ...(metaUri ? { atMetaUri: metaUri, atMetaCid: metaCid } : {}),
-        })
-        .where(eq(Meetups.id, meetupId));
-    } catch (err) {
-      console.error("[gatherings/create] PDS write failed:", err);
-    }
-  }
+  // Persist first, then make an immediate attempt. Any failure remains queued
+  // for the scheduler rather than leaving this gathering local-only.
+  const job = await enqueueGatheringPublication(group.id, meetupId);
+  await reconcilePublicationOutbox({ ids: [job], limit: 1 });
 
   return json({ ok: true, id: meetupId }, 201);
 };

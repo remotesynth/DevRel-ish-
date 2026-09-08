@@ -145,7 +145,7 @@ export default function RsvpForm({ meetupId, meetupTitle, spotsLeft }: Props) {
           type="text"
           value={form.company}
           onChange={update("company")}
-          placeholder="Acme Corp"
+          placeholder="Ridgeline Labs"
           required
         />
       </div>

@@ -1,0 +1,62 @@
+---
+/**
+ * A hand-drawn underline.
+ *
+ * The one non-typographic mark on the site, and it has a job: it points at the
+ * single thing worth doing on a page. Decoration without a job is what the
+ * floating blobs were — this is deliberately scarce, used at most twice.
+ *
+ * Kept grown-up by restraint: one stroke, one colour, slight wobble, no fill,
+ * no animation, no bounce. It reads as pen on paper rather than as a sticker.
+ */
+interface Props {
+  /** "accent" for the primary action, "sun" for a softer highlight. */
+  tone?: "accent" | "sun";
+  /** Which of the two drawn strokes to use, so repeats don't look stamped. */
+  variant?: 1 | 2;
+  class?: string;
+}
+
+const { tone = "accent", variant = 1, class: className = "" } = Astro.props;
+
+// Two genuinely different hand-drawn paths — a repeated identical curve is the
+// thing that makes a "hand-drawn" mark look machine-made.
+const PATHS = {
+  1: "M4 9.5C38 4.8 74 3.6 110 5.2C146 6.8 178 8.4 212 6.1",
+  2: "M5 7.2C42 10.1 79 4.3 116 6.0C153 7.7 182 10.6 211 8.0",
+} as const;
+---
+
+<svg
+  class:list={["drawn", `tone-${tone}`, className]}
+  viewBox="0 0 216 14"
+  fill="none"
+  preserveAspectRatio="none"
+  aria-hidden="true"
+>
+  <path
+    d={PATHS[variant]}
+    stroke="currentColor"
+    stroke-width="3.2"
+    stroke-linecap="round"
+  />
+</svg>
+
+<style>
+  .drawn {
+    display: block;
+    width: 100%;
+    height: 0.42em;
+    /* Sits just under the baseline, the way a pen would land. */
+    margin-top: -0.06em;
+    overflow: visible;
+  }
+
+  .tone-accent {
+    color: var(--color-accent);
+  }
+
+  .tone-sun {
+    color: var(--color-sun);
+  }
+</style>

@@ -1,4 +1,23 @@
 ---
+/**
+ * Custom warm bar — replaces the N6 newspaper masthead.
+ *
+ * The masthead was the loudest institutional signal on the site: centred stack,
+ * uppercase mono issue line, double rule below. It read like a broadsheet when
+ * the page needs to read like a noticeboard in a good coffee shop.
+ *
+ * What changed: asymmetric instead of centred, wordmark at a friendly scale
+ * rather than a headline one, links in the body serif at reading size rather
+ * than uppercase mono, and a soft tinted band instead of a hard rule. The live
+ * counts stay — they're the most welcoming thing here — but phrased as a
+ * sentence, not an edition line.
+ *
+ * Gate 42 (AI nav fingerprint) is avoided on all four counts: tinted rather
+ * than white, no hairline border-bottom, links sit beside the wordmark rather
+ * than centred-or-right, and nothing is uppercase.
+ */
+import { db, Groups, Meetups, count, eq, and, gte } from "astro:db";
+
 interface Props {
   user: App.Locals["user"];
 }
@@ -9,62 +28,121 @@ function isActive(href: string) {
   if (href === "/") return path === "/";
   return path.startsWith(href);
 }
+
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+
+const [groupRow] = await db
+  .select({ val: count() })
+  .from(Groups)
+  .where(eq(Groups.status, "active"));
+const [gatheringRow] = await db
+  .select({ val: count() })
+  .from(Meetups)
+  .where(and(eq(Meetups.status, "active"), gte(Meetups.date, today)));
+
+const groupCount = groupRow?.val ?? 0;
+const gatheringCount = gatheringRow?.val ?? 0;
+
+// A brand-new site has nothing on the calendar. Saying "0 gatherings" advertises
+// emptiness; hiding the line entirely leaves a hole where the friendliest thing
+// on the page should be. So the line always says something true and inviting —
+// it just says a different true thing depending on what exists yet.
+type Line =
+  | { kind: "counts"; gatherings: number; groups: number }
+  | { kind: "groups"; groups: number }
+  | { kind: "opening" };
+
+const line: Line =
+  gatheringCount > 0
+    ? { kind: "counts", gatherings: gatheringCount, groups: groupCount }
+    : groupCount > 0
+      ? { kind: "groups", groups: groupCount }
+      : { kind: "opening" };
 ---
 
-<header class="site-header">
-  <nav class="container nav-inner" aria-label="Main navigation">
-    <a href="/" class="nav-logo" aria-label="DevRel(ish) home">
-      <span class="logo-text">DevRel<span class="logo-ish">(ish)</span></span>
-      <span class="beta-badge">beta</span>
-    </a>
+<header class="bar">
+  <div class="container bar-inner">
+    <div class="bar-brand">
+      <a href="/" class="wordmark" aria-label="DevRel(ish) home">
+        DevRel<span class="wordmark-ish">(ish)</span>
+      </a>
+      <p class="bar-count">
+        {
+          line.kind === "counts" ? (
+            <>
+              <strong>{line.gatherings}</strong>
+              {line.gatherings === 1 ? " gathering" : " gatherings"} coming up across
+              <strong>{line.groups}</strong>
+              {line.groups === 1 ? " group" : " groups"}
+            </>
+          ) : line.kind === "groups" ? (
+            <>
+              <strong>{line.groups}</strong>
+              {line.groups === 1 ? " group" : " groups"} here, picking dates
+            </>
+          ) : (
+            <>Gatherings for people who work in tech</>
+          )
+        }
+      </p>
+    </div>
 
-    <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false" id="nav-toggle">
-      <span></span>
-      <span></span>
-      <span></span>
+    <button class="bar-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-links">
+      Menu
     </button>
 
-    <ul class="nav-links" id="nav-links" role="list">
-      <li>
-        <a href="/gatherings" class:list={["nav-link", { active: isActive("/gatherings") }]}>
-          Gatherings
-        </a>
-      </li>
-      <li>
-        <a href="/groups" class:list={["nav-link", { active: isActive("/groups") && !isActive("/groups/register") }]}>
-          Groups
-        </a>
-      </li>
-      <li>
-        <a href="/groups/register" class:list={["nav-link nav-link-start", { active: isActive("/groups/register") }]}>
-          Start a Group
-        </a>
-      </li>
-      {
-        user ? (
-          <>
+    <nav class="bar-nav" aria-label="Primary">
+      <ul id="nav-links" role="list">
+        <li>
+          <a href="/gatherings" class:list={["bar-link", { active: isActive("/gatherings") }]}>
+            Gatherings
+          </a>
+        </li>
+        <li>
+          <a
+            href="/groups"
+            class:list={["bar-link", { active: isActive("/groups") && !isActive("/groups/register") }]}
+          >
+            Groups
+          </a>
+        </li>
+        <li>
+          <a href="/how-it-works" class:list={["bar-link", { active: isActive("/how-it-works") }]}>
+            How it works
+          </a>
+        </li>
+        {
+          user ? (
+            <>
+              <li>
+                <a
+                  href={user.role === "admin" ? "/admin" : "/dashboard"}
+                  class:list={["bar-link", { active: isActive(user.role === "admin" ? "/admin" : "/dashboard") }]}
+                >
+                  {user.role === "admin" ? "Admin" : "My group"}
+                </a>
+              </li>
+              <li>
+                <form method="post" action="/auth/signout">
+                  <button type="submit" class="bar-link signout-button">Sign out</button>
+                </form>
+              </li>
+            </>
+          ) : (
             <li>
-              <a
-                href={user.role === "admin" ? "/admin" : "/dashboard"}
-                class:list={["nav-link", { active: isActive(user.role === "admin" ? "/admin" : "/dashboard") }]}
-              >
-                {user.role === "admin" ? "Admin" : "My Group"}
+              <a href="/auth/login" class:list={["bar-link", { active: isActive("/auth/login") }]}>
+                Sign in
               </a>
             </li>
-            <li>
-              <a href="/auth/signout" class="nav-link">Sign out</a>
-            </li>
-          </>
-        ) : (
-          <li>
-            <a href="/auth/login" class:list={["nav-link nav-link-cta", { active: isActive("/auth/login") }]}>
-              Sign in
-            </a>
-          </li>
-        )
-      }
-    </ul>
-  </nav>
+          )
+        }
+        <li class="bar-cta-item">
+          <a href="/groups/register" class="bar-cta">Start a group</a>
+        </li>
+      </ul>
+    </nav>
+  </div>
 </header>
 
 <script>
@@ -72,156 +150,191 @@ function isActive(href: string) {
   const links = document.getElementById("nav-links");
   toggle?.addEventListener("click", () => {
     const open = links?.classList.toggle("open");
-    toggle.setAttribute("aria-expanded", String(open));
+    toggle.setAttribute("aria-expanded", String(Boolean(open)));
   });
 </script>
 
 <style>
-  .site-header {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: var(--color-surface);
-    border-bottom: 2px solid var(--color-border);
-    box-shadow: var(--shadow-sm);
+  .bar {
+    /* A tinted band, not a white bar with a hairline under it. */
+    background: var(--color-paper-2);
+    position: relative;
+    z-index: var(--z-header);
   }
 
-  .nav-inner {
+  .bar-inner {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
-    height: 64px;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+    padding-block: var(--space-sm);
   }
 
-  .nav-logo {
-    text-decoration: none;
+  .bar-brand {
     display: flex;
-    align-items: center;
+    align-items: baseline;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+    min-width: 0;
   }
 
-  .logo-text {
+  .wordmark {
     font-family: var(--font-display);
-    font-size: var(--size-2xl);
-    color: var(--color-primary);
-    line-height: 1;
-  }
-
-  .logo-ish {
-    color: var(--color-text-muted);
-    font-size: 0.85em;
-  }
-
-  .beta-badge {
-    font-family: var(--font-body);
-    font-size: 0.6rem;
+    font-variation-settings: var(--display-axes);
     font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--color-text-light);
-    border: 1.5px solid var(--color-border);
-    border-radius: var(--radius-full);
-    padding: 0.1em 0.5em;
-    margin-left: 0.4rem;
-    align-self: flex-start;
-    margin-top: 0.2rem;
-  }
-
-  .nav-links {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    list-style: none;
-  }
-
-  .nav-link {
-    display: block;
-    padding: 0.4rem 0.875rem;
-    border-radius: var(--radius-full);
-    font-weight: 600;
-    font-size: var(--size-sm);
+    /* Friendly, not a headline. The masthead ran to 3.5rem. */
+    font-size: var(--text-2xl);
+    line-height: 1;
+    letter-spacing: -0.025em;
+    color: var(--color-ink);
     text-decoration: none;
-    color: var(--color-text-muted);
-    transition:
-      color var(--transition),
-      background-color var(--transition);
-    background: none;
-    border: none;
-    cursor: pointer;
     white-space: nowrap;
   }
 
-  .nav-link:hover,
-  .nav-link.active {
-    color: var(--color-primary);
-    background: var(--color-surface-warm);
+  .wordmark:hover {
+    color: var(--color-accent);
   }
 
-  .nav-link-cta {
-    background: var(--color-primary);
-    color: white !important;
+  .wordmark-ish {
+    color: var(--color-accent);
   }
 
-  .nav-link-cta:hover {
-    background: var(--color-primary-dark) !important;
-    color: white !important;
+  /* The count reads as a sentence, because it's the friendliest fact we have. */
+  .bar-count {
+    font-size: var(--text-sm);
+    color: var(--color-ink-2);
+    max-width: none;
+    line-height: 1.3;
   }
 
-  .nav-link-start {
-    color: var(--color-primary) !important;
-    border: 1.5px solid var(--color-primary);
+  .bar-count strong {
+    font-weight: 700;
+    color: var(--color-sun);
+    font-variant-numeric: tabular-nums;
   }
 
-  .nav-link-start:hover,
-  .nav-link-start.active {
-    background: var(--color-primary) !important;
-    color: white !important;
+  .bar-nav ul {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+    list-style: none;
   }
 
-  .nav-toggle {
-    display: none;
-    flex-direction: column;
-    gap: 5px;
-    background: none;
-    border: none;
+  .bar-link {
+    font-size: var(--text-base);
+    color: var(--color-ink-2);
+    text-decoration: none;
+    padding-bottom: 2px;
+    border-bottom: var(--rule-thin) solid transparent;
+    white-space: nowrap;
+    transition:
+      color var(--dur-micro) var(--ease-out),
+      border-color var(--dur-micro) var(--ease-out);
+  }
+
+  .bar-link:hover {
+    color: var(--color-ink);
+    border-bottom-color: var(--color-rule-strong);
+  }
+
+  .bar-link.active {
+    color: var(--color-accent);
+    border-bottom-color: var(--color-accent);
+  }
+
+  .signout-button {
+    font-family: inherit;
+    background: transparent;
+    border-top: 0;
+    border-right: 0;
+    border-left: 0;
     cursor: pointer;
-    padding: 0.5rem;
   }
 
-  .nav-toggle span {
-    display: block;
-    width: 24px;
-    height: 2px;
-    background: var(--color-text);
-    border-radius: 2px;
-    transition: transform var(--transition);
+  .bar-cta {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.5rem;
+    padding: 0.35rem 1rem;
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
+    border-radius: var(--radius-full);
+    font-weight: 600;
+    font-size: var(--text-sm);
+    text-decoration: none;
+    white-space: nowrap;
+    box-shadow: var(--shadow-raise);
+    transition:
+      background-color var(--dur-micro) var(--ease-out),
+      transform var(--dur-micro) var(--ease-out);
   }
 
-  @media (max-width: 640px) {
-    .nav-toggle {
-      display: flex;
+  .bar-cta:hover {
+    background: var(--color-accent-deep);
+    color: var(--color-accent-ink);
+    transform: translateY(-1px);
+  }
+
+  .bar-cta:active {
+    transform: translateY(0);
+  }
+
+  .bar-toggle {
+    display: none;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: var(--text-sm);
+    background: transparent;
+    color: var(--color-ink);
+    border: var(--rule-thin) solid var(--color-rule-strong);
+    border-radius: var(--radius-full);
+    padding: 0.4rem 1rem;
+    min-height: 2.75rem;
+    cursor: pointer;
+  }
+
+  .bar-toggle:hover {
+    border-color: var(--color-ink);
+  }
+
+  @media (max-width: 52rem) {
+    .bar-count {
+      flex-basis: 100%;
+    }
+  }
+
+  @media (max-width: 44rem) {
+    .bar-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    .nav-links {
+    .bar-nav {
+      flex-basis: 100%;
+    }
+
+    .bar-nav ul {
       display: none;
-      position: absolute;
-      top: 64px;
-      left: 0;
-      right: 0;
       flex-direction: column;
-      align-items: stretch;
-      background: var(--color-surface);
-      border-bottom: 2px solid var(--color-border);
-      padding: 0.5rem 1rem 1rem;
-      gap: 0;
+      align-items: flex-start;
+      gap: var(--space-sm);
+      padding-block: var(--space-sm) var(--space-2xs);
     }
 
-    .nav-links.open {
+    .bar-nav ul.open {
       display: flex;
     }
 
-    .nav-link {
-      padding: 0.625rem 0.875rem;
+    .bar-cta-item {
+      width: 100%;
+    }
+
+    .bar-cta {
+      width: 100%;
+      justify-content: center;
     }
   }
 </style>

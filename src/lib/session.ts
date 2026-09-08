@@ -35,22 +35,23 @@ export async function deleteSession(sessionId: string): Promise<void> {
   await db.delete(AppSession).where(eq(AppSession.id, sessionId));
 }
 
-// Returns the set of handles configured as admins via the ADMIN_HANDLES env var.
-// Evaluated on each call so changes take effect without a server restart.
-function getAdminHandles(): Set<string> {
+// DIDs are stable identifiers; handles can be transferred or renamed. Evaluate
+// this on each call so a deployment-level configuration change takes effect
+// without a server restart.
+function getAdminDids(): Set<string> {
   return new Set(
     // Astro/Vite exposes .env vars via import.meta.env; process.env is a fallback
     // for contexts where import.meta isn't transformed (e.g. some Netlify runtimes).
-    (import.meta.env.ADMIN_HANDLES ?? process.env.ADMIN_HANDLES ?? "")
+    (import.meta.env.ADMIN_DIDS ?? process.env.ADMIN_DIDS ?? "")
       .split(",")
-      .map((h: string) => h.trim().toLowerCase())
+      .map((did: string) => did.trim())
       .filter(Boolean)
   );
 }
 
-export function isAdminHandle(handle: string): boolean {
-  const adminHandles = getAdminHandles();
-  return adminHandles.size > 0 && adminHandles.has(handle.toLowerCase());
+export function isAdminDid(did: string): boolean {
+  const adminDids = getAdminDids();
+  return adminDids.size > 0 && adminDids.has(did);
 }
 
 export async function promoteToAdmin(did: string): Promise<void> {
@@ -62,7 +63,7 @@ export async function upsertUser(opts: {
   handle: string;
   displayName?: string;
 }): Promise<void> {
-  const isAdmin = isAdminHandle(opts.handle);
+  const isAdmin = isAdminDid(opts.did);
   await db
     .insert(AppUser)
     .values({

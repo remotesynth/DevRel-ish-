@@ -1,7 +1,7 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { db, AppUser, Groups, GroupInvites, AtGroups, eq } from "astro:db";
-import { getPdsSession, pdsPut } from "../../lib/atproto-pds";
+import { db, AppUser, Groups, GroupInvites, eq } from "astro:db";
+import { enqueueGroupPublication, reconcilePublicationOutbox } from "../../lib/publication-outbox";
 
 const { token } = Astro.params;
 if (!token) return Astro.redirect("/");
@@ -34,39 +34,11 @@ if (isValid && user && Astro.request.method === "POST") {
     // Consume the invite so it can't be reused
     await db.delete(GroupInvites).where(eq(GroupInvites.id, token));
 
-    // Update the group's PDS record to include the new co-organizer's DID (best-effort)
-    if (group!.atUri && group!.atCid && group!.managerId) {
-      try {
-        const organizerSession = await getPdsSession(group!.managerId);
-        if (organizerSession) {
-          const [atGroup] = await db
-            .select({ coOrganizers: AtGroups.coOrganizers })
-            .from(AtGroups)
-            .where(eq(AtGroups.uri, group!.atUri));
-          const existing: string[] = atGroup?.coOrganizers
-            ? (() => { try { return JSON.parse(atGroup.coOrganizers); } catch { return []; } })()
-            : [];
-          const coOrganizers = [...new Set([...existing, user.did])];
-
-          await pdsPut(organizerSession, group!.atUri, {
-            name: group!.name,
-            description: group!.description,
-            ...(group!.city || group!.country
-              ? { location: {
-                  $type: "community.lexicon.location.address",
-                  ...(group!.city ? { city: group!.city } : {}),
-                  ...(group!.region ? { state: group!.region } : {}),
-                  ...(group!.country ? { country: group!.country } : {}),
-                }}
-              : {}),
-            ...(group!.category ? { category: group!.category } : {}),
-            coOrganizers,
-            createdAt: group!.createdAt.toISOString(),
-          });
-        }
-      } catch (err) {
-        console.warn("[invite] Could not update group PDS record with co-organizer:", err);
-      }
+    // The dedicated group publisher, not this organizer's personal account,
+    // owns the public group record. Keep the update durable if it is offline.
+    if (group!.publisherDid) {
+      const job = await enqueueGroupPublication(group!.id);
+      await reconcilePublicationOutbox({ ids: [job], limit: 1 });
     }
 
     successMsg = `You now have co-organizer access to ${group!.name}.`;
@@ -135,7 +107,7 @@ if (isValid && user && Astro.request.method === "POST") {
 
 <style>
   .invite-page {
-    min-height: calc(100vh - 64px - 200px);
+    min-height: 60vh;
     display: flex;
     align-items: center;
     padding: 3rem 0;
@@ -144,29 +116,29 @@ if (isValid && user && Astro.request.method === "POST") {
   .invite-card {
     max-width: 440px;
     margin-inline: auto;
-    background: var(--color-surface);
-    border: 2px solid var(--color-border);
-    border-radius: var(--radius-xl);
+    background: var(--color-paper);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-md);
     padding: 2rem;
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-panel);
     text-align: center;
   }
 
   .invite-logo {
     font-size: 3rem;
-    color: var(--color-primary);
+    color: var(--color-accent);
     margin-bottom: 0.75rem;
     line-height: 1;
   }
 
   h1 {
-    font-size: var(--size-3xl);
+    font-size: var(--text-3xl);
     margin-bottom: 0.375rem;
   }
 
   .invite-subtitle {
-    color: var(--color-text-muted);
-    font-size: var(--size-base);
+    color: var(--color-ink-2);
+    font-size: var(--text-base);
     margin-bottom: 1.5rem;
     max-width: none;
   }
@@ -178,8 +150,8 @@ if (isValid && user && Astro.request.method === "POST") {
   }
 
   .who-block {
-    background: var(--color-surface-warm);
-    border: 1px solid var(--color-border);
+    background: var(--color-paper-2);
+    border: var(--rule-hair) solid var(--color-rule);
     border-radius: var(--radius-md);
     padding: 0.75rem 1rem;
     display: flex;
@@ -189,14 +161,14 @@ if (isValid && user && Astro.request.method === "POST") {
   }
 
   .who-label {
-    font-size: var(--size-sm);
-    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    color: var(--color-ink-2);
   }
 
   .who-handle {
-    font-size: var(--size-sm);
+    font-size: var(--text-sm);
     font-weight: 700;
-    color: var(--color-primary);
+    color: var(--color-accent);
   }
 
   .state-block {
@@ -207,14 +179,14 @@ if (isValid && user && Astro.request.method === "POST") {
   }
 
   .state-block p {
-    color: var(--color-text-muted);
-    font-size: var(--size-sm);
+    color: var(--color-ink-2);
+    font-size: var(--text-sm);
     max-width: 32ch;
   }
 
   .state-icon {
     font-size: 2.5rem;
-    color: var(--color-accent);
+    color: var(--color-ok);
     line-height: 1;
   }
 </style>

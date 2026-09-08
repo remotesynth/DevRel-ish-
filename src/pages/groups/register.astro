@@ -4,7 +4,7 @@ import { db, Groups, AppUser } from "astro:db";
 import { eq } from "astro:db";
 import { generateId, slugify } from "../../lib/utils";
 import { CATEGORIES, getCategoryLabel } from "../../lib/categories";
-import { getPdsSession, pdsCreate } from "../../lib/atproto-pds";
+import { normalizeTimeZone } from "../../lib/timezone";
 
 if (!Astro.locals.user) {
   return Astro.redirect("/auth/login?redirect=/groups/register");
@@ -20,7 +20,8 @@ type Result =
 let result: Result | null = null;
 
 let vals = {
-  name: "", tagline: "", category: "", city: "", region: "", country: "", description: "", contactEmail: "",
+  name: "", tagline: "", category: "", city: "", region: "", country: "", timezone: "UTC", description: "", contactEmail: "",
+  conduct: false,
 };
 
 if (Astro.request.method === "POST") {
@@ -36,12 +37,15 @@ if (Astro.request.method === "POST") {
     city:         form.get("city")?.toString().trim() ?? "",
     region:       form.get("region")?.toString().trim() ?? "",
     country:      form.get("country")?.toString().trim() ?? "",
+    timezone:     form.get("timezone")?.toString().trim() ?? "UTC",
     description:  form.get("description")?.toString().trim() ?? "",
     contactEmail: form.get("contactEmail")?.toString().trim().toLowerCase() ?? "",
+    conduct: form.get("conduct") === "on",
   };
 
   const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const placeNameRe = /^[a-zA-ZÀ-ÿ\s\-'.,()]+$/;
+  const timezone = normalizeTimeZone(vals.timezone);
 
   if (hp || !submittedAt || Date.now() - submittedAt < 3000) {
     result = { type: "success", slug: "" };
@@ -59,8 +63,12 @@ if (Astro.request.method === "POST") {
     result = { type: "error", message: "Please enter a valid state or region name." };
   } else if (vals.country && !placeNameRe.test(vals.country)) {
     result = { type: "error", message: "Please enter a valid country name." };
+  } else if (!vals.conduct) {
+    result = { type: "error", message: "Please confirm your group will follow the code of conduct." };
   } else if (!emailRe.test(vals.contactEmail)) {
     result = { type: "error", message: "Please enter a valid email address." };
+  } else if (!timezone) {
+    result = { type: "error", message: "Use a valid IANA timezone such as America/New_York or Europe/London." };
   } else {
     const [existing] = await db.select().from(Groups).where(eq(Groups.name, vals.name));
     if (existing) {
@@ -70,64 +78,27 @@ if (Astro.request.method === "POST") {
       const [slugConflict] = await db.select().from(Groups).where(eq(Groups.slug, slug));
       if (slugConflict) slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
 
-      // Write com.devrelish.group record to the organizer's PDS
-      const session = await getPdsSession(Astro.locals.user.did);
-      if (!session) {
-        result = { type: "error", message: "Authentication session expired. Please sign in again." };
-      } else {
-        let atUri: string | null = null;
-        let atCid: string | null = null;
-        const now = new Date();
-        const groupId = generateId();
-
-        try {
-          const locationEntry = (vals.city || vals.country)
-            ? {
-                location: {
-                  $type: "community.lexicon.location.address",
-                  ...(vals.city ? { city: vals.city } : {}),
-                  ...(vals.region ? { state: vals.region } : {}),
-                  ...(vals.country ? { country: vals.country } : {}),
-                },
-              }
-            : {};
-
-          const pdsResult = await pdsCreate(session, "com.devrelish.group", {
-            name: vals.name,
-            description: vals.description,
-            category: vals.category,
-            ...locationEntry,
-            createdAt: now.toISOString(),
-          });
-          atUri = pdsResult.uri;
-          atCid = pdsResult.cid;
-        } catch (err) {
-          console.error("[register] PDS write failed:", err);
-          result = { type: "error", message: "Failed to publish group to ATProto network. Please try again." };
-        }
-
-        if (!result) {
-          await db.insert(Groups).values({
-            id: groupId,
-            name: vals.name,
-            slug,
-            tagline: vals.tagline || null,
-            category: vals.category,
-            city: vals.city || null,
-            region: vals.region || null,
-            country: vals.country || null,
-            description: vals.description,
-            contactEmail: vals.contactEmail,
-            status: "active",
-            managerId: Astro.locals.user.did,
-            atUri,
-            atCid,
-            createdAt: now,
-          });
-          await db.update(AppUser).set({ groupId }).where(eq(AppUser.did, Astro.locals.user.did));
-          result = { type: "success", slug };
-        }
-      }
+      const now = new Date();
+      const groupId = generateId();
+      await db.insert(Groups).values({
+        id: groupId,
+        name: vals.name,
+        slug,
+        tagline: vals.tagline || null,
+        category: vals.category,
+        city: vals.city || null,
+        region: vals.region || null,
+        country: vals.country || null,
+        timezone,
+        description: vals.description,
+        contactEmail: vals.contactEmail,
+        status: "active",
+        conductAgreedAt: now,
+        managerId: Astro.locals.user.did,
+        createdAt: now,
+      });
+      await db.update(AppUser).set({ groupId }).where(eq(AppUser.did, Astro.locals.user.did));
+      result = { type: "success", slug };
     }
   }
 }
@@ -142,7 +113,7 @@ if (Astro.request.method === "POST") {
       <div class="hero-eyebrow">✦ New group application</div>
       <h1>Start a group</h1>
       <p>
-        Want to organize real-life gatherings for your community — in your city, at conferences, or wherever
+        Want to organize gatherings for your community — in your city, at conferences, online, or wherever
         your people meet? Fill out this form and we'll get you set up.
       </p>
     </div>
@@ -154,9 +125,9 @@ if (Astro.request.method === "POST") {
         {result?.type === "success" && result.slug ? (
           <div class="success-state">
             <div class="success-icon" aria-hidden="true">✦</div>
-            <h2>Your group is live!</h2>
+            <h2>Your group is ready!</h2>
             <p>
-              Your group has been created and published to the ATProto network.
+              Your group has been created. Next, connect its dedicated ATProto account from the dashboard to publish public records.
             </p>
             <div style="display:flex;gap:0.75rem;flex-wrap:wrap;justify-content:center;margin-top:0.5rem;">
               <a href={`/groups/${result.slug}`} class="btn btn-primary">View your group →</a>
@@ -240,6 +211,12 @@ if (Astro.request.method === "POST") {
                 <label for="country">Country</label>
                 <input id="country" name="country" type="text" value={vals.country} placeholder="USA" />
               </div>
+
+              <div class="form-group">
+                <label for="timezone">Event timezone *</label>
+                <input id="timezone" name="timezone" type="text" value={vals.timezone} required placeholder="America/New_York" />
+                <span class="form-hint">Use an IANA timezone. It keeps online and in-person event times accurate everywhere.</span>
+              </div>
             </div>
 
             <div class="form-section-block">
@@ -257,6 +234,22 @@ if (Astro.request.method === "POST") {
                   Used for organizer notifications. Not displayed publicly.
                 </span>
               </div>
+            </div>
+
+            <div class="form-section-block">
+              <h3 class="section-title">The one commitment</h3>
+              <label class="conduct-check">
+                <input id="conduct" name="conduct" type="checkbox" checked={vals.conduct} required />
+                <span>
+                  My group welcomes anyone who fits its subject, and I&rsquo;ll act on reports
+                  rather than wait them out. I&rsquo;ve read the
+                  <a href="/code-of-conduct" target="_blank" rel="noopener">code of conduct</a>.
+                </span>
+              </label>
+              <p class="form-hint">
+                Groups go live without review, so this is the only gate. It&rsquo;s also what we
+                act on if someone reports a problem.
+              </p>
             </div>
 
             <div class="form-actions">
@@ -302,10 +295,11 @@ if (Astro.request.method === "POST") {
         <div class="sidebar-card sidebar-card-warm">
           <h3>Who is (ish) for?</h3>
           <p>
-            DevRel(ish) is built for niche technical communities — groups with a shared professional
-            identity who want to meet in person. If your community fits one of our categories
-            and gathers for genuine connection (not sales), you're a great fit.
+            Any group organized around technology and the people who work in it — whatever the
+            subject. What we care about is that it exists to connect people rather than to sell
+            to them, and that a stranger could turn up alone and be glad they did.
           </p>
+          <a href="/code-of-conduct" class="sidebar-link">Read the code of conduct →</a>
         </div>
 
         <div class="sidebar-card">
@@ -333,16 +327,16 @@ if (Astro.request.method === "POST") {
 
   .page-hero {
     padding: 3rem 0 2rem;
-    background: var(--color-surface-warm);
-    border-bottom: 2px solid var(--color-border);
+    background: var(--color-paper-2);
+    border-bottom: var(--rule-hair) solid var(--color-rule);
   }
 
   .hero-eyebrow {
     display: inline-block;
-    font-size: var(--size-sm);
+    font-size: var(--text-sm);
     font-weight: 700;
-    color: var(--color-primary);
-    background: rgba(232, 112, 74, 0.1);
+    color: var(--color-accent);
+    background: var(--color-accent-wash);
     padding: 0.25rem 0.875rem;
     border-radius: var(--radius-full);
     margin-bottom: 0.75rem;
@@ -353,8 +347,8 @@ if (Astro.request.method === "POST") {
   }
 
   .page-hero p {
-    font-size: var(--size-lg);
-    color: var(--color-text-muted);
+    font-size: var(--text-lg);
+    color: var(--color-ink-2);
     max-width: 56ch;
   }
 
@@ -380,29 +374,29 @@ if (Astro.request.method === "POST") {
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    background: var(--color-surface);
-    border: 2px solid var(--color-border);
-    border-radius: var(--radius-lg);
+    background: var(--color-paper);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-sm);
     padding: 1.5rem;
   }
 
   .section-title {
-    font-size: var(--size-lg);
+    font-size: var(--text-lg);
     margin: 0;
     padding-bottom: 0.5rem;
-    border-bottom: 1px dashed var(--color-border);
+    border-bottom: var(--rule-hair) dashed var(--color-rule);
   }
 
   .optional-label {
-    font-size: var(--size-sm);
+    font-size: var(--text-sm);
     font-weight: 400;
-    color: var(--color-text-light);
+    color: var(--color-muted);
     font-family: var(--font-body);
   }
 
   .section-desc {
-    font-size: var(--size-sm);
-    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    color: var(--color-ink-2);
     margin: 0;
     max-width: none;
   }
@@ -423,25 +417,25 @@ if (Astro.request.method === "POST") {
   .success-state {
     text-align: center;
     padding: 3rem 2rem;
-    background: var(--color-surface);
-    border: 2px solid var(--color-accent);
-    border-radius: var(--radius-lg);
+    background: var(--color-paper);
+    border: var(--rule-hair) solid var(--color-ok);
+    border-radius: var(--radius-sm);
   }
 
   .success-icon {
     font-size: 3rem;
-    color: var(--color-accent);
+    color: var(--color-ok);
     margin-bottom: 1rem;
     display: block;
   }
 
   .success-state h2 {
     margin-bottom: 0.75rem;
-    color: var(--color-accent-dark);
+    color: var(--color-ok);
   }
 
   .success-state p {
-    color: var(--color-text-muted);
+    color: var(--color-ink-2);
     margin: 0 auto 0.75rem;
     max-width: 44ch;
   }
@@ -452,36 +446,36 @@ if (Astro.request.method === "POST") {
     flex-direction: column;
     gap: 1.25rem;
     position: sticky;
-    top: 80px;
+    top: var(--space-lg);
   }
 
   .sidebar-card {
-    background: var(--color-surface);
-    border: 2px solid var(--color-border);
-    border-radius: var(--radius-lg);
+    background: var(--color-paper);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-sm);
     padding: 1.25rem;
   }
 
   .sidebar-card-warm {
-    background: var(--color-surface-warm);
-    border-color: var(--color-border-strong);
+    background: var(--color-paper-2);
+    border-color: var(--color-rule-strong);
   }
 
   .sidebar-card h3 {
-    font-size: var(--size-base);
+    font-size: var(--text-base);
     margin-bottom: 0.875rem;
     padding-bottom: 0.5rem;
-    border-bottom: 1px dashed var(--color-border);
+    border-bottom: var(--rule-hair) dashed var(--color-rule);
   }
 
   .sidebar-card p {
-    font-size: var(--size-sm);
-    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    color: var(--color-ink-2);
     margin-bottom: 0.5rem;
   }
 
   .sidebar-link {
-    font-size: var(--size-xs);
+    font-size: var(--text-xs);
     font-weight: 700;
   }
 
@@ -502,9 +496,9 @@ if (Astro.request.method === "POST") {
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    background: var(--color-primary);
-    color: white;
-    font-size: var(--size-xs);
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
+    font-size: var(--text-xs);
     font-weight: 700;
     display: flex;
     align-items: center;
@@ -515,12 +509,12 @@ if (Astro.request.method === "POST") {
 
   .steps-list strong {
     display: block;
-    font-size: var(--size-sm);
+    font-size: var(--text-sm);
     margin-bottom: 0.125rem;
   }
 
   .steps-list p {
-    font-size: var(--size-xs);
+    font-size: var(--text-xs);
     margin: 0;
   }
 
@@ -537,4 +531,31 @@ if (Astro.request.method === "POST") {
       grid-template-columns: 1fr;
     }
   }
+
+  .conduct-check {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2xs);
+    padding: var(--space-xs);
+    background: var(--color-accent-wash);
+    border: var(--rule-hair) solid var(--color-accent);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--color-ink);
+    line-height: var(--leading-body);
+  }
+
+  .conduct-check input {
+    width: 1rem;
+    height: 1rem;
+    margin-top: 0.3rem;
+    flex-shrink: 0;
+    accent-color: var(--color-accent);
+  }
+
 </style>

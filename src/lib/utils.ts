@@ -35,9 +35,39 @@ export function formatTime(time: string): string {
   return `${hour}:${String(m).padStart(2, "0")} ${period}`;
 }
 
-/** Count remaining spots */
-export function spotsLeft(capacity: number, rsvpCount: number): number {
+/** Count remaining spots. A null capacity means unlimited, so null comes back. */
+export function spotsLeft(capacity: number | null, rsvpCount: number): number | null {
+  if (capacity == null) return null;
   return Math.max(0, capacity - rsvpCount);
+}
+
+/** Whether a gathering has hit its cap. An uncapped gathering is never full. */
+export function isFull(capacity: number | null, rsvpCount: number): boolean {
+  return capacity != null && rsvpCount >= capacity;
+}
+
+export type GatheringMode = "inperson" | "virtual" | "hybrid";
+
+export function isOnline(mode: string | null | undefined): boolean {
+  return mode === "virtual" || mode === "hybrid";
+}
+
+/** Determine an event's end wall-clock date/time, including overnight events. */
+export function eventEnd(date: Date, startTime: string, endTime?: string | null): { date: Date; time: string } {
+  const [startHour, startMinute] = startTime.split(":").map(Number);
+  if (endTime) {
+    const endDate = new Date(date);
+    if (endTime <= startTime) endDate.setUTCDate(endDate.getUTCDate() + 1);
+    return { date: endDate, time: endTime };
+  }
+
+  const endDate = new Date(date);
+  const end = startHour * 60 + startMinute + 120;
+  if (end >= 24 * 60) endDate.setUTCDate(endDate.getUTCDate() + 1);
+  return {
+    date: endDate,
+    time: `${String(Math.floor((end % (24 * 60)) / 60)).padStart(2, "0")}:${String(end % 60).padStart(2, "0")}`,
+  };
 }
 
 /** Build an OpenStreetMap search URL for a venue + optional address */
@@ -54,11 +84,13 @@ export function googleCalendarUrl(opts: {
   title: string;
   date: Date;
   time: string;
-  venue: string;
+ endTime?: string | null;
+  timeZone?: string | null;
+  venue: string | null | undefined;
   address: string | null | undefined;
   description: string;
 }): string {
-  const { title, date, time, venue, address, description } = opts;
+  const { title, date, time, endTime, venue, address, description, timeZone } = opts;
 
   function pad(n: number) {
     return String(n).padStart(2, "0");
@@ -72,12 +104,13 @@ export function googleCalendarUrl(opts: {
     return `${y}${mo}${day}T${pad(hh)}${pad(mm)}00`;
   }
 
-  const [hh, mm] = time.split(":").map(Number);
-  const endHH = (hh + 2) % 24;
   const start = gcalDT(date, time);
-  const end = gcalDT(date, `${pad(endHH)}:${pad(mm)}`);
+  const eventEndValue = eventEnd(date, time, endTime);
+  const end = gcalDT(eventEndValue.date, eventEndValue.time);
 
-  const location = [venue, address].filter(Boolean).join(", ");
+  // No venue means an online gathering. The joining link is deliberately not
+  // put here: a calendar entry travels further than the attendee it was for.
+  const location = [venue, address].filter(Boolean).join(", ") || "Online";
 
   const params = new URLSearchParams({
     action: "TEMPLATE",
@@ -85,6 +118,7 @@ export function googleCalendarUrl(opts: {
     dates: `${start}/${end}`,
     details: description,
     location,
+    ...(timeZone ? { ctz: timeZone } : {}),
   });
 
   return `https://calendar.google.com/calendar/render?${params}`;

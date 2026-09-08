@@ -47,6 +47,7 @@ export default async function seed() {
       city: "San Francisco",
       region: "CA",
       country: "USA",
+      timezone: "America/Los_Angeles",
       description:
         "A cozy gathering for DevRel folks, developer advocates, community managers, and anyone who finds themselves doing the job without the title. We meet monthly to commiserate, celebrate, and remind each other we're not alone in the universe.",
       contactEmail: "alex@example.com",
@@ -64,6 +65,7 @@ export default async function seed() {
       city: "New York",
       region: "NY",
       country: "USA",
+      timezone: "America/New_York",
       description:
         "Where the cloud-native people of NYC come to breathe, laugh, and talk shop away from the keyboard. Join us for casual get-togethers across the five boroughs — operators, platform engineers, and the SRE crowd all welcome.",
       contactEmail: "sam@example.com",

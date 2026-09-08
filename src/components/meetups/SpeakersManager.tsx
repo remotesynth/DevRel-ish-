@@ -361,7 +361,7 @@ export default function SpeakersManager({ gatheringId, initialSpeakers, initialS
               </div>
               <div className="form-group">
                 <label htmlFor="speakerCompany">Company</label>
-                <input id="speakerCompany" type="text" value={speakerForm.speakerCompany} onChange={updateSpeaker("speakerCompany")} placeholder="Acme Corp" maxLength={100} />
+                <input id="speakerCompany" type="text" value={speakerForm.speakerCompany} onChange={updateSpeaker("speakerCompany")} placeholder="Ridgeline Labs" maxLength={100} />
               </div>
               <div className="form-group">
                 <label>Photo</label>

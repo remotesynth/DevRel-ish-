@@ -68,7 +68,7 @@ if (!follower) {
 
 <style>
   .confirm-page {
-    min-height: calc(100vh - 64px - 200px);
+    min-height: 60vh;
     display: flex;
     align-items: center;
     padding: 3rem 0;
@@ -77,9 +77,9 @@ if (!follower) {
   .confirm-card {
     max-width: 440px;
     margin-inline: auto;
-    background: var(--color-surface);
-    border: 2px solid var(--color-border);
-    border-radius: var(--radius-xl);
+    background: var(--color-paper);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-md);
     padding: 2.5rem;
     text-align: center;
     display: flex;
@@ -90,17 +90,17 @@ if (!follower) {
 
   .result-icon {
     font-size: 3rem;
-    color: var(--color-primary);
+    color: var(--color-accent);
     line-height: 1;
   }
 
-  .error-icon { color: var(--color-danger, #dc2626); }
+  .error-icon { color: var(--color-danger, var(--color-danger)); }
 
-  h1 { font-size: var(--size-2xl); }
+  h1 { font-size: var(--text-2xl); }
 
   p {
-    color: var(--color-text-muted);
-    font-size: var(--size-sm);
+    color: var(--color-ink-2);
+    font-size: var(--text-sm);
     max-width: none;
   }
 </style>

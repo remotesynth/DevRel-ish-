@@ -1,8 +1,11 @@
 import type { APIRoute } from "astro";
-import { db, RSVPs, Meetups, Groups, eq, and, count } from "astro:db";
+import { db, Meetups, Groups, eq } from "astro:db";
 import { createHash } from "node:crypto";
 import { generateId } from "../../../lib/utils";
 import { getPdsSession, pdsCreate } from "../../../lib/atproto-pds";
+import { RSVP_NSID, RsvpStatus } from "../../../lib/atproto-records";
+import { networkGoingCount } from "../../../lib/rsvp-capacity";
+import { reserveLocalRsvp } from "../../../lib/rsvp-reservation";
 
 export const prerender = false;
 
@@ -45,34 +48,18 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
     return json({ error: "Please enter a valid email address." }, 400);
   }
 
-  const [duplicate] = await db
-    .select()
-    .from(RSVPs)
-    .where(and(eq(RSVPs.meetupId, gatheringId), eq(RSVPs.email, email.toLowerCase())));
-
-  if (duplicate) {
-    return json({ error: "Already registered.", code: "duplicate" }, 409);
-  }
-
-  const [countResult] = await db
-    .select({ val: count() })
-    .from(RSVPs)
-    .where(eq(RSVPs.meetupId, gatheringId));
-
-  const rsvpCount = countResult?.val ?? 0;
-  if (rsvpCount >= meetup.capacity) {
-    return json({ error: "This gathering is full.", code: "full" }, 409);
-  }
-
-  await db.insert(RSVPs).values({
+  const networkGoing = await networkGoingCount(meetup.atEventUri);
+  const reservation = await reserveLocalRsvp({
     id: generateId(),
     meetupId: gatheringId,
     name: name.trim(),
     email: email.trim().toLowerCase(),
     jobTitle: jobTitle.trim(),
     company: company.trim(),
-    createdAt: new Date(),
+    availableLocalSeats: meetup.capacity == null ? null : meetup.capacity - networkGoing,
   });
+  if (reservation === "duplicate") return json({ error: "Already registered.", code: "duplicate" }, 409);
+  if (reservation === "full") return json({ error: "This gathering is full.", code: "full" }, 409);
 
   // If the user is logged in and the event has an AT URI, also write an ATProto RSVP
   // to their PDS so it appears in the ATProto network (Smoke Signal interop, etc.)
@@ -83,9 +70,9 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
         .update(meetup.atEventUri!)
         .digest("hex")
         .slice(0, 13);
-      pdsCreate(session, "community.lexicon.calendar.rsvp", {
+      pdsCreate(session, RSVP_NSID, {
         subject: { uri: meetup.atEventUri, cid: meetup.atEventCid },
-        status: "community.lexicon.calendar.rsvp#going",
+        status: RsvpStatus.going,
         createdAt: new Date().toISOString(),
       }, rsvpRkey).catch(err => console.warn("[rsvp] ATProto RSVP failed (non-fatal):", err));
     }

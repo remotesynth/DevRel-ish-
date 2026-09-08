@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { db, Groups, eq } from "astro:db";
-import { getPdsSession, pdsCreate } from "../../../../lib/atproto-pds";
+import { getPdsSession, pdsPut } from "../../../../lib/atproto-pds";
+import { MEMBERSHIP_NSID, MembershipRole } from "../../../../lib/atproto-records";
 
 export const prerender = false;
 
@@ -33,9 +34,11 @@ export const POST: APIRoute = async ({ params, locals, request }) => {
   }
 
   try {
-    await pdsCreate(session, "com.devrelish.membership", {
+    // One membership record per member/group pair. A deterministic rkey makes
+    // a retry idempotent instead of creating duplicate public memberships.
+    await pdsPut(session, `at://${session.did}/${MEMBERSHIP_NSID}/${group.id}`, {
       group: { uri: group.atUri, cid: group.atCid },
-      role: "member",
+      role: MembershipRole.member,
       createdAt: new Date().toISOString(),
     });
   } catch (err) {

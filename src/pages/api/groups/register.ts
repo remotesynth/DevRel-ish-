@@ -3,7 +3,7 @@ import { db, Groups, AppUser } from "astro:db";
 import { generateId, slugify } from "../../../lib/utils";
 import { eq } from "astro:db";
 import { CATEGORIES } from "../../../lib/categories";
-import { getPdsSession, pdsCreate } from "../../../lib/atproto-pds";
+import { normalizeTimeZone } from "../../../lib/timezone";
 
 export const prerender = false;
 
@@ -22,8 +22,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return json({ error: "Invalid request body." }, 400);
   }
 
-  const { name, tagline, category, city, region, country, description, contactEmail, _hp, _t } =
+  const { name, tagline, category, city, region, country, timezone: timezoneInput, description, contactEmail, _hp, _t } =
     body as Record<string, string>;
+  const conduct = (body as Record<string, unknown>).conduct;
 
   // Bot protection
   const submittedAt = parseInt(_t ?? "0", 10);
@@ -56,9 +57,17 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  // Same gate as the form. Without this the commitment is bypassable by
+  // anything that can POST JSON, and the admin's close-group action loses
+  // the basis it depends on.
+  if (conduct !== true && conduct !== "on") {
+    return json({ error: "You must agree to the code of conduct to register a group." }, 400);
+  }
   if (!emailRe.test(contactEmail)) {
     return json({ error: "Please enter a valid email address." }, 400);
   }
+  const timezone = normalizeTimeZone(timezoneInput);
+  if (!timezone) return json({ error: "Use a valid IANA timezone such as America/New_York or Europe/London." }, 400);
 
   const [existing] = await db.select().from(Groups).where(eq(Groups.name, name.trim()));
   if (existing) {
@@ -71,42 +80,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
   }
 
-  const session = await getPdsSession(locals.user.did);
-  if (!session) {
-    return json({ error: "Authentication session expired. Please sign in again." }, 401);
-  }
-
-  let atUri: string | null = null;
-  let atCid: string | null = null;
-
   const now = new Date();
   const groupId = generateId();
-
-  try {
-    const locationEntry = (city?.trim() || country?.trim())
-      ? {
-          location: {
-            $type: "community.lexicon.location.address",
-            ...(city?.trim() ? { city: city.trim() } : {}),
-            ...(region?.trim() ? { state: region.trim() } : {}),
-            ...(country?.trim() ? { country: country.trim() } : {}),
-          },
-        }
-      : {};
-
-    const pdsResult = await pdsCreate(session, "com.devrelish.group", {
-      name: name.trim(),
-      description: description.trim(),
-      category: category.trim(),
-      ...locationEntry,
-      createdAt: now.toISOString(),
-    });
-    atUri = pdsResult.uri;
-    atCid = pdsResult.cid;
-  } catch (err) {
-    console.error("[groups/register] PDS write failed:", err);
-    return json({ error: "Failed to publish group to ATProto network. Please try again." }, 500);
-  }
 
   await db.insert(Groups).values({
     id: groupId,
@@ -117,12 +92,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
     city: city?.trim() || null,
     region: region?.trim() || null,
     country: country?.trim() || null,
+    timezone,
     description: description.trim(),
     contactEmail: contactEmail.trim().toLowerCase(),
     status: "active",
+    conductAgreedAt: now,
     managerId: locals.user.did,
-    atUri,
-    atCid,
     createdAt: now,
   });
 

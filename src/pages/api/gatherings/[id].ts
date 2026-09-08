@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { db, Meetups, Groups, RSVPs, eq, and } from "astro:db";
-import { getPdsSession, pdsPut, pdsDelete } from "../../../lib/atproto-pds";
+import { resolveCapacity, resolveLocation } from "../../../lib/gatherings";
+import { enqueueGatheringDeletion, enqueueGatheringPublication, reconcilePublicationOutbox } from "../../../lib/publication-outbox";
 
 export const prerender = false;
 
@@ -18,10 +19,6 @@ async function getOwnedMeetup(meetupId: string, userId: string) {
   return meetup ?? null;
 }
 
-function buildStartsAt(date: Date, timeStr: string): string {
-  const dateStr = date.toISOString().split("T")[0];
-  return `${dateStr}T${timeStr}:00.000Z`;
-}
 
 export const PUT: APIRoute = async ({ params, request, locals }) => {
   if (!locals.user) return json({ error: "Unauthorized." }, 401);
@@ -36,7 +33,8 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
     return json({ error: "Invalid request body." }, 400);
   }
 
-  const { title, description, date, time, venue, address, capacity } = body as Record<string, unknown>;
+  const { title, description, date, time, endTime, mode, venue, joinUrl, address, capacity } =
+    body as Record<string, unknown>;
 
   const updates: Partial<typeof meetup> = {};
 
@@ -65,71 +63,39 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
     if (!t) return json({ error: "Time cannot be empty." }, 400);
     updates.time = t;
   }
-  if (venue !== undefined) {
-    const v = String(venue).trim();
-    if (!v) return json({ error: "Venue cannot be empty." }, 400);
-    updates.venue = v;
+  if (endTime !== undefined) {
+    const e = endTime ? String(endTime).trim() : "";
+    if (e && !/^\d{2}:\d{2}$/.test(e)) return json({ error: "Invalid end time." }, 400);
+    updates.endTime = e || null;
   }
-  if (address !== undefined) {
-    updates.address = address ? String(address).trim() : null;
+  // Mode, venue and joining link constrain each other, so a change to any one
+  // of them is re-resolved against the stored row rather than applied alone —
+  // otherwise switching to virtual could leave the old venue behind.
+  if (mode !== undefined || venue !== undefined || joinUrl !== undefined || address !== undefined) {
+    const where = resolveLocation({
+      mode: mode !== undefined ? mode : meetup.mode,
+      venue: venue !== undefined ? String(venue) : meetup.venue ?? "",
+      joinUrl: joinUrl !== undefined ? String(joinUrl) : meetup.joinUrl ?? "",
+      address: address !== undefined ? String(address) : meetup.address ?? "",
+    });
+    if ("error" in where) return json({ error: where.error }, 400);
+    updates.mode = where.mode;
+    updates.venue = where.venue;
+    updates.joinUrl = where.joinUrl;
+    updates.address = where.address;
   }
   if (capacity !== undefined) {
-    const cap = Number(capacity);
-    if (!Number.isInteger(cap) || cap < 1 || cap > 500) {
-      return json({ error: "Capacity must be between 1 and 500." }, 400);
-    }
-    updates.capacity = cap;
+    const cap = resolveCapacity(capacity);
+    if ("error" in cap) return json({ error: cap.error }, 400);
+    updates.capacity = cap.capacity;
   }
 
   await db.update(Meetups).set(updates).where(eq(Meetups.id, meetup.id));
 
-  // Update PDS records if they exist (best-effort)
-  if (meetup.atEventUri) {
-    const session = await getPdsSession(locals.user.did);
-    if (session) {
-      try {
-        const finalTitle   = (updates.title ?? meetup.title);
-        const finalDesc    = (updates.description ?? meetup.description);
-        const finalDate    = (updates.date ?? meetup.date);
-        const finalTime    = (updates.time ?? meetup.time);
-        const finalVenue   = (updates.venue ?? meetup.venue);
-        const finalAddress = (updates.address ?? meetup.address);
-
-        const eventResult = await pdsPut(session, meetup.atEventUri, {
-          name: finalTitle,
-          startsAt: buildStartsAt(finalDate, finalTime),
-          description: finalDesc,
-          locations: [{
-            $type: "community.lexicon.location.address",
-            name: finalVenue,
-            ...(finalAddress ? { street: finalAddress } : {}),
-          }],
-          createdAt: meetup.createdAt.toISOString(),
-        });
-        await db.update(Meetups)
-          .set({ atEventCid: eventResult.cid })
-          .where(eq(Meetups.id, meetup.id));
-
-        // Update meta record if capacity changed and meta exists
-        if (updates.capacity !== undefined && meetup.atMetaUri) {
-          const [group] = await db.select().from(Groups).where(eq(Groups.managerId, locals.user.id));
-          if (group?.atUri && group?.atCid) {
-            const metaResult = await pdsPut(session, meetup.atMetaUri, {
-              event: { uri: eventResult.uri, cid: eventResult.cid },
-              group: { uri: group.atUri, cid: group.atCid },
-              capacity: updates.capacity,
-              createdAt: meetup.createdAt.toISOString(),
-            });
-            await db.update(Meetups)
-              .set({ atMetaCid: metaResult.cid })
-              .where(eq(Meetups.id, meetup.id));
-          }
-        }
-      } catch (err) {
-        console.error("[gatherings/update] PDS write failed:", err);
-      }
-    }
-  }
+  // A successful local edit is durable publication work, even if the PDS is
+  // unavailable during this request.
+  const job = await enqueueGatheringPublication(meetup.groupId, meetup.id);
+  await reconcilePublicationOutbox({ ids: [job], limit: 1 });
 
   return json({ ok: true });
 };
@@ -140,18 +106,9 @@ export const DELETE: APIRoute = async ({ params, locals }) => {
   const meetup = await getOwnedMeetup(params.id!, locals.user.id);
   if (!meetup) return json({ error: "Gathering not found." }, 404);
 
-  // Remove PDS records before local deletion (best-effort)
-  if (meetup.atEventUri) {
-    const session = await getPdsSession(locals.user.did);
-    if (session) {
-      try {
-        if (meetup.atMetaUri) await pdsDelete(session, meetup.atMetaUri);
-        await pdsDelete(session, meetup.atEventUri);
-      } catch (err) {
-        console.error("[gatherings/delete] PDS delete failed:", err);
-      }
-    }
-  }
+  const [group] = await db.select().from(Groups).where(eq(Groups.id, meetup.groupId));
+  const job = await enqueueGatheringDeletion(meetup.groupId, meetup, group?.publisherDid ?? null);
+  if (job) await reconcilePublicationOutbox({ ids: [job], limit: 1 });
 
   await db.delete(RSVPs).where(eq(RSVPs.meetupId, meetup.id));
   await db.delete(Meetups).where(eq(Meetups.id, meetup.id));

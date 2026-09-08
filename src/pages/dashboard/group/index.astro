@@ -4,6 +4,10 @@ import { db, Groups } from "astro:db";
 import { eq } from "astro:db";
 import { CATEGORIES } from "../../../lib/categories";
 import { groupUrl } from "../../../lib/utils";
+import { HANDLE_RE, resolveHandleToDid } from "../../../lib/atproto-identity";
+import { getPdsSession } from "../../../lib/atproto-pds";
+import { enqueueGroupPublication, reconcilePublicationOutbox } from "../../../lib/publication-outbox";
+import { normalizeTimeZone } from "../../../lib/timezone";
 
 if (!Astro.locals.user) return Astro.redirect("/auth/login");
 const user = Astro.locals.user;
@@ -34,11 +38,13 @@ if (Astro.request.method === "POST") {
   const city = form.get("city")?.toString().trim() ?? "";
   const region = form.get("region")?.toString().trim() ?? "";
   const country = form.get("country")?.toString().trim() ?? "";
+  const timezoneInput = form.get("timezone")?.toString().trim() ?? "UTC";
   const website = form.get("website")?.toString().trim() ?? "";
   // Strip leading @ — ATProto handles are bare hostnames
-  const blueskyHandle = (form.get("blueskyHandle")?.toString().trim() ?? "").replace(/^@+/, "");
+  const handleInput = (form.get("handle")?.toString().trim() ?? "").replace(/^@+/, "").toLowerCase();
   const linkedinUrl = form.get("linkedinUrl")?.toString().trim() ?? "";
   const customSlugRaw = form.get("customSlug")?.toString().trim().toLowerCase() ?? "";
+  const timezone = normalizeTimeZone(timezoneInput);
 
   let customSlugValue: string | null = null;
   let customSlugError = "";
@@ -64,29 +70,25 @@ if (Astro.request.method === "POST") {
     }
   }
 
-  // ATProto handle validation
-  // Valid handle: 2+ dot-separated segments, each: letters/numbers/hyphens, no leading/trailing hyphen
-  const atHandleRe = /^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,63}$/;
-  let normalizedHandle = blueskyHandle || null;
-  const handleChanged = blueskyHandle !== (group.blueskyHandle ?? "");
-  if (blueskyHandle && handleChanged) {
-    if (!atHandleRe.test(blueskyHandle)) {
-      errorMsg = "Bluesky handle must be a valid domain-style handle (e.g. yourgroup.bsky.social).";
+  // ATProto handle validation, provider-neutral: resolved via the handle's own
+  // domain, falling back to the organizer's own PDS. Never via a Bluesky endpoint.
+  let normalizedHandle = handleInput || null;
+  let normalizedHandleDid = group.handleDid ?? null;
+  const handleChanged = handleInput !== (group.handle ?? "");
+
+  if (handleChanged) normalizedHandleDid = null;
+
+  if (handleInput && handleChanged) {
+    if (!HANDLE_RE.test(handleInput)) {
+      errorMsg = "Handle must be a domain-style ATProto handle (e.g. yourgroup.example.com).";
     } else {
-      // Attempt live resolution via public ATProto API
-      try {
-        const res = await fetch(
-          `https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(blueskyHandle)}`,
-          { signal: AbortSignal.timeout(4000) }
-        );
-        if (res.ok) {
-          const { did } = await res.json() as { did: string };
-          successMsg = `Group details updated! Handle @${blueskyHandle} verified ✓ (${did})`;
-        } else {
-          handleWarning = `Handle "@${blueskyHandle}" could not be verified — double-check it's correct. It has been saved as entered.`;
-        }
-      } catch {
-        handleWarning = `Handle verification timed out. "@${blueskyHandle}" has been saved but could not be confirmed.`;
+      const pdsSession = await getPdsSession(user.did);
+      const resolved = await resolveHandleToDid(handleInput, pdsSession);
+      if (resolved) {
+        normalizedHandleDid = resolved;
+        successMsg = `Group details updated! Handle @${handleInput} verified ✓ (${resolved})`;
+      } else {
+        handleWarning = `Handle "@${handleInput}" could not be verified — double-check it's correct. It has been saved as entered.`;
       }
     }
   }
@@ -101,6 +103,8 @@ if (Astro.request.method === "POST") {
     errorMsg = "Description must be at least 50 characters.";
   } else if (customSlugError) {
     errorMsg = customSlugError;
+  } else if (!timezone) {
+    errorMsg = "Use a valid IANA timezone such as America/New_York or Europe/London.";
   } else {
     await db
       .update(Groups)
@@ -113,15 +117,23 @@ if (Astro.request.method === "POST") {
         city: city || null,
         region: region || null,
         country: country || null,
+        timezone,
         website: website || null,
-        blueskyHandle: normalizedHandle,
+        handle: normalizedHandle,
+        handleDid: normalizedHandleDid,
         linkedinUrl: linkedinUrl || null,
         customSlug: customSlugValue,
       })
       .where(eq(Groups.id, group.id));
     if (!successMsg) successMsg = "Group details updated!";
     const [updated] = await db.select().from(Groups).where(eq(Groups.id, group.id));
-    if (updated) Object.assign(group, updated);
+    if (updated) {
+      Object.assign(group, updated);
+      if (updated.publisherDid) {
+        const job = await enqueueGroupPublication(updated.id);
+        await reconcilePublicationOutbox({ ids: [job], limit: 1 });
+      }
+    }
   }
 }
 ---
@@ -137,6 +149,31 @@ if (Astro.request.method === "POST") {
   {successMsg && <div class="alert alert-success">{successMsg}</div>}
   {handleWarning && <div class="alert alert-warning">{handleWarning}</div>}
   {errorMsg && <div class="alert alert-error">{errorMsg}</div>}
+
+  <section class="form-card publisher-card">
+    <h3>ATProto publisher account</h3>
+    {group.publisherDid ? (
+      <>
+        <p class="card-desc">
+          Public group and gathering records are published by this dedicated account:
+          <code>{group.publisherDid}</code>.
+        </p>
+        <form method="POST" action="/api/groups/connect-publisher">
+          <button type="submit" class="btn btn-ghost">Reconnect or change account</button>
+        </form>
+      </>
+    ) : (
+      <>
+        <p class="card-desc">
+          Connect a dedicated ATProto account for this group. It will author the group’s public records;
+          your personal organizer account remains separate.
+        </p>
+        <form method="POST" action="/api/groups/connect-publisher">
+          <button type="submit" class="btn btn-primary">Connect group account →</button>
+        </form>
+      </>
+    )}
+  </section>
 
   <form method="POST" class="group-edit-form">
 
@@ -241,6 +278,12 @@ if (Astro.request.method === "POST") {
         <label for="country">Country</label>
         <input id="country" name="country" type="text" value={group.country ?? ""} placeholder="USA" />
       </div>
+
+      <div class="form-group">
+        <label for="timezone">Event timezone *</label>
+        <input id="timezone" name="timezone" type="text" value={group.timezone} required placeholder="America/New_York" />
+        <span class="form-hint">Use an IANA timezone. This determines the actual instants published to ATProto and calendar apps.</span>
+      </div>
     </div>
 
     <div class="form-card">
@@ -252,9 +295,13 @@ if (Astro.request.method === "POST") {
       </div>
 
       <div class="form-group">
-        <label for="blueskyHandle">Bluesky handle</label>
-        <input id="blueskyHandle" name="blueskyHandle" type="text" value={group.blueskyHandle ?? ""} placeholder="yourgroup.bsky.social" />
-        <span class="form-hint">Enter without the @ — e.g. <code>yourgroup.bsky.social</code> or a custom domain handle.</span>
+        <label for="handle">ATProto handle</label>
+        <input id="handle" name="handle" type="text" value={group.handle ?? ""} placeholder="yourgroup.example.com" />
+        <span class="form-hint">
+          Your group's own account on any AT Protocol service, without the @ — a custom domain
+          like <code>yourgroup.example.com</code> or a provider handle like <code>yourgroup.bsky.social</code>.
+          We'll verify it against the handle's own domain.
+        </span>
       </div>
 
       <div class="form-group">
@@ -279,7 +326,7 @@ if (Astro.request.method === "POST") {
     flex-wrap: wrap;
   }
 
-  .page-header h1 { font-size: var(--size-3xl); }
+  .page-header h1 { font-size: var(--text-3xl); }
 
   .alert { margin-bottom: 1.25rem; }
 
@@ -290,9 +337,9 @@ if (Astro.request.method === "POST") {
   }
 
   .form-card {
-    background: var(--color-surface);
-    border: 2px solid var(--color-border);
-    border-radius: var(--radius-lg);
+    background: var(--color-paper);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-sm);
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
@@ -300,21 +347,21 @@ if (Astro.request.method === "POST") {
   }
 
   .form-card h3 {
-    font-size: var(--size-lg);
+    font-size: var(--text-lg);
     padding-bottom: 0.625rem;
-    border-bottom: 1px dashed var(--color-border);
+    border-bottom: var(--rule-hair) dashed var(--color-rule);
   }
 
   .optional-label {
-    font-size: var(--size-sm);
+    font-size: var(--text-sm);
     font-weight: 400;
-    color: var(--color-text-light);
+    color: var(--color-muted);
     font-family: var(--font-body);
   }
 
   .card-desc {
-    font-size: var(--size-sm);
-    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    color: var(--color-ink-2);
     margin: 0;
     max-width: none;
   }
@@ -326,31 +373,31 @@ if (Astro.request.method === "POST") {
   }
 
   .input-disabled {
-    background: var(--color-surface-warm) !important;
-    color: var(--color-text-muted) !important;
+    background: var(--color-paper-2) !important;
+    color: var(--color-ink-2) !important;
     cursor: not-allowed;
   }
 
   .slug-input-wrap {
     display: flex;
     align-items: center;
-    border: 2px solid var(--color-border);
+    border: var(--rule-hair) solid var(--color-rule);
     border-radius: var(--radius-sm);
     overflow: hidden;
-    background: var(--color-surface);
-    transition: border-color var(--transition);
+    background: var(--color-paper);
+    transition: border-color var(--dur-micro) var(--ease-out);
   }
 
   .slug-input-wrap:focus-within {
-    border-color: var(--color-primary);
+    border-color: var(--color-accent);
   }
 
   .slug-prefix {
     padding: 0.5rem 0.75rem;
-    background: var(--color-surface-warm);
-    border-right: 2px solid var(--color-border);
-    font-size: var(--size-sm);
-    color: var(--color-text-muted);
+    background: var(--color-paper-2);
+    border-right: var(--rule-hair) solid var(--color-rule);
+    font-size: var(--text-sm);
+    color: var(--color-ink-2);
     white-space: nowrap;
     flex-shrink: 0;
   }

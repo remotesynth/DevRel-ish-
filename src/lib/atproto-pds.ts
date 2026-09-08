@@ -1,5 +1,6 @@
 import type { OAuthSession } from "@atproto/oauth-client-node";
 import { getOAuthClient } from "./atproto-oauth";
+import { parseAtUri } from "./atproto-repo";
 
 export type PdsSession = OAuthSession;
 
@@ -15,11 +16,6 @@ export async function getPdsSession(did: string): Promise<PdsSession | null> {
   }
 }
 
-// at://did/collection/rkey → { did, collection, rkey }
-function parseAtUri(uri: string): { did: string; collection: string; rkey: string } {
-  const parts = uri.split("/");
-  return { did: parts[2], collection: parts[3], rkey: parts[4] };
-}
 
 // Create a new record in the user's repo. Returns the canonical { uri, cid }.
 export async function pdsCreate(
@@ -51,7 +47,9 @@ export async function pdsPut(
   uri: string,
   record: Record<string, unknown>
 ): Promise<{ uri: string; cid: string }> {
-  const { collection, rkey } = parseAtUri(uri);
+  const parsed = parseAtUri(uri);
+  if (!parsed) throw new Error(`putRecord: not an at:// URI: ${uri}`);
+  const { collection, rkey } = parsed;
   const res = await session.fetchHandler("/xrpc/com.atproto.repo.putRecord", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -71,14 +69,19 @@ export async function pdsPut(
 
 // Delete a record from the user's repo.
 export async function pdsDelete(session: PdsSession, uri: string): Promise<void> {
-  const { collection, rkey } = parseAtUri(uri);
+  const parsed = parseAtUri(uri);
+  if (!parsed) throw new Error(`deleteRecord: not an at:// URI: ${uri}`);
+  const { collection, rkey } = parsed;
   const res = await session.fetchHandler("/xrpc/com.atproto.repo.deleteRecord", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ repo: session.did, collection, rkey }),
   });
   if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { message?: string };
+    const body = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
+    // A previous attempt may have reached the PDS just before the database or
+    // function timed out. Deletion is therefore idempotent for the outbox.
+    if (res.status === 400 && body.error === "RecordNotFound") return;
     throw new Error(`deleteRecord(${uri}) ${res.status}: ${body.message ?? "unknown"}`);
   }
 }

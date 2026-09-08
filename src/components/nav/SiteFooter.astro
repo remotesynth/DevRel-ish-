@@ -1,88 +1,138 @@
 ---
+/**
+ * Ft6 · Letter close — replaces the Ft4 dense colophon.
+ *
+ * The colophon was a justified wall of monospace. Print-shop accurate, and the
+ * coldest thing on the page. A letter close does the same job — say what this
+ * is, say who made it — while sounding like a person.
+ *
+ * The signoff stays roman: gate 38a bans italic on display type and names a
+ * footer statement explicitly.
+ */
+const year = new Date().getFullYear();
 ---
 
-<footer class="site-footer">
-  <div class="container footer-inner">
-    <div class="footer-brand">
-      <span class="footer-logo">DevRel<span class="logo-ish">(ish)</span></span>
-      <p>Real connections for the people who build developer communities.</p>
+<footer class="close">
+  <div class="container close-inner">
+    <div class="close-letter">
+      <p class="close-line">
+        Make connections with good people and build a better tech.
+      </p>
+      <p class="close-sign">
+        &mdash; DevRel<span class="close-ish">(ish)</span>, {year}
+      </p>
     </div>
-    <nav class="footer-nav" aria-label="Footer navigation">
-      <ul role="list">
-        <li><a href="/groups">Find Groups</a></li>
-        <li><a href="/groups/register">Start a Group</a></li>
-        <li><a href="/how-it-works">How It Works</a></li>
-        <li><a href="/auth/login">Group Manager Sign In</a></li>
-        <li><a href="/privacy">Privacy Policy</a></li>
-      </ul>
-    </nav>
-  </div>
-  <div class="footer-bottom container">
-    <p>
-      Made with care for the DevRel community &bull;
-      <a href="https://devrelish.tech">devrelish.tech</a>
+
+    <p class="close-ps">
+      P.S. &mdash; your groups, events, and RSVPs are
+      <span class="ident">community.lexicon.calendar.*</span> records on
+      <em>your</em> account, not ours. We run no server for them, store no
+      password, and hold nothing you can&rsquo;t walk away with. Events here also
+      come from Smoke&nbsp;Signal, atmo.rsvp, and OpenMeet, because we all speak
+      the same schema &mdash; filtered to the tech ones, since that schema
+      carries every kind of event. No account needed to turn up &mdash; only to organize.
     </p>
   </div>
 </footer>
 
 <style>
-  .site-footer {
-    margin-top: 4rem;
-    border-top: 2px dashed var(--color-border);
-    padding-top: 2rem;
-    padding-bottom: 1.5rem;
-    background: var(--color-surface-warm);
+  .close {
+    margin-top: var(--space-3xl);
+    background: var(--color-paper-2);
+    padding-block: var(--space-2xl);
   }
 
-  .footer-inner {
-    display: flex;
-    gap: 2rem;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    padding-bottom: 1.5rem;
-    border-bottom: 1px solid var(--color-border);
-    margin-bottom: 1rem;
+  /* The signoff and the colophon sit side by side; the link row spans both.
+     Stacked, each block wrapped at its own ch-derived width and left the right
+     half of the page empty. */
+  .close-inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-md) var(--space-xl);
+    align-items: start;
   }
 
-  .footer-logo {
-    font-family: var(--font-display);
-    font-size: var(--size-xl);
-    color: var(--color-primary);
-  }
-
-  .logo-ish {
-    color: var(--color-text-muted);
-    font-size: 0.85em;
-  }
-
-  .footer-brand p {
-    margin-top: 0.5rem;
-    color: var(--color-text-muted);
-    font-size: var(--size-sm);
-    max-width: 32ch;
-  }
-
-  .footer-nav ul {
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .footer-nav a {
-    font-size: var(--size-sm);
-    font-weight: 600;
-    text-decoration: none;
-    color: var(--color-text-muted);
-  }
-
-  .footer-nav a:hover {
-    color: var(--color-primary);
-  }
-
-  .footer-bottom p {
-    font-size: var(--size-xs);
-    color: var(--color-text-light);
+  .close-letter {
+    /* the grid track sets the measure — ~40ch at this size */
     max-width: none;
   }
+
+  /* The one warm sentence the whole site is arguing for. */
+  .close-line {
+    font-family: var(--font-display);
+    font-variation-settings: var(--display-axes);
+    font-weight: 400;
+    font-size: var(--text-xl);
+    line-height: 1.4;
+    color: var(--color-ink);
+    max-width: none;
+  }
+
+  .close-sign {
+    margin-top: var(--space-2xs);
+    font-family: var(--font-display);
+    font-variation-settings: var(--display-axes);
+    font-weight: 600;
+    font-size: var(--text-lg);
+    color: var(--color-ink-2);
+    max-width: none;
+  }
+
+  .close-ish {
+    color: var(--color-accent);
+  }
+
+  .close-nav {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm) var(--space-md);
+    padding-top: var(--space-md);
+    border-top: var(--rule-hair) solid var(--color-rule);
+  }
+
+  .close-nav a {
+    font-size: var(--text-sm);
+    color: var(--color-ink-2);
+    text-decoration: none;
+    border-bottom: var(--rule-hair) solid transparent;
+    white-space: nowrap;
+  }
+
+  .close-nav a:hover {
+    color: var(--color-accent);
+    border-bottom-color: var(--color-accent);
+  }
+
+  .close-ps {
+    font-size: var(--text-sm);
+    line-height: 1.65;
+    color: var(--color-muted);
+    max-width: none;
+  }
+
+  .close-ps em {
+    font-style: italic;
+    color: var(--color-ink-2);
+  }
+
+  .close-ps .ident {
+    color: var(--color-ink-2);
+  }
+
+  @media (max-width: 60rem) {
+    .close-inner {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--space-md);
+    }
+
+    .close-letter {
+      max-width: 34ch;
+    }
+
+    .close-ps {
+      max-width: 62ch;
+    }
+  }
+
 </style>

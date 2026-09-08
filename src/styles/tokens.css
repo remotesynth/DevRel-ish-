@@ -1,0 +1,130 @@
+/* Hallmark · tokens · theme: custom · vibe: "community zine, warm, crafted, unvarnished"
+ * paper: oklch(95% 0.016 62) · accent: oklch(52% 0.16 34)
+ * display: Fraunces · body: Source Serif 4 · outlier: JetBrains Mono
+ * axes: light / roman-serif / chromatic-terracotta
+ *
+ * Every colour here is verified against the paper for WCAG AA at its intended
+ * size. Nothing in the app may declare a colour or a font-family outside this
+ * file — if a value is missing, add it here and reference it by name.
+ */
+
+:root {
+  /* ── Paper · three steps, warm enough to read as paper rather than grey ─── */
+  --color-paper: oklch(95.5% 0.022 68);    /* #faeee1 — the page */
+  --color-paper-2: oklch(92.5% 0.026 66);  /* #f3e3d5 — raised bands, card fills */
+  --color-paper-3: oklch(88.5% 0.030 64);  /* #e8d5c5 — pressed / inset */
+
+  /* ── Ink · warm-brown black, never neutral ──────────────────────────────── */
+  --color-ink: oklch(24% 0.020 48);        /* 14.46:1 on paper */
+  --color-ink-2: oklch(44% 0.020 48);      /*  6.84:1 — secondary prose */
+  --color-muted: oklch(48.5% 0.016 50);    /*  5.63:1 — metadata; 4.53:1 on paper-3 */
+
+  /* ── Rules ───────────────────────────────────────────────────────────────── */
+  --color-rule: oklch(82% 0.024 66);
+  --color-rule-2: oklch(87% 0.022 66);
+  --color-rule-strong: oklch(62% 0.026 60);/* 3.21:1 — form + UI boundaries */
+
+  /* ── Accent · terracotta, the primary voice ─────────────────────────────── */
+  --color-accent: oklch(52% 0.16 34);      /* 5.20:1 on paper */
+  --color-accent-deep: oklch(42% 0.15 34);
+  --color-accent-wash: oklch(92% 0.055 38);/* accent text reads 4.54:1 on it */
+  --color-accent-ink: oklch(97.5% 0.018 70); /* 5.52:1 on the accent fill */
+
+  /* ── Sun · the second hue. Warmth needs somewhere to be cheerful that
+     isn't the CTA. Highlights, counts, the drawn mark. ─────────────────────── */
+  --color-sun: oklch(52% 0.135 72);        /* 4.93:1 on paper */
+  --color-sun-wash: oklch(93.5% 0.062 80); /* 4.63:1 for sun text on it */
+
+  --color-focus: oklch(52% 0.20 34);
+
+  /* ── State · functional signals, not palette accents ─────────────────────── */
+  --color-ok: oklch(45% 0.11 150);
+  --color-ok-wash: oklch(93% 0.030 150);
+  --color-danger: oklch(47% 0.17 25);
+  --color-danger-wash: oklch(93% 0.035 25);
+  --color-notice: oklch(46% 0.10 75);
+  --color-notice-wash: oklch(93% 0.040 80);
+  --color-info: oklch(47% 0.10 240);
+  --color-info-wash: oklch(93% 0.028 240);
+
+  /* ── Type · three families, at the 2+1 ceiling ───────────────────────────── */
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --font-body: "Source Serif 4", ui-serif, Georgia, serif;
+  /* Outlier register: machine-readable identifiers only — handles, DIDs,
+     at:// URIs, dates, counts. One role, applied consistently. */
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Fraunces' variable axes are the whole reason to load it. SOFT rounds the
+     terminals; WONK lets the quirky alternates through. Both were off before,
+     which is how a font picked for warmth ended up reading like a broadsheet. */
+  --display-axes: "SOFT" 60, "WONK" 1;
+
+  /* Major third (1.25) through the UI range, then a real display tier. */
+  --text-2xs: 0.6875rem;
+  --text-xs: 0.8125rem;
+  --text-sm: 0.9375rem;
+  --text-base: 1.0625rem;   /* serif body wants a touch more than 16px */
+  --text-lg: 1.1875rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.125rem;
+  --text-4xl: 2.75rem;
+  --text-display-s: clamp(2.25rem, 5vw, 3.25rem);
+  --text-display: clamp(2.75rem, 8vw, 5.5rem);
+
+  --leading-display: 0.98;
+  --leading-tight: 1.15;
+  --leading-body: 1.6;
+
+  /* ── Space · 4pt scale ───────────────────────────────────────────────────── */
+  --space-3xs: 0.25rem;
+  --space-2xs: 0.5rem;
+  --space-xs: 0.75rem;
+  --space-sm: 1rem;
+  --space-md: 1.5rem;
+  --space-lg: 2rem;
+  --space-xl: 3rem;
+  --space-2xl: 4rem;
+  --space-3xl: 6rem;
+  --space-4xl: 8rem;
+
+  /* ── Rules · print weights, not one uniform 2px ──────────────────────────── */
+  --rule-hair: 1px;
+  --rule-thin: 1.5px;
+  --rule-thick: 3px;
+
+  /* ── Radius · softened. Square corners read as institutional; this is a
+     noticeboard, not a broadsheet. 12px is the ceiling. ────────────────────── */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-full: 9999px;
+
+  /* ── Depth · soft and warm-tinted, never a grey drop shadow ─────────────── */
+  --shadow-raise: 0 1px 2px oklch(40% 0.05 50 / 0.07);
+  --shadow-lift: 0 6px 18px -8px oklch(40% 0.06 50 / 0.24);
+  --shadow-panel: 0 14px 38px -18px oklch(35% 0.07 45 / 0.32);
+  --color-scrim: oklch(24% 0.020 48 / 0.45); /* dialog backdrop — an overlay modifier */
+
+  /* ── Motion ──────────────────────────────────────────────────────────────── */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms;
+  --dur-short: 220ms;
+  --dur-long: 420ms;
+
+  /* ── Layout ──────────────────────────────────────────────────────────────── */
+  --measure: 68ch;
+  --content-width: 1180px;
+  --content-narrow: 720px;
+  --page-gutter: clamp(1rem, 4vw, 2.5rem);
+
+  /* ── Z-scale · six named levels, no 9999 ─────────────────────────────────── */
+  --z-base: 1;
+  --z-raised: 10;
+  --z-sticky: 20;
+  --z-header: 30;
+  --z-overlay: 40;
+  --z-modal: 50;
+}

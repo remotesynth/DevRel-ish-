@@ -1,4 +1,4 @@
-import { column, defineDb, defineTable } from "astro:db";
+import { column, defineDb, defineTable, NOW } from "astro:db";
 
 // ── App Tables ────────────────────────────────────────────────────────────────
 
@@ -11,19 +11,29 @@ const Groups = defineTable({
     city: column.text({ optional: true }),
     region: column.text({ optional: true }),
     country: column.text({ optional: true }),
+    timezone: column.text({ default: "UTC" }), // IANA timezone for event wall-clock times
     tagline: column.text({ optional: true }),
     tags: column.text({ optional: true }),
     category: column.text({ optional: true }),
     website: column.text({ optional: true }),
-    blueskyHandle: column.text({ optional: true }),
+    // Kept for the two-step migration from the original Bluesky-only field.
+    // Astro DB will add `handle` in this deployment without dropping existing
+    // data; the documented SQL copy can then preserve current values.
+    blueskyHandle: column.text({ optional: true, deprecated: true }),
+    handle: column.text({ optional: true }),      // the group's own ATProto handle, no @
+    handleDid: column.text({ optional: true }),   // DID that handle resolved to, if verified
     linkedinUrl: column.text({ optional: true }),
     description: column.text(),
     contactEmail: column.text(),
     status: column.text({ default: "active" }), // active | closed
+    conductAgreedAt: column.date({ optional: true }), // organizer accepted the code of conduct
     managerId: column.text({ optional: true }), // soft ref to AppUser.did
-    atUri: column.text({ optional: true }),     // at:// URI of com.devrelish.group
+    // Dedicated ATProto account that authors this group's public records.
+    // It is intentionally distinct from an organizer's personal login.
+    publisherDid: column.text({ optional: true }),
+    atUri: column.text({ optional: true }),     // at:// URI of tech.devrelish.group
     atCid: column.text({ optional: true }),     // CID of the group record
-    createdAt: column.date({ default: new Date() }),
+    createdAt: column.date({ default: NOW }),
   },
 });
 
@@ -35,19 +45,23 @@ const Meetups = defineTable({
     description: column.text(),
     date: column.date(),
     time: column.text(),
-    venue: column.text(),
+    endTime: column.text({ optional: true }),  // "HH:MM", local to the venue
+    mode: column.text({ default: "inperson" }), // inperson | virtual | hybrid
+    venue: column.text({ optional: true }),     // required for inperson/hybrid, unused for virtual
+    joinUrl: column.text({ optional: true }),   // required for virtual/hybrid; revealed only to attendees
     address: column.text({ optional: true }),
     city: column.text({ optional: true }),
     country: column.text({ optional: true }),
     eventContext: column.text({ optional: true }),
     tags: column.text({ optional: true }),
-    capacity: column.number(),
+    capacity: column.number({ optional: true }), // null = unlimited
     status: column.text({ default: "active" }), // active | canceled
     atEventUri: column.text({ optional: true }), // at:// URI of community.lexicon.calendar.event
     atEventCid: column.text({ optional: true }), // CID of the event record
-    atMetaUri: column.text({ optional: true }),  // at:// URI of com.devrelish.event.meta
+    atMetaUri: column.text({ optional: true }),  // at:// URI of tech.devrelish.event.meta
     atMetaCid: column.text({ optional: true }),  // CID of the meta record
-    createdAt: column.date({ default: new Date() }),
+    adopted: column.boolean({ default: false }), // event record came from another app; we don't own it
+    createdAt: column.date({ default: NOW }),
   },
 });
 
@@ -60,7 +74,7 @@ const RSVPs = defineTable({
     jobTitle: column.text(),
     company: column.text(),
     cancelToken: column.text({ optional: true, unique: true }),
-    createdAt: column.date({ default: new Date() }),
+    createdAt: column.date({ default: NOW }),
   },
 });
 
@@ -81,7 +95,7 @@ const ContactMessages = defineTable({
     email: column.text(),
     message: column.text(),
     read: column.boolean({ default: false }),
-    createdAt: column.date({ default: new Date() }),
+    createdAt: column.date({ default: NOW }),
   },
 });
 
@@ -95,7 +109,7 @@ const GatheringSpeakers = defineTable({
     speakerImageUrl: column.text({ optional: true }),
     speakerBio: column.text({ optional: true }),
     sortOrder: column.number({ default: 0 }),
-    createdAt: column.date({ default: new Date() }),
+    createdAt: column.date({ default: NOW }),
   },
 });
 
@@ -107,7 +121,7 @@ const GatheringSessions = defineTable({
     abstract: column.text({ optional: true }),
     startTime: column.text({ optional: true }),
     sortOrder: column.number({ default: 0 }),
-    createdAt: column.date({ default: new Date() }),
+    createdAt: column.date({ default: NOW }),
   },
 });
 
@@ -128,7 +142,7 @@ const Followers = defineTable({
     name: column.text({ optional: true }),
     confirmed: column.boolean({ default: false }),
     token: column.text({ unique: true }),
-    createdAt: column.date({ default: new Date() }),
+    createdAt: column.date({ default: NOW }),
   },
 });
 
@@ -139,7 +153,18 @@ const JetstreamCursor = defineTable({
   columns: {
     id: column.text({ primaryKey: true }),   // always "default"
     cursor: column.text(),                   // microseconds timestamp as string
-    updatedAt: column.date({ default: new Date() }),
+    updatedAt: column.date({ default: NOW }),
+  },
+});
+
+// Repos whose calendar back-catalogue we've already read, so the indexer only
+// pays for each organizer's history once. Jetstream is forward-only; this is
+// what reaches events published before we started listening.
+const BackfilledRepos = defineTable({
+  columns: {
+    did: column.text({ primaryKey: true }),
+    records: column.number({ default: 0 }),
+    backfilledAt: column.text(),
   },
 });
 
@@ -154,7 +179,15 @@ const AtEvents = defineTable({
     endsAt: column.text({ optional: true }),
     description: column.text({ optional: true }),
     locationJson: column.text({ optional: true }), // JSON-serialized locations array
-    status: column.text({ optional: true }),
+    urisJson: column.text({ optional: true }),     // JSON-serialized uris array — how we link back to the source app
+    mode: column.text({ optional: true }),         // #inperson | #virtual | #hybrid
+    // The calendar lexicon is shared by the whole Atmosphere, so most indexed
+    // events aren't for this site. Verdict stored rather than recomputed, and
+    // the matched terms kept so a wrong call can be diagnosed.
+    topical: column.boolean({ default: false }),
+    topicalScore: column.number({ default: 0 }),
+    topicalTerms: column.text({ optional: true }),
+    status: column.text({ optional: true }),       // #scheduled | #cancelled | ...
     createdAt: column.text(),
     indexedAt: column.text(),
   },
@@ -173,7 +206,7 @@ const AtRsvps = defineTable({
   },
 });
 
-// Indexed com.devrelish.group records
+// Indexed tech.devrelish.group records
 const AtGroups = defineTable({
   columns: {
     uri: column.text({ primaryKey: true }),
@@ -185,7 +218,11 @@ const AtGroups = defineTable({
     category: column.text({ optional: true }),
     tags: column.text({ optional: true }),  // JSON array
     website: column.text({ optional: true }),
-    blueskyHandle: column.text({ optional: true }),
+    // Same legacy field retained during the non-destructive provider-neutral
+    // handle migration; see Groups.blueskyHandle above.
+    blueskyHandle: column.text({ optional: true, deprecated: true }),
+    handle: column.text({ optional: true }),      // the group's own ATProto handle, no @
+    handleDid: column.text({ optional: true }),   // DID that handle resolved to, if verified
     linkedinUrl: column.text({ optional: true }),
     coOrganizers: column.text({ optional: true }), // JSON array of DIDs
     createdAt: column.text(),
@@ -193,7 +230,7 @@ const AtGroups = defineTable({
   },
 });
 
-// Indexed com.devrelish.event.meta records
+// Indexed tech.devrelish.event.meta records
 const AtEventMeta = defineTable({
   columns: {
     uri: column.text({ primaryKey: true }),
@@ -210,7 +247,7 @@ const AtEventMeta = defineTable({
   },
 });
 
-// Indexed com.devrelish.membership records
+// Indexed tech.devrelish.membership records
 const AtMemberships = defineTable({
   columns: {
     uri: column.text({ primaryKey: true }),
@@ -301,7 +338,7 @@ const AppUser = defineTable({
     displayName: column.text({ optional: true }),
     role: column.text({ default: "user" }),   // "admin" | "user"
     groupId: column.text({ optional: true }), // soft ref to Groups.id
-    createdAt: column.date({ default: new Date() }),
+    createdAt: column.date({ default: NOW }),
   },
 });
 
@@ -311,7 +348,7 @@ const AppSession = defineTable({
     id: column.text({ primaryKey: true }),    // random value stored in cookie
     did: column.text(),                       // soft ref to AppUser.did
     expiresAt: column.date(),
-    createdAt: column.date({ default: new Date() }),
+    createdAt: column.date({ default: NOW }),
   },
 });
 
@@ -329,6 +366,23 @@ const OAuthSession = defineTable({
   columns: {
     did: column.text({ primaryKey: true }),
     value: column.text(),                     // JSON-serialized NodeSavedSession
+  },
+});
+
+// Durable work for public PDS publication. Rows survive function restarts and
+// are retried by the scheduled reconciler after transient PDS/OAuth failures.
+const PublicationOutbox = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    kind: column.text(),                    // group | gathering | claim-adopted | delete-gathering
+    groupId: column.text(),
+    meetupId: column.text({ optional: true }),
+    payload: column.text({ optional: true }), // deletion target after local row is gone
+    attempts: column.number({ default: 0 }),
+    nextAttemptAt: column.date({ optional: true }),
+    lastError: column.text({ optional: true }),
+    createdAt: column.date({ default: NOW }),
+    updatedAt: column.date({ default: NOW }),
   },
 });
 
@@ -353,7 +407,9 @@ export default defineDb({
     AppSession,
     OAuthState,
     OAuthSession,
+    PublicationOutbox,
     JetstreamCursor,
+    BackfilledRepos,
     AtEvents,
     AtRsvps,
     AtGroups,
