@@ -1,7 +1,7 @@
 import { NodeOAuthClient } from "@atproto/oauth-client-node";
-import { JoseKey } from "@atproto/jwk-jose";
 import { db, OAuthState, OAuthSession, eq } from "astro:db";
 import { assertOAuthStorageKeyConfigured, openOAuthValue, sealOAuthValue } from "./oauth-storage";
+import { loadOAuthSigningKey } from "./oauth-key";
 
 const isDev = import.meta.env.DEV;
 
@@ -43,8 +43,7 @@ async function buildKeyset() {
   const raw = import.meta.env.ATPROTO_PRIVATE_KEY_JWK ?? process.env.ATPROTO_PRIVATE_KEY_JWK;
   if (!raw) throw new Error("ATPROTO_PRIVATE_KEY_JWK must be configured in production");
   try {
-    const jwk = JSON.parse(raw);
-    const key = await JoseKey.fromJWK(jwk);
+    const key = await loadOAuthSigningKey(raw);
     return [key];
   } catch (e) {
     console.error("[atproto-oauth] Failed to load ATPROTO_PRIVATE_KEY_JWK:", e);

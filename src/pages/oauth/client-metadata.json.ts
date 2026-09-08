@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { JoseKey } from "@atproto/jwk-jose";
+import { loadOAuthSigningKey } from "../../lib/oauth-key";
 
 export const prerender = false;
 
@@ -25,7 +25,7 @@ export const GET: APIRoute = async () => {
 
   let jwks: { keys: object[] };
   try {
-    const key = await JoseKey.fromJWK(JSON.parse(raw));
+    const key = await loadOAuthSigningKey(raw);
     const pub = key.publicJwk;
     if (!pub) throw new Error("No public JWK");
     jwks = { keys: [pub] };
