@@ -46,7 +46,7 @@
   <rect x="80" y="400" width="80" height="5" rx="3" fill="#e8704a"/>
 
   <!-- Bottom tagline -->
-  <text x="80" y="460" font-family="system-ui, sans-serif" font-size="24" font-weight="600" fill="#e8704a">devrelish.com</text>
+  <text x="80" y="460" font-family="system-ui, sans-serif" font-size="24" font-weight="600" fill="#e8704a">devrelish.tech</text>
 
   <!-- Bottom border -->
   <rect x="0" y="622" width="1200" height="8" fill="#e8704a" fill-opacity="0.3"/>
